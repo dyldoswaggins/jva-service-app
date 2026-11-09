@@ -1,0 +1,33 @@
+/* Colours and type from CLAUDE.md §8 */
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --fg: #14232b; --muted: #5f6b70;
+  --line: #e2dccf; --line2: #efeae0; --navy: #003349; --gold: #9c7c3f;
+  --focus: #bb9b5f; --band: #f1ebdd; --hover: #faf8f3; --warn: #8a5a14; --warn-bg: #f8ecd7;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c1a21; --surface: #11232b; --fg: #ebe5d8; --muted: #97a5aa;
+    --line: #22404b; --line2: #1a323c; --navy: #d9c08a; --gold: #d2b47a;
+    --focus: #d2b47a; --band: #182e37; --hover: #152a33; --warn: #e6be7a; --warn-bg: #33281a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.top {
+  position: sticky; top: 0; display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--line);
+}
+.brand { color: var(--gold); font-size: 12px; letter-spacing: .12em; font-weight: 600; }
+.title { font-weight: 600; flex: 1; }
+.panel { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+.btn {
+  font: inherit; padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--navy); background: transparent; color: var(--navy);
+}
+.btn.solid { background: var(--navy); color: var(--bg); }
+.btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }

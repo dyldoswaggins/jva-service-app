@@ -1,0 +1,1534 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Rolex Spare Parts Count</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: slim header with totals; left index of Category > Subcategory with counts; dense part table on the right, each row expands to show details. */
+:root{
+  --bg:#f5f3ee; --surface:#ffffff; --fg:#14232b; --muted:#5f6b70; --line:#e2dccf; --line2:#efeae0;
+  --navy:#003349; --navy-fg:#ffffff; --gold:#9c7c3f; --band:#f1ebdd; --chip:#e8edef; --hover:#faf8f3;
+  --focus:#bb9b5f; --warn:#8a5a14; --warn-bg:#f8ecd7;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c1a21; --surface:#11232b; --fg:#ebe5d8; --muted:#97a5aa; --line:#22404b; --line2:#1a323c;
+  --navy:#d9c08a; --navy-fg:#0c1a21; --gold:#d2b47a; --band:#182e37; --chip:#1b3440; --hover:#152a33;
+  --focus:#d2b47a; --warn:#e6be7a; --warn-bg:#33281a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1a21; --surface:#11232b; --fg:#ebe5d8; --muted:#97a5aa; --line:#22404b; --line2:#1a323c;
+  --navy:#d9c08a; --navy-fg:#0c1a21; --gold:#d2b47a; --band:#182e37; --chip:#1b3440; --hover:#152a33;
+  --focus:#d2b47a; --warn:#e6be7a; --warn-bg:#33281a; color-scheme:dark}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.4}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button{font:inherit;color:inherit;cursor:pointer}
+input,select{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:5px 8px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--surface);border-bottom:1px solid var(--line)}
+header .wrap{padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+h1{margin:0;font-size:15px;font-weight:700;color:var(--navy);white-space:nowrap}
+h1 small{font-size:12px;font-weight:600;color:var(--gold);margin-right:8px;text-transform:uppercase;letter-spacing:.1em}
+.totals{display:flex;gap:16px;flex-wrap:wrap;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.totals b{color:var(--fg);font-weight:600}
+.tools{display:flex;flex-wrap:wrap;gap:6px;margin-left:auto;align-items:center}
+#q{width:220px;max-width:100%}
+.tog{display:flex;gap:5px;align-items:center;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:5px 10px;font-weight:600;font-size:12.5px;white-space:nowrap}
+.btn.solid{background:var(--navy);border-color:var(--navy);color:var(--navy-fg)}
+.btn:disabled{opacity:.5;cursor:default}
+
+.layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:16px;padding-block:14px 60px}
+nav.index{position:sticky;top:64px;align-self:start;max-height:calc(100vh - 80px);overflow:auto;font-size:13px}
+.ix-all,.ix-cat,.ix-sub{display:flex;justify-content:space-between;gap:8px;width:100%;border:0;background:none;text-align:left;padding:4px 8px;border-radius:4px;font-variant-numeric:tabular-nums}
+.ix-all,.ix-cat{font-weight:700;font-size:12px;color:var(--navy);margin-top:8px}
+.ix-all{margin-top:0}
+.ix-sub{padding-left:18px;color:var(--fg)}
+.ix-all span,.ix-cat span,.ix-sub span{color:var(--muted);font-weight:500}
+.ix-sub.done span{color:var(--gold);font-weight:600}
+[aria-current="true"]{background:var(--band)}
+.ix-select{display:none}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.panel h2{margin:0;font-size:12px;color:var(--navy)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.grid label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:0}
+.grid label input,.grid label select{width:100%;box-sizing:border-box}
+.actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.msg{font-size:12.5px;color:var(--muted)}
+.msg.warn{color:var(--warn)}
+
+.table{background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.thead,.row{display:grid;grid-template-columns:160px minmax(0,1fr) 56px 60px 40px 30px 78px;align-items:center;gap:8px;padding:0 10px}
+.thead{font-size:12px;font-weight:700;color:var(--muted);padding-block:7px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0}
+.cat-band{background:var(--navy);color:var(--navy-fg);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:6px 10px;display:flex;gap:8px;align-items:center;cursor:pointer;user-select:none}
+.cat-band .tally{margin-left:auto}
+.chev{display:inline-block;width:14px;font-size:12px;letter-spacing:0}
+.sub-band{cursor:pointer;user-select:none}
+.cat-band span{font-weight:500;text-transform:none;opacity:.85}
+.sub-band{background:var(--band);border-bottom:1px solid var(--line);border-top:1px solid var(--line);padding:5px 10px;display:flex;justify-content:space-between;gap:8px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.sub-band b{font-weight:700;color:var(--fg)}
+.sub-band b i{font-style:normal;color:var(--muted);font-weight:500;margin-right:6px}
+.sub-band span{color:var(--muted)}
+.cal-band{padding:3px 10px 3px 12px;font-size:12px;font-weight:600;color:var(--gold);border-bottom:1px solid var(--line2)}
+.row{min-height:34px;border-bottom:1px solid var(--line2);border-left:3px solid transparent;padding-left:7px}
+.row:hover{background:var(--hover)}
+.row.done{border-left-color:var(--gold)}
+.row.open{background:var(--hover)}
+.ref{font-variant-numeric:tabular-nums;font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.flagdot{display:inline-block;font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-bg);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.cal{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.count{display:flex;align-items:center;gap:3px}
+.count input{width:54px;text-align:center;font-variant-numeric:tabular-nums;font-weight:600;font-size:15px;padding:3px 2px}
+.sq{width:26px;height:26px;border:1px solid var(--line);background:var(--surface);border-radius:4px;font-size:15px;line-height:1;padding:0}
+.who{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.who b{color:var(--fg);font-weight:600}
+.info{width:26px;height:26px;border:1px solid var(--line);border-radius:4px;background:var(--surface);font-size:12px;font-weight:700;color:var(--navy);padding:0}
+.row.open .info{background:var(--navy);color:var(--navy-fg);border-color:var(--navy)}
+.more{grid-column:1/-1;padding:8px 2px 12px;display:flex;flex-direction:column;gap:10px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 16px;margin:0}
+.facts div{min-width:0}
+.facts dt{font-size:12px;font-weight:700;color:var(--muted)}
+.facts dd{margin:0;font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.flagline{font-size:12.5px;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:5px 8px}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+
+.imp-head{font-size:13px}
+.imp-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:5px}
+table.imp{border-collapse:collapse;width:100%;font-size:12.5px}
+.imp th,.imp td{padding:4px 7px;border-bottom:1px solid var(--line2);text-align:left;white-space:nowrap;vertical-align:middle}
+.imp th{font-size:12px;color:var(--muted);background:var(--band)}
+.imp .r{text-align:right;font-variant-numeric:tabular-nums}
+.imp .mono{font-variant-numeric:tabular-nums;font-weight:600;font-size:15px}.imp .b{font-weight:600}
+.imp td.d{max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.imp input[type=number]{width:62px;text-align:right;padding:2px 4px}
+.imp select{padding:2px 4px;font-size:12px}
+.imp tr.off td{opacity:.45}
+.imp .new{color:var(--warn);font-weight:700;font-size:12px}
+.views{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.views button[data-view]{border:1px solid var(--line);background:var(--surface);border-radius:5px;padding:5px 12px;font-weight:600;font-size:12.5px}
+.views button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--navy-fg)}
+input.sm{width:78px}
+#quick{width:190px;font-variant-numeric:tabular-nums}
+.lowdot{display:inline-block;font-size:12px;font-weight:700;color:var(--navy-fg);background:var(--navy);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.loc{color:var(--muted);font-size:12px;margin-left:8px;font-variant-numeric:tabular-nums}
+.imp tr.grp td{background:var(--band);font-weight:700;font-size:12px}
+.imp tr.sub>td{padding:6px 10px 10px;background:var(--hover)}
+table.imp.inner{background:var(--surface)}
+.stock{border-top:1px dashed var(--line);padding-top:8px}
+#quickOut{gap:6px}
+@media (max-width:820px){
+  .layout{grid-template-columns:1fr}
+  nav.index{display:none}
+  .ix-select{display:block;width:100%}
+  .thead{display:none}
+  .row{grid-template-columns:minmax(0,1fr) auto auto 30px auto;grid-template-areas:"ref count minc info pm" "desc desc desc desc desc";padding-block:6px;row-gap:2px}
+  .ref{grid-area:ref}.desc{grid-area:desc;white-space:normal}.cal{display:none}.count{grid-area:count}.info{grid-area:info}.pm{grid-area:pm}.minc{grid-area:minc}
+  #q{width:100%}
+  .tools{margin-left:0}
+  h1{white-space:normal}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+#vcText{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;margin:6px 0;background:var(--surface);color:inherit}
+#vcDrawer{font:inherit;padding:5px 8px;max-width:100%}
+.btn.rec{outline:3px solid currentColor;outline-offset:1px}
+.heard{font-size:12px;opacity:.75;max-width:220px}
+#calF,#modelF{font:inherit;padding:5px 6px;max-width:170px}
+.mhint{padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface);font-size:14px;line-height:1.5}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:12px;padding:1px 8px;margin:1px 2px;font-size:13px;white-space:nowrap}
+.chip .x{border:0;background:none;padding:0 0 0 4px;cursor:pointer;font:inherit;color:inherit}
+button.link{border:0;background:none;padding:0;text-decoration:underline;cursor:pointer;font:inherit;color:inherit}
+#modelsView input[type=text]{font:inherit;padding:4px 6px}
+.exp{display:grid;gap:8px;margin:10px 0}
+.exp-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:var(--surface)}
+.exp-row b{display:block}
+.exp-row .msg{display:block}
+#sPart{font:inherit;padding:5px 6px;max-width:260px}
+.osdot{display:inline-block;margin-left:6px;padding:0 6px;border:1px dashed currentColor;border-radius:9px;font-size:12px;font-weight:600}
+.pm{display:flex;align-items:center;gap:3px;margin-left:10px}.pm .slash{opacity:.5}
+.row>.more{grid-column:1/-1}
+.minc{text-align:center;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}.minc.sug{font-weight:400;font-style:italic;opacity:.65}
+</style>
+
+<header>
+  <div class="wrap">
+    <h1><small>J. Vair Anderson</small>Rolex spare parts count</h1>
+    <div class="totals" aria-live="polite">
+      <span>Counted <b id="tCounted">–</b></span>
+      <span>Units <b id="tUnits">–</b></span>
+      <span>Value <b id="tValue">–</b></span>
+    </div>
+    <div class="tools">
+      <input id="quick" type="text" placeholder="Scan or type code" aria-label="Scan or type a part code" autocomplete="off">
+      <input id="q" type="search" placeholder="Search part #, name, calibre or model" aria-label="Search parts">
+      <select id="calF" aria-label="Calibre"><option value="">All calibres</option></select>
+      <select id="modelF" aria-label="Model"><option value="">All models</option></select>
+      <label class="tog"><input type="checkbox" id="onlyOpen"> Not counted</label>
+      <label class="tog"><input type="checkbox" id="onlyFlag"> To check</label>
+      <button class="btn" id="addBtn" type="button">Add part</button>
+      <button class="btn" id="importBtn" type="button">Import</button>
+      <button class="btn" id="voiceBtn" type="button">Voice count</button>
+      <button class="btn" id="sheetsBtn" type="button">Export</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap layout">
+  <nav class="index" id="index" aria-label="Categories"></nav>
+  <datalist id="modelList"></datalist>
+  <main>
+    <select class="ix-select" id="ixSelect" aria-label="Category"></select>
+    <div class="views" role="group" aria-label="View">
+      <button type="button" data-view="parts" aria-pressed="true">Parts</button>
+      <button type="button" data-view="reorder" aria-pressed="false" id="reorderTab">Reorder</button>
+      <button type="button" data-view="history" aria-pressed="false">History</button>
+      <button type="button" data-view="models" aria-pressed="false">Models</button>
+      <span style="flex:1"></span>
+      <button type="button" class="btn" data-shutall="1">Collapse all</button>
+      <button type="button" class="btn" data-shutall="0">Expand all</button>
+      <button type="button" class="btn" id="photoBtn">Drawer photo check</button>
+    </div>
+    <section class="panel" id="quickOut" hidden></section>
+    <section class="panel" id="photoPanel" hidden>
+      <h2>Drawer photo check (beta)</h2>
+      <p class="msg">Take a straight-on photo of one Lista drawer. Claude reads the tab numbers and counts what it can see, matched to parts saved with that cabinet, drawer and tab. Treat the numbers as a cross-check. Nothing is saved until you press Use on a line.</p>
+      <div class="actions">
+        <input id="phCab" type="text" placeholder="Cabinet" class="sm" aria-label="Cabinet">
+        <input id="phDrw" type="text" placeholder="Drawer" class="sm" aria-label="Drawer">
+        <input type="file" id="phFile" accept="image/jpeg,image/png,image/webp" aria-label="Drawer photo">
+        <button type="button" class="btn solid" id="phRun">Check photo</button>
+        <span class="msg" id="phMsg"></span>
+      </div>
+      <div id="phOut"></div>
+    </section>
+    <section class="panel" id="addPanel" hidden></section>
+    <section class="panel" id="sheetsPanel" hidden>
+      <h2>Export</h2>
+      <div class="grid">
+        <label>Count date<input id="sDate" type="date"></label>
+        <label>Counted by<input id="sBy" type="text" placeholder="Names of counters"></label>
+        <label>Verified by (Service Manager)<input id="sVer" type="text" placeholder="Name"></label>
+      </div>
+      <div class="exp">
+        <div class="exp-row"><div><b>Full inventory count sheet</b><span class="msg">Every part in two columns: location, Rolex part #, current count, count box.</span></div>
+          <button class="btn solid" type="button" id="pdfFull">Full inventory (PDF)</button></div>
+        <div class="exp-row"><div><b>Partial count sheet</b><span class="msg">One category or subcategory, same layout.</span></div>
+          <div class="actions"><select id="sPart" aria-label="Category or subcategory"></select><button class="btn solid" type="button" id="pdfPart">Partial (PDF)</button></div></div>
+        <div class="exp-row"><div><b>Inventory report</b><span class="msg">Clean list of parts and quantities by category, with totals and sign-off.</span></div>
+          <div class="actions"><label class="tog"><input type="checkbox" id="sCost"> Include cost and value</label><label class="tog"><input type="checkbox" id="sRetail"> Include retail</label><button class="btn solid" type="button" id="pdfReport">Inventory report (PDF)</button></div></div>
+      </div>
+      <label class="tog"><input type="checkbox" id="sHide0"> Hide out of stock (counted 0)</label>
+      <label class="tog"><input type="checkbox" id="sByLoc"> Order count sheets by Lista location (cabinet, drawer, tab)</label>
+      <div class="actions">
+        <span class="msg">More:</span>
+        <button class="btn" type="button" id="pdfDrawers">Drawer count sheets (PDF)</button>
+        <button class="btn" type="button" id="xlsx">Excel file (all data)</button>
+      </div>
+      <p class="msg" id="sheetMsg">Drawer sheets and Excel follow the section picked on the left.</p>
+      <h2>Scan filled drawer sheets</h2>
+      <div class="actions">
+        <input type="file" id="scFile" accept=".pdf,image/jpeg,image/png,image/webp" multiple aria-label="Filled count sheets">
+        <button type="button" class="btn solid" id="scRead">Read sheets</button>
+        <span class="msg" id="scMsg">One page per photo, straight on. Nothing changes until Apply.</span>
+      </div>
+      <div id="vcBox">
+      <h2>Count by voice</h2>
+      <div class="actions">
+        <select id="vcDrawer" aria-label="Drawer"><option value="">All parts in this section</option></select>
+        <button type="button" class="btn solid" id="vcMic">Start talking</button>
+      </div>
+      <textarea id="vcText" rows="5" placeholder="Say the tab or part number, then the count. E.g. “tab 12, two blisters, three loose. 3135-5110, four blisters.” You can also dictate or type here." aria-label="Spoken counts"></textarea>
+      <div class="actions">
+        <button type="button" class="btn solid" id="vcRead">Read counts</button>
+        <button type="button" class="btn" id="vcClear">Clear</button>
+        <span class="msg" id="vcMsg">Nothing changes until Apply.</span>
+      </div>
+      </div>
+      <div id="scPreview"></div>
+    </section>
+    <section class="panel" id="importPanel" hidden>
+      <h2>Import a parts invoice</h2>
+      <p class="msg">Upload a Rolex parts invoice as a PDF, a photo, or an Excel/CSV file. Claude reads the lines, turns blister packs into units (B3135-5100-G100 × 1 = 100 units) and matches each part to the list. Nothing changes until you press Apply.</p>
+      <div class="actions">
+        <input type="file" id="impFile" accept=".pdf,.xlsx,.xls,.csv,image/jpeg,image/png,image/webp" aria-label="Invoice file">
+        <button type="button" class="btn solid" id="impRead">Read invoice</button>
+        <span class="msg" id="impMsg"></span>
+      </div>
+      <div id="impPreview"></div>
+    </section>
+    <section id="reorderView" hidden></section>
+    <section id="historyView" hidden></section>
+    <section id="modelsView" hidden></section>
+    <div class="table" id="partsView">
+      <div class="thead"><span>Rolex part #</span><span>Description</span><span>Calibre</span><span>Count</span><span title="Minimum stock; grey italic = suggested">Min</span><span></span><span>+ / −</span></div>
+      <div id="list"><div class="empty" id="loading">Loading the parts list…</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script>
+const CATS = {
+  "Case": ["Crown","Crystals","Gaskets","Bezels","Case backs","Pushers","Screws","TBD"],
+  "Bracelet": ["Spring bars","Links","Clasps","Screws","Bracelets","Straps","TBD"],
+  "Movement": ["15xx","20xx","21xx","22xx","30xx","31xx","32xx","41xx","Interchangeable","TBD"],
+  "Display": ["Hands","Dials","Screws"]
+};
+const CAT_ORDER = Object.keys(CATS);
+const PACKS = [1,5,10,20,25,50,100];
+const parts = new Map();
+let profiles = {}, me = { id: null }, db = null, user = null, downloads = null;
+let canWrite = true, loaded = false;
+const st = { shut: new Set((() => { try { return JSON.parse(localStorage.getItem("jva-parts-shut") || "[]"); } catch (e) { return []; } })()), view: "parts", cat: "All", sub: null, q: "", cal: "", model: "", onlyOpen: false, onlyFlag: false, open: null, edit: false, delArm: null };
+const writing = new Map(), pending = new Map();
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n => "$" + (Number(n) || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = n => (Number(n) || 0).toLocaleString("en-CA");
+const isCounted = p => typeof p.qty === "number";
+const fmtTime = t => t ? new Date(t).toLocaleString("en-CA", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+const fmtDate = d => d ? new Date(d + "T12:00:00").toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" }) : "";
+const who = id => (id && profiles[id] && profiles[id].name) || (id ? "Someone" : "");
+const short = n => { const s = String(n || "").trim().split(/\s+/); return s.length > 1 ? s[0] + " " + s[1][0] + "." : s[0] || ""; };
+
+function sortParts(list) {
+  return list.sort((a, b) =>
+    CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat) ||
+    (CATS[a.cat] || []).indexOf(a.sub) - (CATS[b.cat] || []).indexOf(b.sub) ||
+    String(a.cal || "").localeCompare(String(b.cal || "")) ||
+    String(a.rmc).localeCompare(String(b.rmc), undefined, { numeric: true }));
+}
+function inSection(p) { return (st.cat === "All" || p.cat === st.cat) && (!st.sub || p.sub === st.sub); }
+/* ---------- calibre + model ---------- */
+const models = new Map();
+const digits = x => String(x || "").replace(/\D/g, "");
+const fitsOf = p => String(p.fits || "").split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+const calsOf = m => String(m.cal || "").split(/[,;\/\s]+/).map(x => x.trim()).filter(Boolean);
+const modelId = ref => "m_" + String(ref).toUpperCase().replace(/[^A-Z0-9]/g, "");
+function fitsModel(p, m) {
+  const d = digits(m.ref);
+  return (d.length >= 4 && fitsOf(p).some(f => digits(f) === d)) || (!!p.cal && calsOf(m).includes(p.cal));
+}
+function modelsMatching(q) {
+  if (!q || q.length < 3) return [];
+  const qd = digits(q);
+  return [...models.values()].filter(m => (qd.length >= 4 && qd === q.replace(/[^0-9]/g, "") && digits(m.ref).startsWith(qd)) || String(m.ref).toLowerCase() === q || (/[a-z]/.test(q) && String(m.name || "").toLowerCase().includes(q)));
+}
+function modelHint() {
+  const ms = st.model ? [models.get(st.model)].filter(Boolean) : modelsMatching(st.q.trim().toLowerCase());
+  if (!ms.length) return "";
+  return `<div class="mhint">${ms.slice(0, 4).map(m => `<b>${esc(m.ref)}</b> ${esc(m.name || "")} · calibre ${esc(m.cal || "not set")}${m.ok ? "" : " · <i>unconfirmed</i>"}`).join("<br>")}<br><span class="msg">Showing parts tagged to the model plus parts for its calibre.</span></div>`;
+}
+function fillFilters() {
+  const cs = {}; for (const p of parts.values()) if (p.cal) cs[p.cal] = (cs[p.cal] || 0) + 1;
+  const c = $("#calF"), m = $("#modelF");
+  c.innerHTML = `<option value="">All calibres</option>` + Object.keys(cs).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(k => `<option value="${esc(k)}">${esc(k)} (${cs[k]})</option>`).join("");
+  c.value = st.cal;
+  const ms = [...models.values()].sort((a, b) => String(a.ref).localeCompare(String(b.ref), undefined, { numeric: true }));
+  m.innerHTML = `<option value="">All models</option>` + ms.map(x => `<option value="${esc(x.id)}">${esc(x.ref)}${x.name ? " · " + esc(x.name) : ""}</option>`).join("");
+  m.value = models.has(st.model) ? st.model : "";
+  $("#modelList").innerHTML = ms.map(x => `<option value="${esc(x.ref)}">${esc(x.name || "")}</option>`).join("");
+}
+async function tagModel(id, ref) {
+  const p = parts.get(id); ref = String(ref || "").trim().toUpperCase(); if (!p || !ref || !db) return;
+  if (fitsOf(p).some(f => digits(f) === digits(ref) && digits(ref))) return;
+  const fits = fitsOf(p).concat(ref).join(", ");
+  parts.set(id, Object.assign({}, p, { fits })); patchRow(id); await writePart(id, { fits });
+  const mid = modelId(ref);
+  if (!models.has(mid)) { try { await db.collection("models").doc(mid).set({ ref, name: "", cal: "", ok: false, by: me.id, at: Date.now(), src: "Tagged on part " + p.rmc }); } catch (e) {} }
+}
+async function untagModel(id, ref) {
+  const p = parts.get(id); if (!p) return;
+  const fits = fitsOf(p).filter(f => f !== ref).join(", ");
+  parts.set(id, Object.assign({}, p, { fits })); patchRow(id); await writePart(id, { fits });
+}
+function renderModels() {
+  const box = $("#modelsView"), ms = [...models.values()].sort((a, b) => String(a.ref).localeCompare(String(b.ref), undefined, { numeric: true }));
+  const all = [...parts.values()];
+  const rows = ms.map(m => {
+    const n = all.filter(p => fitsModel(p, m)).length;
+    return `<tr data-mid="${esc(m.id)}"><td class="mono b">${esc(m.ref)}</td>
+      <td><input type="text" data-mf="name" value="${esc(m.name || "")}" placeholder="e.g. Submariner Date" aria-label="Model name"></td>
+      <td><input type="text" data-mf="cal" value="${esc(m.cal || "")}" placeholder="e.g. 3135" style="width:110px" aria-label="Calibre"></td>
+      <td class="r"><button type="button" class="link" data-mshow="${esc(m.id)}">${n} parts</button></td>
+      <td><label class="tog"><input type="checkbox" data-mf="ok"${m.ok ? " checked" : ""} ${canWrite ? "" : "disabled"}> Confirmed</label></td>
+      <td class="msg">${esc(m.src || "")}</td></tr>`;
+  }).join("");
+  box.innerHTML = `<div class="panel">
+    <div class="actions"><h2 style="margin-right:auto">Models</h2>
+      <input id="mRef" type="text" placeholder="Reference, e.g. 126610LN" aria-label="New model reference" style="width:170px">
+      <input id="mName" type="text" placeholder="Name" aria-label="New model name" style="width:170px">
+      <input id="mCal" type="text" placeholder="Calibre" aria-label="New model calibre" style="width:90px">
+      <button type="button" class="btn solid" id="mAdd" ${canWrite ? "" : "disabled"}>Add model</button></div>
+    <p class="msg">A model shows its own tagged parts plus every part for its calibre. Tag case, bracelet and display parts to a model from a part's More info. Changes save when you leave a box.</p>
+    <div class="imp-wrap"><table class="imp"><thead><tr><th>Reference</th><th>Name</th><th>Calibre(s)</th><th class="r">Parts</th><th>Status</th><th>Source</th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="msg">No models yet.</td></tr>`}</tbody></table></div>
+    <span class="msg" id="mMsg"></span></div>`;
+}
+async function saveModel(mid, data) {
+  const m = models.get(mid); if (!m || !db) return;
+  models.set(mid, Object.assign({}, m, data)); fillFilters();
+  try { await db.collection("models").doc(mid).update(Object.assign({ by: me.id, at: Date.now() }, data)); } catch (e) { $("#mMsg").textContent = "That change didn't save. Try again."; }
+}
+document.addEventListener("change", e => {
+  const t = e.target, tr = t.closest && t.closest("tr[data-mid]");
+  if (tr && t.dataset.mf) { const f = t.dataset.mf; saveModel(tr.dataset.mid, { [f]: f === "ok" ? t.checked : t.value.trim() }); return; }
+  if (t.id === "calF") { st.cal = t.value; renderList(); }
+  if (t.id === "modelF") { st.model = t.value; renderList(); }
+});
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.id === "mAdd") {
+    const ref = $("#mRef").value.trim().toUpperCase(); if (!ref) { $("#mMsg").textContent = "Enter a reference."; return; }
+    const mid = modelId(ref); if (models.has(mid)) { $("#mMsg").textContent = ref + " is already listed."; return; }
+    const doc = { ref, name: $("#mName").value.trim(), cal: $("#mCal").value.trim(), ok: true, by: me.id, at: Date.now(), src: "Added by staff" };
+    models.set(mid, Object.assign({ id: mid }, doc)); renderModels(); fillFilters();
+    try { await db.collection("models").doc(mid).set(doc); } catch (err) { $("#mMsg").textContent = "That model didn't save. Try again."; }
+    return;
+  }
+  if (t.dataset.mshow) { st.model = t.dataset.mshow; st.cat = "All"; st.sub = null; fillFilters(); setView("parts"); renderIndex(); renderList(); return; }
+  if (t.dataset.act === "addfit") { const row = t.closest(".row"), inp = row && row.querySelector(".fitIn"); if (row && inp && inp.value.trim()) await tagModel(row.dataset.id, inp.value); return; }
+  if (t.dataset.unfit) { const row = t.closest(".row"); if (row) await untagModel(row.dataset.id, t.dataset.unfit); return; }
+});
+function filtered(forSheets) {
+  const q = st.q.trim().toLowerCase(), qModels = modelsMatching(q);
+  return sortParts([...parts.values()].filter(p => inSection(p) && (forSheets || (
+    (!q || String(p.rmc).toLowerCase().includes(q) || String(p.name).toLowerCase().includes(q) || String(p.edgeDesc || "").toLowerCase().includes(q) || locStr(p).toLowerCase().includes(q) || String(p.cal || "").toLowerCase() === q || String(p.fits || "").toLowerCase().includes(q) || qModels.some(m => fitsModel(p, m))) &&
+    (!st.cal || p.cal === st.cal) && (!st.model || (models.get(st.model) && fitsModel(p, models.get(st.model)))) &&
+    (!st.onlyOpen || !isCounted(p)) && (!st.onlyFlag || p.flag)))));
+}
+const tally = list => `${list.filter(isCounted).length} / ${list.length}`;
+
+/* ---------- header + index ---------- */
+function renderTotals() {
+  const all = [...parts.values()], counted = all.filter(isCounted);
+  $("#tCounted").textContent = loaded ? `${counted.length} / ${all.length}` : "–";
+  $("#tUnits").textContent = loaded ? num(counted.reduce((s, p) => s + p.qty, 0)) : "–";
+  $("#tValue").textContent = loaded ? money(counted.reduce((s, p) => s + p.qty * (Number(p.price) || 0), 0)) : "–";
+}
+function renderIndex() {
+  const all = [...parts.values()];
+  let html = `<button type="button" class="ix-all" data-cat="All" aria-current="${st.cat === "All"}">All parts<span>${tally(all)}</span></button>`;
+  let opts = `<option value="All|">All parts (${tally(all)})</option>`;
+  for (const c of CAT_ORDER) {
+    const inC = all.filter(p => p.cat === c);
+    html += `<button type="button" class="ix-cat" data-cat="${c}" aria-current="${st.cat === c && !st.sub}">${c}<span>${tally(inC)}</span></button>`;
+    opts += `<option value="${c}|"${st.cat === c && !st.sub ? " selected" : ""}>${c} (${tally(inC)})</option>`;
+    for (const s of CATS[c]) {
+      const inS = inC.filter(p => p.sub === s);
+      const done = inS.length && inS.every(isCounted);
+      html += `<button type="button" class="ix-sub${done ? " done" : ""}" data-cat="${c}" data-sub="${esc(s)}" aria-current="${st.cat === c && st.sub === s}">${esc(s)}<span>${tally(inS)}</span></button>`;
+      opts += `<option value="${c}|${esc(s)}"${st.cat === c && st.sub === s ? " selected" : ""}>&nbsp;&nbsp;${c} › ${esc(s)} (${tally(inS)})</option>`;
+    }
+  }
+  $("#index").innerHTML = html;
+  $("#ixSelect").innerHTML = opts;
+}
+
+/* ---------- table ---------- */
+function rowHtml(p) {
+  const done = isCounted(p), open = st.open === p.id;
+  const dis = canWrite ? "" : "disabled";
+  return `<div class="row${done ? " done" : ""}${open ? " open" : ""}" data-id="${esc(p.id)}">
+    <span class="ref" title="${esc(p.rmc)}">${esc(p.rmc)}</span>
+    <span class="desc" title="${esc(p.name)}">${esc(p.name)}${isLow(p) ? `<span class="lowdot" title="At or below minimum of ${minOf(p)}">Order</span>` : ""}${p.flag ? `<span class="flagdot" title="${esc(p.flag)}">Check</span>` : ""}${Number(p.over) > 0 ? `<span class="osdot" title="Count includes ${num(p.over)} overstock">+${num(p.over)} OS</span>` : ""}${locStr(p) ? `<span class="loc">${esc(locStr(p))}</span>` : ""}</span>
+    <span class="cal">${esc(p.cal || (p.sub === "Interchangeable" ? "Int." : ""))}</span>
+    <span class="count">
+      <input type="number" inputmode="numeric" min="0" step="1" id="q_${esc(p.id)}" value="${done ? p.qty : ""}" placeholder="–" aria-label="Count for ${esc(p.rmc)}" ${dis}>
+    </span>
+    <span class="minc${typeof p.min === "number" ? "" : " sug"}" title="${minOf(p) ? (typeof p.min === "number" ? "Minimum stock" : "Suggested minimum (from 2025–26 use)") : "No minimum"}">${minOf(p) ? num(minOf(p)) : "–"}</span>
+    <button type="button" class="info" data-act="more" aria-expanded="${open}" aria-label="More info for ${esc(p.rmc)}" title="More info">i</button>
+    <span class="pm">
+      <button type="button" class="sq" data-act="inc" aria-label="Add one" ${dis}>+</button><span class="slash" aria-hidden="true">/</span><button type="button" class="sq" data-act="dec" aria-label="Remove one" ${dis}>−</button>
+    </span>
+    ${open ? moreHtml(p) : ""}
+  </div>`;
+}
+function moreHtml(p) {
+  if (st.edit) return `<div class="more">${formHtml(p, false)}</div>`;
+  const done = isCounted(p);
+  const f = (k, v) => `<div><dt>${k}</dt><dd>${v}</dd></div>`;
+  return `<div class="more">
+    <dl class="facts">
+      ${f("Category", `${esc(p.cat)} › ${esc(p.sub)}`)}
+      ${f("Calibre", esc(p.cal || "—"))}
+      ${f("Fits models", fitsOf(p).length ? fitsOf(p).map(r => { const m = models.get(modelId(r)); return `<span class="chip">${esc(r)}${m && m.name ? " " + esc(m.name) : ""}${canWrite ? ` <button type="button" class="x" data-unfit="${esc(r)}" aria-label="Remove ${esc(r)}">×</button>` : ""}</span>`; }).join(" ") : "None yet")}
+      ${f("Order class", esc(p.abc || "—") + (p.abc === "A" ? " (up to 25)" : p.abc === "B" ? " (up to 5)" : p.abc === "C" ? " (1 only)" : ""))}
+      ${f("Unit cost", (p.price != null && p.price !== "" ? money(p.price) : "No price") + (packOf(p) > 1 ? ` · pack of ${packOf(p)}${p.packPrice != null ? ` ${money(p.packPrice)}` : ""}` : ""))}
+      ${p.priceSrc ? f("Cost from", esc(p.priceSrc)) : ""}
+      ${f("Retail", p.retail != null && p.retail !== "" ? money(p.retail) + " per unit" + (p.retailSrc ? ` · ${esc(p.retailSrc)}` : "") : "No retail price")}
+      ${Number(p.over) > 0 ? f("Overstock", `${num(p.over)} of the count is overstock`) : ""}
+      ${f("Stock value", done && p.price ? money(p.qty * p.price) : "—")}
+      ${f("Used since Jan 2025", p.used ? `${num(p.used)}× on ${num(p.jobs)} jobs` : "Not used")}
+      ${f("Last used", esc(fmtDate(p.lastUsed) || "—"))}
+      ${f("Counted", done ? `${num(p.qty)} by ${esc(who(p.cBy))}, ${esc(fmtTime(p.cAt))}` : "Not counted")}
+      ${p.edgeDesc ? f("EDGE description", esc(p.edgeDesc)) : ""}
+      ${p.edgeRefs ? f("Ordered as", esc(p.edgeRefs)) : ""}
+      ${p.price2022 != null ? f("2022 list price", money(p.price2022)) : ""}
+      ${f("Lista location", esc(locStr(p) || "Not set"))}
+      ${f("Min stock", minOf(p) ? num(minOf(p)) + (typeof p.min === "number" ? "" : " (suggested)") + (isLow(p) ? " · below" : "") : "—")}
+      ${p.note ? f("Note", esc(p.note)) : ""}
+    </dl>
+    ${p.flag ? `<div class="flagline">To check: ${esc(p.flag)}</div>` : ""}
+    ${stockHtml(p)}
+    <div class="actions">
+      <span class="msg">Blister packs:</span>
+      <select id="pkSize" aria-label="Blister size">${PACKS.map(n => `<option value="${n}">${n} per pack</option>`).join("")}</select>
+      <span class="msg">×</span>
+      <input id="pkN" type="number" min="1" step="1" value="1" style="width:56px" aria-label="Number of packs">
+      <button type="button" class="btn" data-act="packadd" ${canWrite ? "" : "disabled"}>Add to count</button>
+      <button type="button" class="btn" data-act="packset" ${canWrite ? "" : "disabled"}>Set count</button>
+      <span style="flex:1"></span>
+      <input class="fitIn" type="text" placeholder="Model ref, e.g. 126610LN" style="width:170px" aria-label="Tag a model" list="modelList">
+      <button type="button" class="btn" data-act="addfit" ${canWrite ? "" : "disabled"}>Tag model</button>
+      ${p.flag ? `<button type="button" class="btn" data-act="clearflag" ${canWrite ? "" : "disabled"}>Mark checked</button>` : ""}
+      <button type="button" class="btn" data-act="edit" ${canWrite ? "" : "disabled"}>Edit part</button>
+    </div>
+  </div>`;
+}
+function formHtml(p, isNew) {
+  p = p || { cat: st.cat !== "All" ? st.cat : "Movement", sub: st.sub || "", abc: "B" };
+  const subs = CATS[p.cat] || [];
+  return `<div class="grid">
+    ${isNew ? `<label>Rolex part # (RMC)<input id="fRmc" type="text" placeholder="e.g. 3135-5100"></label>` : ""}
+    <label>Description<input id="fName" type="text" value="${esc(p.name)}"></label>
+    <label>Category<select id="fCat">${CAT_ORDER.map(c => `<option${c === p.cat ? " selected" : ""}>${c}</option>`).join("")}</select></label>
+    <label>Subcategory<select id="fSub">${subs.map(s => `<option${s === p.sub ? " selected" : ""}>${esc(s)}</option>`).join("")}</select></label>
+    <label>Calibre<input id="fCal" type="text" value="${esc(p.cal)}" placeholder="Blank if interchangeable"></label>
+    <label>Fits models<input id="fFits" type="text" value="${esc(p.fits || "")}" placeholder="e.g. 126610LN, 116610"></label>
+    <label>Order class<select id="fAbc">${["A","B","C"].map(c => `<option${c === p.abc ? " selected" : ""}>${c}</option>`).join("")}</select></label>
+    <label>Unit cost ($)<input id="fPrice" type="number" step="0.01" min="0" value="${p.price ?? ""}"></label>
+    <label>Retail ($ per unit)<input id="fRetail" type="number" step="0.01" min="0" value="${p.retail ?? ""}"></label>
+    <label>Note<input id="fNote" type="text" value="${esc(p.note)}" placeholder="Location, condition…"></label>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn solid" data-act="${isNew ? "create" : "save"}">${isNew ? "Add part" : "Save changes"}</button>
+    <button type="button" class="btn" data-act="cancel">Cancel</button>
+    ${!isNew ? `<button type="button" class="btn" data-act="del">${st.delArm === p.id ? "Tap again to delete" : "Delete part"}</button>` : ""}
+    <span class="msg" id="formMsg"></span>
+  </div>`;
+}
+function renderList() {
+  if (!loaded) return;
+  const list = $("#list");
+  const focus = document.activeElement && document.activeElement.id;
+  const items = filtered(false);
+  if (!parts.size) { list.innerHTML = `<div class="empty">No parts yet. Use “Add part” to start.</div>`; return; }
+  if (!items.length) { list.innerHTML = `<div class="empty">No parts match. Clear the search or filters.</div>`; return; }
+  const all = [...parts.values()];
+  let html = modelHint(), c0, s0, k0;
+  const searching = !!st.q.trim();
+  const isShut = k => !searching && st.shut.has(k);
+  for (const p of items) {
+    const ck = "c:" + p.cat, sk = "s:" + p.cat + "|" + p.sub;
+    if (p.cat !== c0) {
+      html += `<div class="cat-band" role="button" tabindex="0" data-tog="${esc(ck)}" aria-expanded="${!isShut(ck)}"><span class="chev">${isShut(ck) ? "▸" : "▾"}</span>${esc(p.cat)}<span class="tally">${tally(all.filter(x => x.cat === p.cat))} counted</span></div>`;
+      c0 = p.cat; s0 = null;
+    }
+    if (isShut(ck)) continue;
+    if (p.sub !== s0) {
+      const inS = all.filter(x => x.cat === p.cat && x.sub === p.sub);
+      html += `<div class="sub-band" role="button" tabindex="0" data-tog="${esc(sk)}" aria-expanded="${!isShut(sk)}"><b><span class="chev">${isShut(sk) ? "▸" : "▾"}</span><i>${esc(p.cat)} ›</i>${esc(p.sub)}</b><span>${tally(inS)} counted</span></div>`;
+      s0 = p.sub; k0 = null;
+    }
+    if (isShut(sk)) continue;
+    const cal = p.cal || "";
+    if (cal && cal !== k0) html += `<div class="cal-band">Calibre ${esc(cal)}</div>`;
+    k0 = cal;
+    html += rowHtml(p);
+  }
+  list.innerHTML = html;
+  if (focus) { const el = document.getElementById(focus); if (el) el.focus(); }
+}
+function patchRow(id) {
+  const el = document.querySelector(`.row[data-id="${CSS.escape(id)}"]`); if (!el) return;
+  const inp = el.querySelector("input[id^=q_]");
+  const focused = inp && document.activeElement === inp;
+  const tmp = document.createElement("div"); tmp.innerHTML = rowHtml(parts.get(id));
+  const fresh = tmp.firstElementChild;
+  if (focused) fresh.querySelector("input[id^=q_]").value = inp.value;
+  el.replaceWith(fresh);
+  if (focused) { const ni = document.getElementById(inp.id); ni && ni.focus(); }
+}
+function renderAll() { fillFilters(); fillPartSel(); renderTotals(); renderIndex(); renderList(); renderReorderTab(); if (st.view === "reorder") renderReorder(); }
+
+/* ---------- writes ---------- */
+async function writePart(id, data) {
+  if (!db) return;
+  if (writing.get(id)) { pending.set(id, Object.assign(pending.get(id) || {}, data)); return; }
+  writing.set(id, true);
+  try { await db.collection("parts").doc(id).update(data); }
+  catch (e) {
+    if (e && e.code === "invalid_argument") { canWrite = false; note("You can view this list but not change it. Ask Dylan for Contributor access."); renderList(); }
+    else note("That change didn't save. Check your connection and try again.");
+  } finally {
+    writing.set(id, false);
+    if (pending.has(id)) { const d = pending.get(id); pending.delete(id); writePart(id, d); }
+  }
+}
+async function logChange(p, prev, qty, at) { try { await db.collection("log").add({ pid: p.id, rmc: p.rmc, prev, qty, by: me.id, at }); } catch (e) {} }
+async function setCount(id, qty) {
+  const p = parts.get(id); if (!p) return;
+  qty = Math.max(0, Math.round(qty));
+  const prev = isCounted(p) ? p.qty : null;
+  if (prev === qty) return;
+  const data = { qty, cBy: me.id, cAt: Date.now() };
+  parts.set(id, Object.assign({}, p, data));
+  renderTotals(); renderIndex(); renderReorderTab(); patchRow(id);
+  await writePart(id, data); logChange(p, prev, qty, data.cAt);
+}
+async function clearCount(id) {
+  const p = parts.get(id); if (!p || !isCounted(p)) return;
+  const at = Date.now();
+  parts.set(id, Object.assign({}, p, { qty: null, cBy: me.id, cAt: at }));
+  renderTotals(); renderIndex(); patchRow(id);
+  await writePart(id, { qty: null, cBy: me.id, cAt: at }); logChange(p, p.qty, null, at);
+}
+function note(t) { const f = $("#formMsg"); if (f) { f.textContent = t; return; } $("#sheetsPanel").hidden = false; $("#sheetMsg").textContent = t; }
+function readForm() {
+  const v = id => { const el = document.getElementById(id); return el ? el.value.trim() : ""; };
+  const price = v("fPrice"), retail = v("fRetail");
+  return { retail: retail === "" ? null : Number(retail), name: v("fName"), cat: v("fCat"), sub: v("fSub"), cal: v("fCal"), abc: v("fAbc"), price: price === "" ? null : Number(price), note: v("fNote"), fits: v("fFits").toUpperCase() };
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.shutall) { st.shut = new Set(t.dataset.shutall === "1" ? [...new Set([...parts.values()].flatMap(p => ["c:" + p.cat]))] : []); saveShut(); renderList(); return; }
+  if (t.dataset.cat) { if (st.view !== "parts") setView("parts"); st.cat = t.dataset.cat; st.sub = t.dataset.sub || null; st.open = null; renderIndex(); renderList(); window.scrollTo({ top: 0 }); return; }
+  const act = t.dataset.act; if (!act) return;
+  const row = t.closest(".row"); const id = row && row.dataset.id; const p = id && parts.get(id);
+  if (act === "inc" && p) return setCount(id, (isCounted(p) ? p.qty : 0) + 1);
+  if (act === "dec" && p) return setCount(id, Math.max(0, (isCounted(p) ? p.qty : 0) - 1));
+  if (act === "more" && p) { const prev = st.open; st.open = prev === id ? null : id; st.edit = false; st.delArm = null; if (prev && prev !== id) patchRow(prev); patchRow(id); return; }
+  if ((act === "packadd" || act === "packset") && p) {
+    const n = Math.max(0, Number($("#pkSize").value) * Number($("#pkN").value || 0));
+    return setCount(id, act === "packadd" ? (isCounted(p) ? p.qty : 0) + n : n);
+  }
+  if (act === "edit" && p) { st.edit = true; patchRow(id); return; }
+  if (act === "cancel") { if (row) { st.edit = false; st.delArm = null; patchRow(id); } else $("#addPanel").hidden = true; return; }
+  if (act === "save" && p) {
+    const d = readForm();
+    if (!d.name) { $("#formMsg").textContent = "Add a description."; return; }
+    parts.set(id, Object.assign({}, p, d)); st.edit = false;
+    renderAll(); return writePart(id, d);
+  }
+  if (act === "clearflag" && p) { parts.set(id, Object.assign({}, p, { flag: "" })); renderAll(); return writePart(id, { flag: "" }); }
+  if (act === "del" && p) {
+    if (st.delArm !== id) { st.delArm = id; patchRow(id); return; }
+    st.delArm = null; st.open = null; st.edit = false; parts.delete(id); renderAll();
+    try { await db.collection("parts").doc(id).delete(); } catch (err) { note("Delete didn't go through. Try again."); }
+    return;
+  }
+  if (act === "create") {
+    const rmc = ($("#fRmc").value || "").trim().replace(/^[BV](?=\d)/, "").replace(/-[A-Z]\d+$/, "");
+    const d = readForm(), msg = $("#formMsg");
+    if (!rmc) { msg.textContent = "Enter the Rolex part number."; return; }
+    if (!d.name) { msg.textContent = "Add a description."; return; }
+    const pid = "p_" + rmc.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
+    if (parts.has(pid)) { const x = parts.get(pid); msg.textContent = `${rmc} is already listed under ${x.cat} › ${x.sub}. Search for it instead.`; return; }
+    d.name = tidyName(d.name);
+    const doc = Object.assign({ rmc, flag: "", src: "Added during count", qty: null, used: 0, addedBy: me.id, addedAt: Date.now() }, d);
+    try { await db.collection("parts").doc(pid).set(doc); parts.set(pid, Object.assign({ id: pid }, doc)); $("#addPanel").hidden = true; st.q = rmc; $("#q").value = rmc; renderAll(); }
+    catch (err) { msg.textContent = err && err.code === "invalid_argument" ? "You don't have permission to add parts. Ask Dylan for Contributor access." : "The part didn't save. Try again."; }
+  }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id && t.id.startsWith("q_")) {
+    const id = t.closest(".row").dataset.id;
+    if (t.value === "") return clearCount(id);
+    const v = Number(t.value); if (!Number.isFinite(v) || v < 0) { t.value = ""; return; }
+    return setCount(id, v);
+  }
+  if (t.id === "fCat") $("#fSub").innerHTML = CATS[t.value].map(x => `<option>${esc(x)}</option>`).join("");
+  if (t.id === "onlyOpen") { st.onlyOpen = t.checked; renderList(); }
+  if (t.id === "onlyFlag") { st.onlyFlag = t.checked; renderList(); }
+  if (t.id === "ixSelect") { const [c, s] = t.value.split("|"); st.cat = c; st.sub = s || null; st.open = null; renderIndex(); renderList(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.id && e.target.id.startsWith("q_")) {
+    e.preventDefault();
+    const ins = [...document.querySelectorAll("input[id^=q_]")], i = ins.indexOf(e.target);
+    e.target.blur(); if (ins[i + 1]) ins[i + 1].focus();
+  }
+});
+$("#q").addEventListener("input", e => { st.q = e.target.value; renderList(); });
+$("#addBtn").addEventListener("click", () => { const pn = $("#addPanel"); pn.hidden = !pn.hidden; if (!pn.hidden) { pn.innerHTML = `<h2>Add a part found during the count</h2>${formHtml(null, true)}`; $("#fRmc").focus(); } });
+$("#sheetsBtn").addEventListener("click", () => { $("#sheetsPanel").hidden = !$("#sheetsPanel").hidden; });
+$("#sDate").value = new Date().toLocaleDateString("en-CA");
+
+/* ---------- PDFs & Excel ---------- */
+async function save(filename, data) {
+  const m = $("#sheetMsg");
+  if (!downloads) { m.textContent = "Downloads aren't available in this view. Open the page in claude.ai to save files."; return; }
+  try { await downloads.save({ filename, data }); m.textContent = `Saved ${filename}.`; }
+  catch (e) { m.textContent = e && e.code === "declined" ? "Download cancelled." : e && e.code === "rate_limited" ? "A download prompt is already open." : "The file couldn't be saved here."; }
+}
+const sectionName = () => st.cat === "All" ? "All categories" : st.sub ? `${st.cat} › ${st.sub}` : st.cat;
+const TOP = 50;
+function header(doc, title, sub) {
+  const w = doc.internal.pageSize.getWidth();
+  doc.setTextColor(0); doc.setFont("helvetica", "bold"); doc.setFontSize(10.5);
+  doc.text(`J. Vair Anderson · ${title}`, 36, 28);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.text(sub, 36, 39);
+  doc.setDrawColor(0); doc.setLineWidth(0.6); doc.line(36, 43, w - 36, 43);
+}
+function footer(doc) {
+  const n = doc.internal.getNumberOfPages(), w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+  for (let i = 1; i <= n; i++) { doc.setPage(i); doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); doc.setTextColor(0); doc.text(`Page ${i} of ${n}`, w - 36, h - 16, { align: "right" }); }
+}
+function sectionRows(list, makeRow, cols, totals) {
+  const body = []; let gq = 0, gv = 0;
+  for (const c of CAT_ORDER) {
+    const inCat = list.filter(p => p.cat === c); if (!inCat.length) continue;
+    let cq = 0, cv = 0;
+    for (const s of CATS[c]) {
+      const inSub = inCat.filter(p => p.sub === s); if (!inSub.length) continue;
+      body.push([{ content: `${c.toUpperCase()} › ${s} · ${inSub.length}`, colSpan: cols, styles: { fillColor: [228, 228, 228], textColor: 0, fontStyle: "bold", fontSize: 7.5, cellPadding: { top: 1.5, bottom: 1.5, left: 3, right: 3 }, minCellHeight: 0 } }]);
+      let sq = 0, sv = 0;
+      for (const p of inSub) { body.push(makeRow(p)); if (isCounted(p)) { sq += p.qty; sv += p.qty * (Number(p.price) || 0); } }
+      if (totals) body.push(totals(`Subtotal ${s}`, sq, sv, false));
+      cq += sq; cv += sv;
+    }
+    if (totals) body.push(totals(`Total ${c}`, cq, cv, true));
+    gq += cq; gv += cv;
+  }
+  return { body, gq, gv };
+}
+const calCell = p => p.cal || (p.sub === "Interchangeable" ? "Interch." : "");
+const tableStyles = { font: "helvetica", fontSize: 8, cellPadding: { top: 1.8, bottom: 1.8, left: 3, right: 3 }, textColor: 0, lineColor: [160, 160, 160], lineWidth: 0.3, overflow: "ellipsize" };
+const headStyles = { fillColor: [255, 255, 255], textColor: 0, fontStyle: "bold", lineWidth: 0.5, fontSize: 7.5, overflow: "linebreak" };
+const helvBands = d => { if (d.section === "body" && d.cell.colSpan > 1) d.cell.styles.font = "helvetica"; };
+const inStockOnly = l => $("#sHide0").checked ? l.filter(p => !(isCounted(p) && Number(p.qty) <= 0)) : l;
+function partList(key) {
+  const all = inStockOnly([...parts.values()]);
+  if (!key) return sortParts(all);
+  const [c, sb] = key.split("|");
+  return sortParts(all.filter(p => p.cat === c && (!sb || p.sub === sb)));
+}
+function fillPartSel() {
+  const sel = $("#sPart"), keep = sel.value, all = [...parts.values()];
+  sel.innerHTML = CAT_ORDER.map(c => `<optgroup label="${esc(c)}"><option value="${esc(c)}">All ${esc(c)} (${all.filter(p => p.cat === c).length})</option>` +
+    CATS[c].map(sb => { const n = all.filter(p => p.cat === c && p.sub === sb).length; return n ? `<option value="${esc(c + "|" + sb)}">${esc(c)} › ${esc(sb)} (${n})</option>` : ""; }).join("") + `</optgroup>`).join("");
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+function pdfCount(list, label) {
+  const jsPDF = window.jspdf && window.jspdf.jsPDF; if (!jsPDF) return note("The PDF tool didn't load. Reload the page.");
+  if (!list.length) return note("No parts in that section.");
+  const doc = new jsPDF({ unit: "pt", format: "letter" }), date = $("#sDate").value;
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const L = 36, GAP = 14, CW = (W - 2 * L - GAP) / 2, BOTTOM = H - 30, RH = 14, BH = 12, HH = 13;
+  const C1 = 58, C3 = 40, C4 = 62, C2 = CW - C1 - C3 - C4;   // location | part # | current | count
+  const sub = `${label} · ${list.length} parts${$("#sHide0").checked ? " (out of stock hidden)" : ""} · ${date || "Date ______"} · Counted by ____________________`;
+  const byLoc = $("#sByLoc").checked;
+  const entries = [];
+  if (byLoc) list.slice().sort((a, b) => locKey(a).localeCompare(locKey(b), undefined, { numeric: true })).forEach(p => entries.push({ p }));
+  else for (const c of CAT_ORDER) for (const sb of CATS[c]) {
+    const g = list.filter(p => p.cat === c && p.sub === sb); if (!g.length) continue;
+    const band = `${c.toUpperCase()} › ${sb} · ${g.length}`;
+    entries.push({ band }); g.forEach(p => entries.push({ p, band }));
+  }
+  let col = 0, y = 0, x = L, curBand = "";
+  const colHead = () => {
+    doc.setDrawColor(0); doc.setLineWidth(0.5); doc.setFillColor(255, 255, 255);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(0);
+    doc.text("Location", x + 3, y + 9); doc.text("Rolex part #", x + C1 + 3, y + 9); doc.text("Current", x + C1 + C2 + C3 - 3, y + 9, { align: "right" }); doc.text("Count", x + C1 + C2 + C3 + 3, y + 9);
+    doc.line(x, y + HH, x + CW, y + HH); y += HH;
+  };
+  const newPage = first => { if (!first) doc.addPage(); header(doc, "Rolex parts count", sub); col = 0; x = L; y = TOP - 4; colHead(); };
+  const nextCol = () => { if (col === 0) { col = 1; x = L + CW + GAP; y = TOP - 4; colHead(); } else newPage(false); };
+  const drawBand = (t) => {
+    doc.setFillColor(228, 228, 228); doc.rect(x, y, CW, BH, "F");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7.5); doc.setTextColor(0); doc.text(t, x + 3, y + 8.5); y += BH;
+  };
+  newPage(true);
+  for (const e of entries) {
+    if (e.band && !e.p) {
+      if (y + BH + RH > BOTTOM) nextCol();
+      drawBand(e.band); curBand = e.band; continue;
+    }
+    if (y + RH > BOTTOM) { nextCol(); if (!byLoc && curBand) drawBand(curBand + " (cont.)"); }
+    const p = e.p;
+    doc.setDrawColor(170); doc.setLineWidth(0.3);
+    doc.rect(x, y, CW, RH); doc.line(x + C1, y, x + C1, y + RH); doc.line(x + C1 + C2, y, x + C1 + C2, y + RH); doc.line(x + C1 + C2 + C3, y, x + C1 + C2 + C3, y + RH);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(0);
+    const loc = locStr(p) || calCell(p) || "";
+    doc.text(doc.splitTextToSize(loc, C1 - 5)[0] || "", x + 3, y + 10);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(String(p.rmc), x + C1 + 3, y + 10);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(80); doc.text(isCounted(p) ? num(p.qty) : "—", x + C1 + C2 + C3 - 4, y + 10, { align: "right" }); doc.setTextColor(0);
+    y += RH;
+  }
+  footer(doc); save(`Rolex parts count sheet - ${label.replace(/[›\/]/g, "-")} ${date}.pdf`.replace(/\s+/g, " "), doc.output("blob"));
+}
+function pdfReport() {
+  const jsPDF = window.jspdf && window.jspdf.jsPDF; if (!jsPDF) return note("The PDF tool didn't load. Reload the page.");
+  const list = sortParts(inStockOnly([...parts.values()])), cost = $("#sCost").checked, ret = $("#sRetail") && $("#sRetail").checked, date = $("#sDate").value;
+  const counted = list.filter(isCounted), open = list.length - counted.length, doc = new jsPDF({ unit: "pt", format: "letter" });
+  const sub = `${list.length} parts · ${counted.length} counted${open ? " (— = not counted)" : ""}${$("#sHide0").checked ? " · out of stock hidden" : ""} · ${date || ""}`;
+  const fill = s => ({ fillColor: s ? [225, 225, 225] : [248, 248, 248] });
+  const cols = (cost ? 6 : 4) + (ret ? 1 : 0);
+  const tot = (label, q, v, s) => cost
+    ? [{ content: label, colSpan: 3, styles: { halign: "right", fontStyle: "bold", ...fill(s) } }, { content: num(q), styles: { halign: "right", fontStyle: "bold", ...fill(s) } }, { content: "", styles: fill(s) }, { content: money(v), styles: { halign: "right", fontStyle: "bold", ...fill(s) } }, ...(ret ? [{ content: "", styles: fill(s) }] : [])]
+    : [{ content: label, colSpan: 3, styles: { halign: "right", fontStyle: "bold", ...fill(s) } }, { content: num(q), styles: { halign: "right", fontStyle: "bold", ...fill(s) } }, ...(ret ? [{ content: "", styles: fill(s) }] : [])];
+  const row = p => { const r = [p.rmc, p.name, calCell(p), isCounted(p) ? num(p.qty) : "—"]; if (cost) r.push(p.price != null ? money(p.price) : "–", isCounted(p) && p.price != null ? money(p.qty * p.price) : "–"); if (ret) r.push(p.retail != null ? money(p.retail) : "–"); return r; };
+  const { body, gq, gv } = sectionRows(list, row, cols, tot);
+  const nv = { fillColor: [200, 200, 200], textColor: 0, fontStyle: "bold" };
+  const g = [{ content: "GRAND TOTAL", colSpan: 3, styles: { halign: "right", ...nv } }, { content: num(gq), styles: { halign: "right", ...nv } }];
+  if (cost) g.push({ content: "", styles: nv }, { content: money(gv), styles: { halign: "right", ...nv } });
+  if (ret) g.push({ content: "", styles: nv });
+  body.push(g);
+  const head = cost ? ["Rolex part #", "Description", "Calibre", "Qty", "Unit cost", "Value"] : ["Rolex part #", "Description", "Calibre", "Qty"];
+  if (ret) head.push("Retail");
+  const cs = cost ? { 0: { fontStyle: "bold", cellWidth: 82 }, 2: { cellWidth: 46 }, 3: { cellWidth: 40, halign: "right" }, 4: { cellWidth: 56, halign: "right" }, 5: { cellWidth: 62, halign: "right" } }
+    : { 0: { fontStyle: "bold", cellWidth: 82 }, 2: { cellWidth: 50 }, 3: { cellWidth: 44, halign: "right" } };
+  if (ret) cs[head.length - 1] = { cellWidth: 56, halign: "right" };
+  doc.autoTable({ head: [head], body, startY: TOP, margin: { top: TOP, left: 36, right: 36, bottom: 30 }, styles: tableStyles, headStyles, columnStyles: cs, didParseCell: helvBands,
+    didDrawPage: () => header(doc, "Rolex parts inventory report", sub) });
+  let y = doc.lastAutoTable.finalY + 22;
+  if (y > doc.internal.pageSize.getHeight() - 80) { doc.addPage(); header(doc, "Rolex parts inventory report", sub); y = TOP + 20; }
+  doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.setTextColor(0);
+  doc.text(`Counted by: ${$("#sBy").value || "______________________________"}`, 36, y); doc.text("Signature: ________________________", 330, y); y += 20;
+  doc.text(`Verified by (Service Manager): ${$("#sVer").value || "______________________"}`, 36, y); doc.text("Signature: ________________________", 330, y); y += 20;
+  doc.text(`Date: ${date || "______________"}`, 36, y);
+  footer(doc); save(`Rolex parts inventory report ${date}.pdf`, doc.output("blob"));
+}
+async function excel() {
+  if (!window.XLSX) return note("The Excel tool didn't load. Reload the page.");
+  const list = filtered(true); await refreshNames(list);
+  const rows = list.map(p => ({ "Category": p.cat, "Subcategory": p.sub, "Calibre": p.cal || "", "Rolex part # (RMC)": p.rmc, "Description": p.name, "Order class": p.abc || "",
+    "Quantity": isCounted(p) ? p.qty : "", "Overstock (in qty)": Number(p.over) || "", "Unit cost": p.price ?? "", "Retail": p.retail ?? "", "Pack size": packOf(p), "Pack price": p.packPrice ?? "", "Value": isCounted(p) && p.price != null ? +(p.qty * p.price).toFixed(2) : "",
+    "Counted by": isCounted(p) ? who(p.cBy) : "", "Counted at": p.cAt ? new Date(p.cAt).toLocaleString("en-CA") : "",
+    "Used since Jan 2025": p.used ?? 0, "Last used": p.lastUsed || "", "EDGE description": p.edgeDesc || "", "2022 ref price": p.price2022 ?? "", "Lista location": locStr(p), "Min stock": minOf(p) || "", "Below min": isLow(p) ? "Yes" : "", "Note": p.note || "", "To check": p.flag || "", "Source": p.src || "" }));
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [12, 14, 9, 18, 30, 8, 9, 10, 11, 18, 20, 10, 11, 40, 10, 14, 9, 9, 24, 40, 18].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+  let logRows = [];
+  try { const s = await db.collection("log").orderBy("at", "desc").limit(1000).get(); await refreshNames(s.docs.map(d => ({ cBy: d.data().by }))); logRows = s.docs.map(d => { const x = d.data(); return { "When": new Date(x.at).toLocaleString("en-CA"), "Rolex part #": x.rmc, "From": x.prev ?? "", "To": x.qty ?? "cleared", "By": who(x.by) }; }); } catch (e) {}
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(logRows.length ? logRows : [{ "When": "", "Rolex part #": "", "From": "", "To": "", "By": "" }]), "Count log");
+  save(`Rolex parts inventory ${$("#sDate").value}.xlsx`, new Blob([XLSX.write(wb, { type: "array", bookType: "xlsx" })]));
+}
+$("#pdfFull").addEventListener("click", () => pdfCount(partList(""), "Full inventory"));
+$("#pdfPart").addEventListener("click", () => { const k = $("#sPart").value; pdfCount(partList(k), k.replace("|", " › ")); });
+$("#pdfReport").addEventListener("click", pdfReport);
+$("#sheetsBtn").addEventListener("click", fillPartSel);
+$("#xlsx").addEventListener("click", excel);
+
+/* ---------- invoice import ---------- */
+let sample = null, imp = null;
+const IMP_PROMPT = `You are reading a Rolex spare parts invoice for a watch service workshop. Extract every part line item.
+Return ONLY JSON in this shape: {"invoiceNo": string|null, "date": "YYYY-MM-DD"|null, "supplier": string|null, "currency": string|null, "lines": [{"ref": string, "description": string, "qty": number, "unitPrice": number|null, "lineTotal": number|null}]}
+Rules:
+- "ref" is the part reference exactly as printed, including any B or V prefix and any pack suffix such as -Y5, -G100, -K1 (for example B3135-5100-G100). Remove spaces inside it.
+- "qty" is the invoiced quantity on that line as printed (for B references this is the number of packs).
+- "unitPrice" is the price per invoiced unit as printed. If only a line total is shown, give "lineTotal" and set "unitPrice" to null.
+- Skip freight, tax, subtotals, totals, discounts, and tool or supply lines whose reference starts with E.
+- Do not invent or merge lines. If the document is not a parts invoice, return {"lines": []}.`;
+function splitRef(ref) {
+  let s = String(ref || "").replace(/\s+/g, "").toUpperCase(), pack = 1;
+  if (/^B(?=\d)/.test(s)) { s = s.slice(1); const m = s.match(/^(.*)-([A-Z])(\d+)$/); if (m) { s = m[1]; pack = Number(m[3]) || 1; } }
+  else if (/^V(?=\d)/.test(s)) s = s.slice(1);
+  return { rmc: s, pack };
+}
+function guessCat(rmc, desc) {
+  const t = String(desc || "").toUpperCase();
+  if (rmc.startsWith("13/") || /\bDIAL\b/.test(t)) return ["Display", "Dials", ""];
+  if (/^(14|15|410|41S)-/.test(rmc) || /\bHAND/.test(t)) return ["Display", "Hands", ""];
+  if (/^20-/.test(rmc)) return ["Bracelet", "Bracelets", ""];
+  if (/^21\d-/.test(rmc) || /\bSTRAP\b|\bSTR\b/.test(t)) return ["Bracelet", "Straps", ""];
+  if (/^(23|32)-/.test(rmc)) return ["Bracelet", /CLASP/.test(t) ? "Clasps" : /\bSCREW|\bSCR\b/.test(t) ? "Screws" : /SPRING ?BAR|\bBAR\b/.test(t) ? "Spring bars" : /LINK/.test(t) ? "Links" : "TBD", ""];
+  if (/\bSCREW|\bSCR\b/.test(t) && /^(24|25|29|31\d)-/.test(rmc)) return ["Case", "Screws", ""];
+  if (rmc.startsWith("29-") || (rmc.startsWith("316-") && /GASKET|GSK/.test(t))) return ["Case", "Gaskets", ""];
+  if (rmc.startsWith("25")) return ["Case", "Crystals", ""];
+  if (/^24-P/.test(rmc) || /PUSHER/.test(t)) return ["Case", "Pushers", ""];
+  if (rmc.startsWith("24-")) return ["Case", "Crown", ""];
+  if (rmc.startsWith("311-") || /CASE BACK/.test(t)) return ["Case", "Case backs", ""];
+  if (/^(313|315|317)-/.test(rmc) || /BEZEL|INSERT/.test(t)) return ["Case", "Bezels", ""];
+  if (/^(316|319)-/.test(rmc)) return ["Case", "Gaskets", ""];
+  const MV = ["15xx","20xx","21xx","22xx","30xx","31xx","32xx","41xx"];
+  const m = rmc.match(/^(\d{4})-/);
+  if (m && MV.includes(m[1].slice(0, 2) + "xx")) return ["Movement", m[1].slice(0, 2) + "xx", m[1]];
+  const c = t.match(/\b(15|20|21|22|30|31|32|41)\d\d\b/);
+  if (c) return ["Movement", c[1] + "xx", c[0]];
+  return ["Movement", "Interchangeable", ""];
+}
+function guessAbc(desc) {
+  const t = String(desc || "").toUpperCase();
+  if (/SCREW|GASKET|GSK|SPRING ?BAR|\bBAR\b/.test(t)) return "A";
+  if (/\bDIAL\b|BRACELET|CASE BACK|BEZEL|CERAMIC|\b18 ?[YWP]G?\b|RL18/.test(t)) return "C";
+  return "B";
+}
+function textLines(items) {
+  const rows = [];
+  for (const it of items) {
+    if (!it.str || !it.str.trim()) continue;
+    const y = it.transform[5], x = it.transform[4];
+    let r = rows.find(r => Math.abs(r.y - y) < 3);
+    if (!r) { r = { y, cells: [] }; rows.push(r); }
+    r.cells.push({ x, s: it.str });
+  }
+  return rows.sort((a, b) => b.y - a.y).map(r => r.cells.sort((a, b) => a.x - b.x).map(c => c.s.trim()).join("   ")).join("\n");
+}
+async function fileToInput(file) {
+  const name = file.name.toLowerCase();
+  if (/\.(xlsx|xls|csv)$/.test(name)) {
+    if (!window.XLSX) throw new Error("The spreadsheet reader didn't load. Reload the page.");
+    const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    return { text: wb.SheetNames.map(n => `Sheet ${n}:\n` + XLSX.utils.sheet_to_csv(wb.Sheets[n])).join("\n\n") };
+  }
+  if (name.endsWith(".pdf") || file.type === "application/pdf") {
+    const lib = window.pdfjsLib; if (!lib) throw new Error("The PDF reader didn't load. Reload the page.");
+    try { lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; } catch (e) {}
+    const pdf = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) { const pg = await pdf.getPage(i); text += `--- Page ${i} ---\n` + textLines((await pg.getTextContent()).items) + "\n"; }
+    if (text.replace(/--- Page \d+ ---/g, "").trim().length > 40) return { text };
+    const lim = await sample.limits().catch(() => ({}));
+    const max = (lim.images && lim.images.maxCount) || 5, images = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, max); i++) {
+      const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2 }), c = document.createElement("canvas");
+      c.width = vp.width; c.height = vp.height;
+      await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+      images.push(await new Promise(r => c.toBlob(r, "image/png")));
+    }
+    return { images };
+  }
+  if (/^image\//.test(file.type)) return { images: [file] };
+  throw new Error("Use a PDF, a photo (JPG or PNG), or an Excel/CSV file.");
+}
+const SAMPLE_COPY = { not_granted: "Claude wasn't allowed to read the invoice. Allow it when asked and try again.", rate_limited: "Too many requests right now. Wait a minute and try again.",
+  images_unavailable: "Photos can't be read in this view. Try the PDF or a spreadsheet.", image_rejected: "That image couldn't be read. Try a clearer photo or the PDF.",
+  prompt_too_large: "The invoice is too long to read at once. Split it into smaller files.", invalid_json: "Claude's answer couldn't be read. Try again.", cancelled: "Stopped." };
+async function readInvoice() {
+  const f = $("#impFile").files[0], msg = $("#impMsg");
+  if (!f) { msg.textContent = "Choose an invoice file first."; return; }
+  if (!sample) { msg.textContent = "Invoice reading isn't available in this view. Open the page in claude.ai."; return; }
+  $("#impRead").disabled = true; $("#impPreview").innerHTML = ""; imp = null;
+  try {
+    msg.textContent = "Reading the file…";
+    const src = await fileToInput(f);
+    msg.textContent = "Claude is reading the invoice lines. This can take up to a minute…";
+    const data = src.text
+      ? await sample.json(IMP_PROMPT + "\n\nINVOICE TEXT:\n" + src.text.slice(0, 200000))
+      : await sample.json(IMP_PROMPT + "\n\nThe attached images are the invoice pages.", { images: src.images });
+    const lines = (Array.isArray(data && data.lines) ? data.lines : []).filter(l => l && l.ref).map(l => {
+      const { rmc, pack } = splitRef(l.ref), id = "p_" + rmc.replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
+      const qty = Number(l.qty) || 0, up = Number(l.unitPrice), lt = Number(l.lineTotal);
+      const perInv = Number.isFinite(up) && up > 0 ? up : (Number.isFinite(lt) && lt > 0 && qty ? lt / qty : null);
+      const [cat, sub, cal] = guessCat(rmc, l.description);
+      return { ref: String(l.ref).replace(/\s+/g, ""), rmc, id, pack, qty, units: qty * pack, unitCost: perInv != null ? Math.round(perInv / pack * 100) / 100 : null,
+        desc: String(l.description || "").trim(), match: parts.has(id), include: qty > 0, cat, sub, cal };
+    });
+    if (!lines.length) { msg.textContent = "No part lines were found in that file."; return; }
+    let dup = false;
+    if (data.invoiceNo) { try { dup = !(await db.collection("invoices").where("invoiceNo", "==", String(data.invoiceNo)).limit(1).get()).empty; } catch (e) {} }
+    imp = { file: f.name, invoiceNo: data.invoiceNo ? String(data.invoiceNo) : "", date: data.date || "", supplier: data.supplier || "", currency: data.currency || "", lines, dup };
+    msg.textContent = "Check the lines below, then press Apply.";
+    renderImport();
+  } catch (e) {
+    msg.textContent = (e && SAMPLE_COPY[e.code]) || (e && e.message && !e.code ? e.message : "The invoice couldn't be read. Try again or use a different file.");
+  } finally { $("#impRead").disabled = false; }
+}
+function renderImport() {
+  const box = $("#impPreview"); if (!imp) { box.innerHTML = ""; return; }
+  const L = imp.lines, inc = L.filter(l => l.include), nNew = L.filter(l => !l.match).length;
+  const subOpts = (c, s) => CATS[c].map(x => `<option${x === s ? " selected" : ""}>${esc(x)}</option>`).join("");
+  const rows = L.map((l, i) => {
+    const p = l.match ? parts.get(l.id) : null;
+    const status = p ? `${esc(p.cat)} › ${esc(p.sub)} · ${isCounted(p) ? `count ${num(p.qty)} → ${num(p.qty + (Number(l.units) || 0))}` : `not counted → ${num(l.units)}`}`
+      : `<span class="new">New</span> <select data-i="${i}" data-f="cat" aria-label="Category">${CAT_ORDER.map(c => `<option${c === l.cat ? " selected" : ""}>${c}</option>`).join("")}</select> <select data-i="${i}" data-f="sub" aria-label="Subcategory">${subOpts(l.cat, l.sub)}</select>`;
+    return `<tr${l.include ? "" : ' class="off"'}><td><input type="checkbox" data-i="${i}" data-f="include"${l.include ? " checked" : ""} aria-label="Include ${esc(l.ref)}"></td>
+      <td class="mono">${esc(l.ref)}</td><td class="mono b">${esc(l.rmc)}</td><td class="d" title="${esc(l.desc)}">${esc(l.desc)}</td>
+      <td class="r">${num(l.qty)}</td><td class="r">×${l.pack}</td><td class="r"><input type="number" min="0" step="1" value="${l.units}" data-i="${i}" data-f="units" aria-label="Units for ${esc(l.ref)}"></td>
+      <td class="r">${l.unitCost != null ? money(l.unitCost) : "–"}</td><td>${status}</td></tr>`;
+  }).join("");
+  box.innerHTML = `<div class="imp-head">Invoice <b>${esc(imp.invoiceNo || "(no number found)")}</b>${imp.date ? " · " + esc(imp.date) : ""}${imp.supplier ? " · " + esc(imp.supplier) : ""} · ${L.length} lines, ${L.length - nNew} in the list, ${nNew} new</div>
+    ${imp.dup ? `<div class="flagline">Invoice ${esc(imp.invoiceNo)} has been imported before. Applying it again will add the units twice.</div>` : ""}
+    <div class="imp-wrap"><table class="imp"><thead><tr><th></th><th>On invoice</th><th>Part #</th><th>Description</th><th class="r">Qty</th><th class="r">Pack</th><th class="r">Units</th><th class="r">Unit cost</th><th>In the list</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="actions">
+      <label class="tog"><input type="checkbox" id="impAdd"> Add units to stock counts (off by default: invoices update cost only)</label>
+      <label class="tog"><input type="checkbox" id="impCost" checked> Update unit cost from invoice${imp.currency ? " (" + esc(imp.currency) + ")" : ""}</label>
+    </div>
+    <p class="msg">Parts not counted yet will take the invoice units as their count. New parts are added to the list and marked “Check”.</p>
+    <div class="actions"><button type="button" class="btn solid" id="impApply" ${canWrite && inc.length ? "" : "disabled"}>Apply ${inc.length} line${inc.length === 1 ? "" : "s"}</button><button type="button" class="btn" id="impClear">Discard</button></div>`;
+}
+async function applyImport() {
+  if (!imp || !db) return;
+  const addStock = $("#impAdd").checked, setCost = $("#impCost").checked, tag = imp.invoiceNo || imp.file;
+  const todo = imp.lines.filter(l => l.include), btn = $("#impApply");
+  btn.disabled = true; let n = 0;
+  try {
+    for (const l of todo) {
+      const units = Math.max(0, Math.round(Number(l.units) || 0)), at = Date.now();
+      if (parts.has(l.id)) {
+        const p = parts.get(l.id), data = {};
+        if (addStock && units) Object.assign(data, { qty: (isCounted(p) ? p.qty : 0) + units, cBy: me.id, cAt: at });
+        if (setCost && l.unitCost != null) Object.assign(data, { price: l.unitCost, pack: l.pack, packPrice: Math.round(l.unitCost * l.pack * 100) / 100, priceSrc: "Invoice " + (imp.invoiceNo || imp.file) + (imp.date ? " (" + imp.date + ")" : "") });
+        if (!Object.keys(data).length) continue;
+        parts.set(l.id, Object.assign({}, p, data));
+        await writePart(l.id, data);
+        if (data.qty != null) { try { await db.collection("log").add({ pid: l.id, rmc: p.rmc, prev: isCounted(p) ? p.qty : null, qty: data.qty, by: me.id, at, src: "Invoice " + tag }); } catch (e) {} }
+      } else {
+        const doc = { rmc: l.rmc, name: dedupeName(tidyName(l.desc), l.rmc, l.cal) || l.rmc, cat: l.cat, sub: l.sub, cal: l.cal, abc: guessAbc(l.desc), price: l.unitCost, qty: addStock ? units : null,
+          cBy: addStock ? me.id : null, cAt: addStock ? at : null, note: "", used: 0, edgeRefs: l.ref, src: "Invoice " + tag, flag: `Added from invoice ${tag} - check category and class` };
+        await db.collection("parts").doc(l.id).set(doc);
+        parts.set(l.id, Object.assign({ id: l.id }, doc));
+      }
+      n++; btn.textContent = `Applying… ${n} / ${todo.length}`;
+    }
+    await db.collection("invoices").add({ invoiceNo: imp.invoiceNo, date: imp.date, supplier: imp.supplier, currency: imp.currency, file: imp.file, addStock, setCost, by: me.id, at: Date.now(),
+      lines: todo.map(l => ({ ref: l.ref, rmc: l.rmc, qty: l.qty, pack: l.pack, units: Number(l.units) || 0, unitCost: l.unitCost, added: !l.match })) });
+    $("#impMsg").textContent = `Applied ${n} line${n === 1 ? "" : "s"} from invoice ${tag}.`;
+    imp = null; $("#impPreview").innerHTML = ""; $("#impFile").value = ""; renderAll();
+  } catch (e) {
+    $("#impMsg").textContent = `Stopped after ${n} of ${todo.length} lines: ${e && e.code === "invalid_argument" ? "you don't have permission to change the list." : "a change didn't save. Check the counts before trying again."}`;
+    renderAll(); btn.disabled = false;
+  }
+}
+$("#importBtn").addEventListener("click", () => { $("#importPanel").hidden = !$("#importPanel").hidden; });
+$("#impRead").addEventListener("click", readInvoice);
+$("#impPreview").addEventListener("change", e => {
+  const t = e.target, i = t.dataset.i; if (i == null || !imp) return;
+  const l = imp.lines[+i], f = t.dataset.f;
+  if (f === "include") l.include = t.checked;
+  else if (f === "units") l.units = Math.max(0, Math.round(Number(t.value) || 0));
+  else if (f === "cat") { l.cat = t.value; l.sub = CATS[t.value][0]; }
+  else if (f === "sub") l.sub = t.value;
+  renderImport();
+});
+$("#impPreview").addEventListener("click", e => {
+  if (e.target.id === "impApply") applyImport();
+  if (e.target.id === "impClear") { imp = null; renderImport(); $("#impMsg").textContent = ""; }
+});
+
+/* ---------- stock settings: location + minimum ---------- */
+const MONTHS = 22; // EDGE usage window Jan 2025 - Oct 2026
+const suggestedMin = p => p.used ? Math.max(1, Math.ceil(p.used / MONTHS * 2)) : 0;
+const bigPack = p => { const k = packOf(p); return k >= 5 ? k : 0; };
+const minOf = p => { const m = typeof p.min === "number" ? p.min : suggestedMin(p), k = bigPack(p); return k && m > 0 ? Math.ceil(m / k) * k : m; };
+const isLow = p => isCounted(p) && minOf(p) > 0 && p.qty <= minOf(p);
+const locStr = p => [p.lcab && "C" + p.lcab, p.ldrw && "D" + p.ldrw, p.ltab && "T" + p.ltab].filter(Boolean).join("·");
+const locKey = p => [p.lcab, p.ldrw, p.ltab].map(x => String(x || "~").padStart(6, "0")).join("|");
+const pidOf = rmc => "p_" + String(rmc).replace(/[^A-Za-z0-9_\-.~:@+]/g, "_");
+function stockHtml(p) {
+  const sm = suggestedMin(p);
+  return `<div class="actions stock">
+    <span class="msg">Lista cabinet</span>
+    <input id="lCab" type="text" value="${esc(p.lcab)}" placeholder="Cabinet" aria-label="Cabinet" class="sm">
+    <span class="msg">drawer</span>
+    <input id="lDrw" type="text" value="${esc(p.ldrw)}" placeholder="Drawer" aria-label="Drawer" class="sm">
+    <span class="msg">tab</span>
+    <input id="lTab" type="text" value="${esc(p.ltab)}" placeholder="Tab #" aria-label="Tab number" class="sm">
+    <span class="msg">Min stock</span>
+    <input id="lMin" type="number" min="0" step="1" value="${typeof p.min === "number" ? p.min : ""}" placeholder="${sm}" aria-label="Minimum stock" class="sm">
+    <span class="msg">Overstock</span>
+    <input id="lOver" type="number" min="0" step="1" value="${Number(p.over) > 0 ? p.over : ""}" placeholder="0" aria-label="Overstock included in count" class="sm">
+    <button type="button" class="btn" data-act="savestock" ${canWrite ? "" : "disabled"}>Save</button>
+    <span class="msg">${sm ? `Suggested ${sm} (${num(p.used)} used in ${MONTHS} months, about 2 months' cover)` : "No use since Jan 2025, so no suggested minimum"}${bigPack(p) ? ` · min rounds up to whole packs of ${bigPack(p)}` : ""}. Overstock is part of the count, not extra.</span>
+  </div>`;
+}
+async function saveStock(id) {
+  const p = parts.get(id); if (!p) return;
+  const v = x => ($(x).value || "").trim(), mn = v("#lMin");
+  const ov = v("#lOver"), data = { lcab: v("#lCab"), ldrw: v("#lDrw"), ltab: v("#lTab"), min: mn === "" ? null : Math.max(0, Math.round(Number(mn))), over: ov === "" ? 0 : Math.max(0, Math.round(Number(ov))) };
+  parts.set(id, Object.assign({}, p, data)); renderAll(); await writePart(id, data);
+}
+
+/* ---------- views ---------- */
+function setView(v) {
+  st.view = v;
+  document.querySelectorAll(".views button[data-view]").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === v));
+  $("#partsView").hidden = v !== "parts"; $("#reorderView").hidden = v !== "reorder"; $("#historyView").hidden = v !== "history"; $("#modelsView").hidden = v !== "models";
+  if (v === "models") renderModels();
+  if (v === "reorder") renderReorder();
+  if (v === "history") loadHistory();
+}
+
+/* ---------- reorder ---------- */
+function reorderList() {
+  return [...parts.values()].filter(isLow).map(p => { const k = bigPack(p), short = Math.max(1, minOf(p) - p.qty); return { p, need: k ? Math.ceil(short / k) * k : short, packs: k ? Math.ceil(short / k) : 0 }; })
+    .sort((a, b) => "ABC".indexOf(a.p.abc || "B") - "ABC".indexOf(b.p.abc || "B") || (b.p.used || 0) - (a.p.used || 0));
+}
+function renderReorder() {
+  const box = $("#reorderView"), L = reorderList(), all = [...parts.values()];
+  const notCounted = all.filter(p => !isCounted(p) && minOf(p) > 0).length;
+  const total = L.reduce((s, x) => s + x.need * (Number(x.p.price) || 0), 0);
+  let rows = "";
+  for (const cls of ["A", "B", "C"]) {
+    const g = L.filter(x => (x.p.abc || "B") === cls); if (!g.length) continue;
+    rows += `<tr class="grp"><td colspan="9">Class ${cls} · ${cls === "A" ? "up to 25 per job" : cls === "B" ? "up to 5 per job" : "1 only per job"} · ${g.length} part${g.length === 1 ? "" : "s"}</td></tr>`;
+    rows += g.map(({ p, need, packs }) => `<tr><td class="mono b">${esc(p.rmc)}</td><td class="d" title="${esc(p.name)}">${esc(p.name)}</td><td>${esc(p.cat)} › ${esc(p.sub)}</td>
+      <td class="r">${num(p.qty)}</td><td class="r">${num(minOf(p))}${typeof p.min === "number" ? "" : "*"}</td><td class="r b">${num(need)}${packs ? `<div class="heard">${packs} pack${packs === 1 ? "" : "s"} of ${bigPack(p)}</div>` : ""}</td>
+      <td class="r">${p.price != null ? money(p.price) : "–"}</td><td class="r">${p.price != null ? money(need * p.price) : "–"}</td><td class="r">${num(p.used || 0)}</td></tr>`).join("");
+  }
+  box.innerHTML = `<div class="panel">
+    <h2>Reorder list</h2>
+    <p class="msg">${L.length} counted part${L.length === 1 ? " is" : "s are"} at or below minimum · estimated ${money(total)}.${notCounted ? ` ${notCounted} parts with a minimum aren't counted yet and aren't included.` : ""} * = suggested minimum from 2025–26 usage; set your own in each part's details.</p>
+    ${L.length ? `<div class="imp-wrap"><table class="imp"><thead><tr><th>Part #</th><th>Description</th><th>Category</th><th class="r">In stock</th><th class="r">Min</th><th class="r">Order</th><th class="r">Unit cost</th><th class="r">Est.</th><th class="r">Used 25–26</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="actions"><button type="button" class="btn solid" id="reorderXlsx">Reorder list (Excel)</button><span class="msg" id="reorderMsg"></span></div>` : `<p class="msg">Nothing is below minimum.</p>`}
+  </div>`;
+}
+async function reorderExcel() {
+  if (!window.XLSX) return;
+  const rows = reorderList().map(({ p, need, packs }) => ({ "Class": p.abc || "", "Rolex part # (RMC)": p.rmc, "Description": p.name, "Category": p.cat, "Subcategory": p.sub, "Calibre": p.cal || "",
+    "In stock": p.qty, "Min": minOf(p), "Min is suggested": typeof p.min === "number" ? "" : "Yes", "Order qty": need, "Packs": packs || "", "Pack size": bigPack(p) || 1, "Pack price": p.packPrice ?? "", "Unit cost": p.price ?? "", "Est. cost": p.price != null ? +(need * p.price).toFixed(2) : "", "Used since Jan 2025": p.used || 0 }));
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [6, 18, 32, 11, 14, 8, 9, 6, 10, 9, 10, 10, 10].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, "Reorder");
+  const m = $("#sheetMsg"); await save(`Rolex parts reorder ${new Date().toLocaleDateString("en-CA")}.xlsx`, new Blob([XLSX.write(wb, { type: "array", bookType: "xlsx" })]));
+  $("#reorderMsg").textContent = m.textContent;
+}
+
+/* ---------- history ---------- */
+let hist = { invoices: [], log: [], q: "", openInv: null, undoArm: null, loading: false };
+async function loadHistory() {
+  if (!db || hist.loading) return;
+  hist.loading = true; $("#historyView").innerHTML = `<div class="panel"><p class="msg">Loading history…</p></div>`;
+  try {
+    const [inv, lg] = await Promise.all([db.collection("invoices").orderBy("at", "desc").limit(200).get(), db.collection("log").orderBy("at", "desc").limit(500).get()]);
+    hist.invoices = inv.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    hist.log = lg.docs.map(d => Object.assign({ id: d.id }, d.data()));
+    await refreshNames([...hist.invoices.map(x => ({ cBy: x.by })), ...hist.log.map(x => ({ cBy: x.by }))]);
+  } catch (e) { $("#historyView").innerHTML = `<div class="panel"><p class="msg">History couldn't be loaded. Try again in a moment.</p></div>`; hist.loading = false; return; }
+  hist.loading = false; renderHistory();
+}
+function renderHistory() {
+  const q = hist.q.trim().toLowerCase();
+  const invRows = hist.invoices.map(x => {
+    const units = (x.lines || []).reduce((s, l) => s + (Number(l.units) || 0), 0), open = hist.openInv === x.id;
+    const lines = open ? `<tr class="sub"><td colspan="7"><table class="imp inner"><thead><tr><th>On invoice</th><th>Part #</th><th class="r">Qty</th><th class="r">Pack</th><th class="r">Units</th><th class="r">Unit cost</th><th></th></tr></thead><tbody>${(x.lines || []).map(l => `<tr><td class="mono">${esc(l.ref)}</td><td class="mono b">${esc(l.rmc)}</td><td class="r">${num(l.qty)}</td><td class="r">×${l.pack}</td><td class="r">${num(l.units)}</td><td class="r">${l.unitCost != null ? money(l.unitCost) : "–"}</td><td>${l.added ? '<span class="new">Added</span>' : ""}</td></tr>`).join("")}</tbody></table></td></tr>` : "";
+    return `<tr${x.undone ? ' class="off"' : ""}><td>${esc(fmtTime(x.at))}</td><td class="b">${esc(x.invoiceNo || x.file || "—")}</td><td>${esc(x.date || "")}</td><td class="r">${(x.lines || []).length}</td><td class="r">${num(units)}</td><td>${esc(who(x.by))}</td>
+      <td><button type="button" class="btn" data-hact="lines" data-id="${esc(x.id)}">${open ? "Hide" : "Lines"}</button>
+      ${x.undone ? `<span class="msg">Undone ${esc(fmtTime(x.undoneAt))}</span>` : x.addStock === false ? `<span class="msg">Costs only</span>` : `<button type="button" class="btn" data-hact="undo" data-id="${esc(x.id)}" ${canWrite ? "" : "disabled"}>${hist.undoArm === x.id ? "Tap again to undo" : "Undo"}</button>`}</td></tr>${lines}`;
+  }).join("");
+  const logs = hist.log.filter(x => !q || String(x.rmc || "").toLowerCase().includes(q) || String(x.src || "").toLowerCase().includes(q));
+  const logRows = logs.slice(0, 300).map(x => {
+    const d = (x.qty ?? 0) - (x.prev ?? 0);
+    return `<tr><td>${esc(fmtTime(x.at))}</td><td class="mono b">${esc(x.rmc)}</td><td class="r">${x.prev == null ? "–" : num(x.prev)}</td><td class="r">${x.qty == null ? "cleared" : num(x.qty)}</td><td class="r">${x.qty == null || x.prev == null ? "" : (d > 0 ? "+" : "") + num(d)}</td><td>${esc(who(x.by))}</td><td>${esc(x.src || "Count")}</td></tr>`;
+  }).join("");
+  $("#historyView").innerHTML = `<div class="panel"><div class="actions"><h2 style="margin-right:auto">Imported invoices</h2><button type="button" class="btn" data-hact="reload">Refresh</button></div>
+    ${hist.invoices.length ? `<div class="imp-wrap"><table class="imp"><thead><tr><th>Imported</th><th>Invoice #</th><th>Invoice date</th><th class="r">Lines</th><th class="r">Units</th><th>By</th><th></th></tr></thead><tbody>${invRows}</tbody></table></div>
+    <p class="msg">Undo takes the invoice's units back off each part's count. Unit costs it changed are left as they are.</p>` : `<p class="msg">No invoices imported yet.</p>`}
+    <p class="msg" id="histMsg"></p></div>
+    <div class="panel"><div class="actions"><h2 style="margin-right:auto">Stock changes</h2><input id="histQ" type="search" placeholder="Filter by part # or source" value="${esc(hist.q)}" aria-label="Filter stock changes"></div>
+    ${logs.length ? `<div class="imp-wrap"><table class="imp"><thead><tr><th>When</th><th>Part #</th><th class="r">From</th><th class="r">To</th><th class="r">Change</th><th>By</th><th>Source</th></tr></thead><tbody>${logRows}</tbody></table></div>${logs.length > 300 ? `<p class="msg">Showing the latest 300. Use the Excel export for the full log.</p>` : ""}` : `<p class="msg">No stock changes yet.</p>`}</div>`;
+}
+async function undoInvoice(invId) {
+  const x = hist.invoices.find(i => i.id === invId); if (!x || x.undone) return;
+  const tag = x.invoiceNo || x.file; let n = 0;
+  try {
+    for (const l of x.lines || []) {
+      const id = pidOf(l.rmc), p = parts.get(id), units = Number(l.units) || 0;
+      if (!p || !isCounted(p) || !units) continue;
+      const at = Date.now(), qty = Math.max(0, p.qty - units);
+      parts.set(id, Object.assign({}, p, { qty, cBy: me.id, cAt: at }));
+      await writePart(id, { qty, cBy: me.id, cAt: at });
+      try { await db.collection("log").add({ pid: id, rmc: p.rmc, prev: p.qty, qty, by: me.id, at, src: "Undo invoice " + tag }); } catch (e) {}
+      n++;
+    }
+    await db.collection("invoices").doc(invId).update({ undone: true, undoneBy: me.id, undoneAt: Date.now() });
+    hist.undoArm = null; renderAll(); await loadHistory();
+    $("#histMsg").textContent = `Took invoice ${tag} back off ${n} part${n === 1 ? "" : "s"}.`;
+  } catch (e) { $("#histMsg").textContent = `Undo stopped after ${n} parts. Check those counts before trying again.`; }
+}
+
+/* ---------- quick entry (scan or type) ---------- */
+let quick = null;
+function quickLookup(code) {
+  code = String(code || "").trim(); if (!code) { $("#quickOut").hidden = true; return; }
+  const { rmc, pack } = splitRef(code), p = parts.get(pidOf(rmc));
+  const near = p ? [] : [...parts.values()].filter(x => String(x.rmc).includes(rmc) || rmc.includes(String(x.rmc))).slice(0, 6);
+  quick = { code, rmc, pack, id: p ? p.id : null };
+  renderQuick(near);
+}
+function renderQuick(near) {
+  const box = $("#quickOut"); box.hidden = false;
+  if (!quick.id) {
+    box.innerHTML = `<div class="actions"><b class="mono">${esc(quick.rmc)}</b><span class="msg">isn't in the list.</span>
+      <button type="button" class="btn" data-qact="add">Add it as a new part</button><button type="button" class="btn" data-qact="close">Close</button></div>
+      ${near.length ? `<div class="actions"><span class="msg">Close matches:</span>${near.map(x => `<button type="button" class="btn" data-qact="pick" data-id="${esc(x.id)}"><span class="mono">${esc(x.rmc)}</span> ${esc(x.name)}</button>`).join("")}</div>` : ""}`;
+    return;
+  }
+  const p = parts.get(quick.id), units = quick.pack;
+  box.innerHTML = `<div class="actions"><b class="mono">${esc(p.rmc)}</b><span>${esc(p.name)}</span><span class="msg">${esc(p.cat)} › ${esc(p.sub)}${locStr(p) ? " · " + esc(locStr(p)) : ""}</span>
+      <span class="msg" style="margin-left:auto">Count now: <b>${isCounted(p) ? num(p.qty) : "not counted"}</b></span></div>
+    <div class="actions"><span class="msg">${quick.pack > 1 ? `Blister of ${quick.pack}.` : "Single units."} Packs</span>
+      <input id="qkN" type="number" min="1" step="1" value="1" class="sm" aria-label="Number of packs"><span class="msg">× ${quick.pack} =</span><b id="qkU">${num(units)}</b><span class="msg">units</span>
+      <button type="button" class="btn solid" data-qact="addunits" ${canWrite ? "" : "disabled"}>Add to count</button>
+      <button type="button" class="btn" data-qact="setunits" ${canWrite ? "" : "disabled"}>Set count</button>
+      <button type="button" class="btn" data-qact="show">Show in list</button>
+      <button type="button" class="btn" data-qact="close">Close</button>
+      <span class="msg" id="qkMsg"></span></div>`;
+}
+async function quickApply(mode) {
+  const p = parts.get(quick.id); if (!p) return;
+  const units = Math.max(0, Math.round(Number($("#qkN").value) || 0)) * quick.pack;
+  await setCount(p.id, mode === "add" ? (isCounted(p) ? p.qty : 0) + units : units);
+  const after = parts.get(p.id);
+  $("#quick").value = ""; $("#quickOut").innerHTML = `<div class="actions"><span class="msg">${mode === "add" ? "Added" : "Set"} ${num(units)} · <b class="mono">${esc(p.rmc)}</b> is now ${num(after.qty)}. Scan the next code.</span></div>`;
+  $("#quick").focus();
+}
+
+/* ---------- drawer photo check (beta) ---------- */
+const PHOTO_PROMPT = `This is a photo of one drawer of a watch-parts storage cabinet. The drawer is divided into compartments, each with a numbered tab.
+For every compartment whose tab number you can read, count the individual parts you can see in it. If parts are in sealed blister packs, count the packs and say so in "note".
+Return ONLY JSON: {"compartments": [{"tab": string, "count": number|null, "confidence": "high"|"medium"|"low", "note": string}]}
+Use null for count when you can't tell. Do not guess tab numbers you can't read.`;
+async function photoCheck() {
+  const f = $("#phFile").files[0], msg = $("#phMsg"), cab = $("#phCab").value.trim(), drw = $("#phDrw").value.trim();
+  if (!cab || !drw) { msg.textContent = "Enter the cabinet and drawer first."; return; }
+  if (!f) { msg.textContent = "Choose a photo of the drawer."; return; }
+  if (!sample) { msg.textContent = "Photo check isn't available in this view. Open the page in claude.ai."; return; }
+  $("#phRun").disabled = true; msg.textContent = "Claude is looking at the photo. This can take up to a minute…"; $("#phOut").innerHTML = "";
+  try {
+    const data = await sample.json(PHOTO_PROMPT, { images: [f] });
+    const comps = Array.isArray(data && data.compartments) ? data.compartments : [];
+    const inDrawer = [...parts.values()].filter(p => String(p.lcab || "") === cab && String(p.ldrw || "") === drw);
+    const rows = comps.map(c => {
+      const p = inDrawer.find(x => String(x.ltab || "") === String(c.tab));
+      return `<tr><td class="b">${esc(c.tab)}</td><td>${p ? `<span class="mono b">${esc(p.rmc)}</span> ${esc(p.name)}` : '<span class="msg">No part has this tab yet</span>'}</td>
+        <td class="r">${p ? (isCounted(p) ? num(p.qty) : "–") : ""}</td><td class="r b">${c.count == null ? "?" : num(c.count)}</td><td>${esc(c.confidence || "")}</td><td>${esc(c.note || "")}</td>
+        <td>${p && c.count != null ? `<button type="button" class="btn" data-phid="${esc(p.id)}" data-phn="${Number(c.count)}" ${canWrite ? "" : "disabled"}>Use ${num(c.count)}</button>` : ""}</td></tr>`;
+    }).join("");
+    msg.textContent = comps.length ? `Found ${comps.length} compartment${comps.length === 1 ? "" : "s"}. Check each one by eye before using a number.` : "No numbered compartments could be read in that photo.";
+    $("#phOut").innerHTML = comps.length ? `<div class="imp-wrap"><table class="imp"><thead><tr><th>Tab</th><th>Part</th><th class="r">Count now</th><th class="r">Photo count</th><th>Confidence</th><th>Note</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : "";
+  } catch (e) { msg.textContent = (e && SAMPLE_COPY[e.code]) || "The photo couldn't be read. Try a clearer, straight-on photo."; }
+  finally { $("#phRun").disabled = false; }
+}
+
+/* ---------- wiring ---------- */
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.view) { setView(b.dataset.view); return; }
+  if (b.dataset.act === "savestock") { const row = b.closest(".row"); if (row) saveStock(row.dataset.id); return; }
+  if (b.id === "reorderXlsx") { reorderExcel(); return; }
+  if (b.id === "phRun") { photoCheck(); return; }
+  if (b.id === "photoBtn") { $("#photoPanel").hidden = !$("#photoPanel").hidden; return; }
+  if (b.dataset.phid) { await setCount(b.dataset.phid, Number(b.dataset.phn)); b.textContent = "Used"; b.disabled = true; return; }
+  const h = b.dataset.hact;
+  if (h === "reload") return loadHistory();
+  if (h === "lines") { hist.openInv = hist.openInv === b.dataset.id ? null : b.dataset.id; renderHistory(); return; }
+  if (h === "undo") { if (hist.undoArm !== b.dataset.id) { hist.undoArm = b.dataset.id; renderHistory(); return; } b.disabled = true; return undoInvoice(b.dataset.id); }
+  const q = b.dataset.qact;
+  if (q === "close") { $("#quickOut").hidden = true; $("#quick").value = ""; return; }
+  if (q === "pick") { quick = { code: "", rmc: parts.get(b.dataset.id).rmc, pack: quick ? quick.pack : 1, id: b.dataset.id }; renderQuick([]); return; }
+  if (q === "addunits") return quickApply("add");
+  if (q === "setunits") return quickApply("set");
+  if (q === "show") { const p = parts.get(quick.id); setView("parts"); st.cat = "All"; st.sub = null; st.q = p.rmc; $("#q").value = p.rmc; st.open = p.id; st.edit = false; renderIndex(); renderList(); return; }
+  if (q === "add") { const pn = $("#addPanel"); pn.hidden = false; pn.innerHTML = `<h2>Add a part found during the count</h2>${formHtml(null, true)}`; $("#fRmc").value = quick.rmc; $("#fName").focus(); $("#quickOut").hidden = true; return; }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "histQ") { hist.q = e.target.value; const pos = e.target.selectionStart; renderHistory(); const el = $("#histQ"); el.focus(); el.setSelectionRange(pos, pos); }
+  if (e.target.id === "qkN" && quick) $("#qkU").textContent = num(Math.max(0, Math.round(Number(e.target.value) || 0)) * quick.pack);
+});
+$("#quick").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); quickLookup(e.target.value); } });
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "qkN") { e.preventDefault(); quickApply("add"); } });
+
+
+/* ---------- collapse + name tidy ---------- */
+function saveShut() { try { localStorage.setItem("jva-parts-shut", JSON.stringify([...st.shut])); } catch (e) {} }
+function toggleShut(k) { st.shut.has(k) ? st.shut.delete(k) : st.shut.add(k); saveShut(); renderList(); }
+document.addEventListener("click", e => { const b = e.target.closest("[data-tog]"); if (b) toggleShut(b.dataset.tog); });
+document.addEventListener("keydown", e => { const b = e.target.closest && e.target.closest("[data-tog]"); if (b && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleShut(b.dataset.tog); } });
+const NAME_EXP = {CRN:"Crown",GSK:"Gasket",TUB:"Tube",WHL:"Wheel",PNN:"Pinion",SPR:"Spring",SPC:"Spring Clip",JWL:"Jewel",AXL:"Axle",FNG:"Finger",DIS:"Disc",COE:"Core",YOK:"Yoke",IWH:"Setting Wheel",STM:"Stem",WGT:"Weight",FRK:"Fork",LNK:"Link",BRL:"Barrel",BSH:"Bush",STU:"Stud",HND:"Hands",RNG:"Ring",CRS:"Crystal",INS:"Insert",ASM:"Assembly",SCR:"Screw",PLT:"Plate",FLG:"Flanged","2FLG":"Double Flanged",SHO:"Shouldered",CLA:"Clamp",STR:"Strap",WDG:"Winding",FSP:"Friction Spring",MOD:"Module",BRA:"Bracelet",DIA:"Dial",JMP:"Jumper",SCA:"Safety Catch",BLAC:"Black",WHIT:"White",CHAM:"Champagne",BROW:"Brown",ALLI:"Alligator"};
+const NAME_KEEP = new Set("ST SSA ARFL ARF CYC LGN HMK PI PARF TT NTC WG YG PG W Y G P R N LL EP RDM LARED WHGNLU WHBULU LBU BLU MRK SGT CNT SM PSR SS".split(" "));
+const NAME_SMALL = new Set("of with for and or to in on the a".split(" "));
+function tidyName(s) {
+  s = String(s || "").replace(/\s+/g, " ").trim(); if (!s) return s;
+  if (!/[A-Z]{3,}/.test(s.replace(/\b[A-Z0-9]*\d[A-Z0-9]*\b/g, ""))) return s;
+  const part = (p, first) => {
+    if (!p) return p; const U = p.toUpperCase();
+    if (NAME_EXP[U]) return NAME_EXP[U];
+    if (/\d/.test(p) || NAME_KEEP.has(U)) return /\d/.test(p) ? p : U;
+    const l = p.toLowerCase(); if (NAME_SMALL.has(l) && !first) return l;
+    return l[0].toUpperCase() + l.slice(1);
+  };
+  return s.split(" ").map((w, i) => /^O-RING/i.test(w) ? "O-Ring" + w.slice(6).toLowerCase()
+    : w.split(/([^A-Za-z0-9.]+)/).map((p, j) => j % 2 ? p : part(p, i === 0 && j === 0)).join("")).join(" ");
+}
+function dedupeName(s, rmc, cal) {
+  s = String(s || "").replace(/\s+/g, " ").trim(); if (!s) return s;
+  const w = s.split(" "), out = [], seen = new Set();
+  w.forEach((t, i) => {
+    const k = t.toLowerCase().replace(/[,;]$/, "");
+    if (out.length && out[out.length - 1].toLowerCase() === t.toLowerCase() && /[a-z]/i.test(t)) return;
+    if (rmc && k === String(rmc).toLowerCase()) return;
+    if (cal && k === String(cal).toLowerCase() && w[i - 1] !== "&" && w[i + 1] !== "&") return;
+    if (/\d/.test(k) && seen.has(k)) return;
+    seen.add(k); out.push(t);
+  });
+  while (out.length > 1 && /^(1|-)$/.test(out[out.length - 1])) out.pop();
+  return out.join(" ");
+}
+function renderReorderTab() {
+  const n = [...parts.values()].filter(isLow).length, b = $("#reorderTab");
+  if (b) b.textContent = n ? `★ Reorder (${n})` : "Reorder";
+}
+/* ---------- drawer count sheets + scan ---------- */
+const BLANK_ROWS = 6;
+function packOf(p) {
+  if (typeof p.pack === "number" && p.pack > 0) return p.pack;
+  for (const r of String(p.edgeRefs || "").split(/,\s*/)) { const m = r.trim().toUpperCase().match(/^B.*-([A-Z])(\d+)$/); if (m) return Number(m[2]) || 1; }
+  return 1;
+}
+function sheetGroups(list) {
+  const g = new Map();
+  for (const p of list) {
+    const located = !!(p.lcab || p.ldrw);
+    const key = located ? `C${p.lcab || "?"}-D${p.ldrw || "?"}` : `U-${p.cat}-${p.sub}`.replace(/\s+/g, "");
+    if (!g.has(key)) g.set(key, { key, located, cat: p.cat, sub: p.sub, label: located ? `Cabinet ${p.lcab || "?"} · Drawer ${p.ldrw || "?"}` : `No location yet · ${p.cat} › ${p.sub}`, parts: [] });
+    g.get(key).parts.push(p);
+  }
+  const arr = [...g.values()];
+  arr.forEach(x => x.parts.sort((a, b) => String(a.ltab || "").localeCompare(String(b.ltab || ""), undefined, { numeric: true }) || String(a.rmc).localeCompare(String(b.rmc), undefined, { numeric: true })));
+  const ord = x => x.located ? "0" + x.key : "1" + String(CAT_ORDER.indexOf(x.cat)).padStart(2, "0") + String((CATS[x.cat] || []).indexOf(x.sub)).padStart(2, "0");
+  return arr.sort((a, b) => ord(a).localeCompare(ord(b), undefined, { numeric: true }));
+}
+function pdfDrawers() {
+  const jsPDF = window.jspdf && window.jspdf.jsPDF; if (!jsPDF) return note("The PDF tool didn't load. Reload the page.");
+  const groups = sheetGroups(filtered(true)); if (!groups.length) return note("No parts in this section.");
+  const doc = new jsPDF({ unit: "pt", format: "letter" }), w = doc.internal.pageSize.getWidth(), date = $("#sDate").value;
+  groups.forEach((g, gi) => {
+    if (gi) doc.addPage();
+    const cols = g.located ? ["Tab", "Rolex part #", "Description", "Per blister", "Blisters", "Loose", "Total stock"] : ["Rolex part #", "Description", "Per blister", "Blisters", "Loose", "Total stock", "Cab / Drawer / Tab"];
+    const body = g.parts.map(p => g.located ? [p.ltab || "", p.rmc, p.name, String(packOf(p)), "", "", ""] : [p.rmc, p.name, String(packOf(p)), "", "", "", ""]);
+    for (let i = 0; i < BLANK_ROWS; i++) body.push(["", "", "", "", "", "", ""]);
+    const head = () => {
+      header(doc, "Drawer count", `${g.label} · ${g.parts.length} parts · ${date || "Date ______"} · Counted by ____________`);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(0); doc.text(`SHEET ${g.key}`, w - 36, 30, { align: "right" });
+    };
+    doc.autoTable({ head: [cols], body, startY: TOP, margin: { top: TOP, left: 36, right: 36, bottom: 40 },
+      styles: Object.assign({}, tableStyles, { fontSize: 9, minCellHeight: 19, valign: "middle", overflow: "linebreak" }), headStyles,
+      columnStyles: g.located
+        ? { 0: { cellWidth: 34 }, 1: { fontStyle: "bold", cellWidth: 100 }, 3: { cellWidth: 46, halign: "center" }, 4: { cellWidth: 54 }, 5: { cellWidth: 46 }, 6: { cellWidth: 60 } }
+        : { 0: { fontStyle: "bold", cellWidth: 98 }, 2: { cellWidth: 44, halign: "center" }, 3: { cellWidth: 50 }, 4: { cellWidth: 42 }, 5: { cellWidth: 56 }, 6: { cellWidth: 82 } },
+      didDrawPage: head });
+    const y = doc.lastAutoTable.finalY + 14;
+    if (y < doc.internal.pageSize.getHeight() - 60) { doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); doc.text("Blank rows: write the full Rolex part # and a short description for parts not on the list.", 36, y); }
+  });
+  footer(doc); save(`Rolex drawer count sheets ${date || ""}.pdf`.replace(" .pdf", ".pdf"), doc.output("blob"));
+}
+const SHEET_PROMPT = `This image is a filled-in parts count sheet from a watch workshop. A sheet code is printed at the top right, like "SHEET C1-D4" or "SHEET U-Case-Crown". Each table row has a Rolex part number; most are printed, and some rows at the bottom were left blank for staff to handwrite a part number and description.
+Return ONLY JSON: {"sheet": string|null, "rows": [{"rmc": string, "handwrittenPart": boolean, "description": string|null, "perBlister": number|null, "blisters": number|null, "loose": number|null, "total": number|null, "location": string|null, "confidence": "high"|"medium"|"low"}]}
+Rules:
+- "rmc" is the part number exactly as printed or written (no spaces). Set "handwrittenPart" true when the part number itself was handwritten.
+- "description" only for handwritten rows, else null.
+- "perBlister" only when the printed per-blister number was crossed out and a new number written, or written on a blank row; otherwise null.
+- "blisters" and "loose" are the handwritten numbers in those boxes. "total" is the handwritten number in the "Total stock" box. A dash or 0 means 0. Blank means null.
+- "location" is any handwritten cabinet / drawer / tab text such as "1/4/12"; null if blank.
+- Include only rows with at least one handwritten value. Never guess an unreadable digit: use null and confidence "low".`;
+let scan = null;
+async function pdfToImages(file, max) {
+  const lib = window.pdfjsLib; if (!lib) throw new Error("The PDF reader didn't load. Reload the page.");
+  try { lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; } catch (e) {}
+  const pdf = await lib.getDocument({ data: await file.arrayBuffer() }).promise, out = [];
+  for (let i = 1; i <= Math.min(pdf.numPages, max); i++) {
+    const pg = await pdf.getPage(i), vp = pg.getViewport({ scale: 2 }), c = document.createElement("canvas");
+    c.width = vp.width; c.height = vp.height;
+    await pg.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
+    out.push(await new Promise(r => c.toBlob(r, "image/jpeg", 0.9)));
+  }
+  return out;
+}
+async function readSheets() {
+  const files = [...$("#scFile").files], msg = $("#scMsg");
+  if (!files.length) { msg.textContent = "Choose photos or a PDF of the filled sheets."; return; }
+  if (!sample) { msg.textContent = "Sheet reading isn't available in this view. Open the page in claude.ai."; return; }
+  $("#scRead").disabled = true; $("#scPreview").innerHTML = ""; scan = null;
+  try {
+    let pages = [];
+    for (const f of files) pages = pages.concat(/pdf$/i.test(f.name) || f.type === "application/pdf" ? await pdfToImages(f, 40) : [f]);
+    const rows = new Map(), sheets = new Set();
+    for (let i = 0; i < pages.length; i++) {
+      msg.textContent = `Reading page ${i + 1} of ${pages.length}…`;
+      const data = await sample.json(SHEET_PROMPT, { images: [pages[i]] });
+      if (data && data.sheet) sheets.add(String(data.sheet).replace(/^SHEET\s*/i, ""));
+      for (const r of (data && Array.isArray(data.rows) ? data.rows : [])) if (r && r.rmc) rows.set(splitRef(r.rmc).rmc, Object.assign({ sheet: data.sheet ? String(data.sheet).replace(/^SHEET\s*/i, "") : "" }, r));
+    }
+    const lines = toLines(rows);
+    if (!lines.length) { msg.textContent = "No handwritten counts were found. Try a sharper, straight-on photo."; return; }
+    scan = { sheets: [...sheets], lines };
+    msg.textContent = "Check the numbers against the paper, then press Apply.";
+    renderScan();
+  } catch (e) { msg.textContent = (e && SAMPLE_COPY[e.code]) || (e && e.message && !e.code ? e.message : "The sheets couldn't be read. Try clearer photos."); }
+  finally { $("#scRead").disabled = false; }
+}
+function toLines(rows) {
+  return [...rows.entries()].map(([rmc, r]) => {
+    const id = pidOf(rmc), p = parts.get(id), per = Number(r.perBlister) > 0 ? Number(r.perBlister) : (p ? packOf(p) : 1);
+    const total = r.total != null && r.total !== "" ? Number(r.total) : null;
+    const hasCount = r.blisters != null || r.loose != null || total != null;
+    const loc = String(r.location || "").split(/[\/\s,.-]+/).filter(Boolean);
+    const [cat, sub, cal] = p ? [p.cat, p.sub, p.cal] : guessCat(rmc, r.description || "");
+    return { rmc, id, p, desc: r.description || "", per, perChanged: Number(r.perBlister) > 0, blisters: r.blisters ?? null, loose: r.loose ?? null, total, hasCount,
+      lcab: loc[0] || "", ldrw: loc[1] || "", ltab: loc[2] || "", conf: r.confidence || "", sheet: r.sheet, include: hasCount || loc.length > 0, cat, sub, cal };
+  });
+}
+
+/* ---------- voice count ---------- */
+const VOICE_PROMPT = (list, talk) => `A watchmaker counted Rolex spare parts out loud. Below is the speech transcript (it may have recognition errors, repeats and corrections) and the list of parts in that drawer.
+Match each spoken count to a part. Staff may name a part by its Rolex part number (spoken digits like "three one three five dash five one one zero" = 3135-5110), by its tab number ("tab 12"), or by its description. When they correct themselves ("no, make that 4"), use the last value.
+Return ONLY JSON: {"rows":[{"rmc": string, "newPart": boolean, "description": string|null, "perBlister": number|null, "blisters": number|null, "loose": number|null, "location": string|null, "confidence": "high"|"medium"|"low", "heard": string}]}
+Rules:
+- "rmc" must be a part number from the list unless the speaker clearly gave a part not on it; then set newPart true and write the part number as spoken.
+- "blisters" = number of blister packs, "loose" = single loose parts. If they just say a plain number with no unit, put it in "loose" when that part has 1 per blister, otherwise ask yourself which they meant and use confidence "low".
+- "perBlister" only if they say a pack size ("blisters of 50").
+- "location" only if they say a cabinet/drawer/tab, as "cab/drawer/tab".
+- "heard" = the few words of the transcript this row came from.
+- If you cannot match a count to a part, still return it with rmc "" and confidence "low".
+PARTS (tab | part # | description | per blister):
+${list}
+TRANSCRIPT:
+${talk}`;
+let rec = null, recOn = false;
+function voiceGroups() { return sheetGroups(filtered(true)); }
+function fillVoiceDrawers() {
+  const sel = $("#vcDrawer"), keep = sel.value;
+  sel.innerHTML = `<option value="">All parts in this section</option>` + voiceGroups().map(g => `<option value="${esc(g.key)}">${esc(g.key)} · ${esc(g.label)} (${g.parts.length})</option>`).join("");
+  if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+function voiceParts() {
+  const k = $("#vcDrawer").value; if (!k) return filtered(true);
+  const g = voiceGroups().find(x => x.key === k); return g ? g.parts : [];
+}
+function toggleMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition, msg = $("#vcMsg"), btn = $("#vcMic");
+  if (recOn && rec) { rec.stop(); return; }
+  if (!SR) { msg.textContent = "Live listening isn't supported here. Tap the box and use your keyboard's microphone instead."; $("#vcText").focus(); return; }
+  rec = new SR(); rec.lang = "en-CA"; rec.continuous = true; rec.interimResults = true;
+  const box = $("#vcText"); let base = box.value ? box.value.replace(/\s*$/, "\n") : "";
+  rec.onresult = e => {
+    let fin = "", tmp = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) { const t = e.results[i][0].transcript; if (e.results[i].isFinal) fin += t.trim() + "\n"; else tmp += t; }
+    base += fin; box.value = base + tmp;
+  };
+  rec.onerror = e => { msg.textContent = e.error === "not-allowed" || e.error === "service-not-allowed" ? "The microphone is blocked in this view. Tap the box and use your keyboard's microphone instead." : e.error === "no-speech" ? "Didn't hear anything. Try again closer to the mic." : "Listening stopped (" + e.error + ")."; };
+  rec.onend = () => { recOn = false; btn.textContent = "Start talking"; btn.classList.remove("rec"); box.value = base; };
+  try { rec.start(); recOn = true; btn.textContent = "Stop"; btn.classList.add("rec"); msg.textContent = "Listening… say the part or tab, then the count. Example: “tab 12, two blisters, three loose”."; }
+  catch (e) { msg.textContent = "Couldn't start the microphone. Use your keyboard's microphone in the box instead."; }
+}
+async function readVoice() {
+  const talk = $("#vcText").value.trim(), msg = $("#vcMsg");
+  if (!talk) { msg.textContent = "Nothing to read yet. Press Start talking or dictate into the box."; return; }
+  if (!sample) { msg.textContent = "Reading counts isn't available in this view. Open the page in claude.ai."; return; }
+  if (recOn && rec) rec.stop();
+  const list = voiceParts(); if (!list.length) { msg.textContent = "No parts in that drawer."; return; }
+  const key = $("#vcDrawer").value;
+  $("#vcRead").disabled = true; msg.textContent = "Matching what you said to parts…"; scan = null; renderScan();
+  try {
+    const table = list.map(p => [p.ltab || "", p.rmc, p.name, packOf(p)].join(" | ")).join("\n");
+    const data = await sample.json(VOICE_PROMPT(table, talk));
+    const rows = new Map(), unmatched = [];
+    for (const r of (data && Array.isArray(data.rows) ? data.rows : [])) {
+      if (!r) continue;
+      if (!r.rmc) { unmatched.push(r.heard || "?"); continue; }
+      rows.set(splitRef(r.rmc).rmc, Object.assign({ sheet: "Voice " + (key || "section") }, r, { description: r.newPart ? r.description : null }));
+    }
+    const lines = toLines(rows); lines.forEach((l, i) => { const r = [...rows.values()][i]; l.heard = r && r.heard || ""; });
+    if (!lines.length) { msg.textContent = "No counts matched. " + (unmatched.length ? "Couldn't place: " + unmatched.join("; ") : "Try saying the tab or part number before each count."); return; }
+    scan = { sheets: ["Voice " + (key || "section")], lines };
+    msg.textContent = (unmatched.length ? `Couldn't place: ${unmatched.join("; ")}. ` : "") + "Check the numbers, then press Apply.";
+    renderScan(); $("#scPreview").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) { msg.textContent = (e && SAMPLE_COPY[e.code]) || "The counts couldn't be read. Try again."; }
+  finally { $("#vcRead").disabled = false; }
+}
+$("#vcMic").addEventListener("click", toggleMic);
+$("#vcRead").addEventListener("click", readVoice);
+$("#vcClear").addEventListener("click", () => { $("#vcText").value = ""; $("#vcMsg").textContent = ""; });
+$("#sheetsBtn").addEventListener("click", fillVoiceDrawers);
+$("#voiceBtn").addEventListener("click", () => { $("#sheetsPanel").hidden = false; fillVoiceDrawers(); $("#vcBox").scrollIntoView({ behavior: "smooth", block: "start" }); $("#vcDrawer").focus(); });
+const unitsOf = l => !l.hasCount ? null : (l.blisters == null && l.loose == null && l.total != null) ? l.total : (Number(l.blisters) || 0) * (Number(l.per) || 1) + (Number(l.loose) || 0);
+const totalNote = l => { if (l.total == null || (l.blisters == null && l.loose == null)) return ""; const c = (Number(l.blisters) || 0) * (Number(l.per) || 1) + (Number(l.loose) || 0); return c === l.total ? "" : `Sheet total ${num(l.total)} ≠ ${num(c)}`; };
+function renderScan() {
+  const box = $("#scPreview"); if (!scan) { box.innerHTML = ""; return; }
+  const L = scan.lines, inc = L.filter(l => l.include);
+  const inp = (i, f, v, w) => `<input type="${f === "loc" ? "text" : "number"}" min="0" step="1" value="${esc(v ?? "")}" data-si="${i}" data-sf="${f}" style="width:${w}px" aria-label="${f}">`;
+  const rows = L.map((l, i) => {
+    const u = unitsOf(l), now = l.p ? (isCounted(l.p) ? num(l.p.qty) : "–") : "";
+    return `<tr${l.include ? "" : ' class="off"'}><td><input type="checkbox" data-si="${i}" data-sf="include"${l.include ? " checked" : ""} aria-label="Include ${esc(l.rmc)}"></td>
+      <td class="mono">${esc(l.rmc)}</td><td class="d">${l.p ? esc(l.p.name) : `<span class="new">New</span> ${esc(l.desc || "")}`}</td>
+      <td class="r">${inp(i, "per", l.per, 56)}</td><td class="r">${inp(i, "blisters", l.blisters, 56)}</td><td class="r">${inp(i, "loose", l.loose, 56)}</td>
+      <td class="r b">${u == null ? "–" : num(u)}</td><td class="r">${now}</td>
+      <td>${inp(i, "loc", [l.lcab, l.ldrw, l.ltab].filter(Boolean).join("/"), 80)}</td><td>${esc(l.conf)}${totalNote(l) ? `<div class="heard"><b>${esc(totalNote(l))}</b></div>` : ""}${l.heard ? `<div class="heard">“${esc(l.heard)}”</div>` : ""}</td></tr>`;
+  }).join("");
+  box.innerHTML = `<div class="imp-head">Sheets ${esc(scan.sheets.join(", ") || "(code not found)")} · ${L.length} rows, ${L.filter(l => !l.p).length} new parts</div>
+    <div class="imp-wrap"><table class="imp"><thead><tr><th></th><th>Part #</th><th>Description</th><th class="r">Per blister</th><th class="r">Blisters</th><th class="r">Loose</th><th class="r">New count</th><th class="r">Now</th><th>Cab/Drawer/Tab</th><th>Read</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="msg">New count = blisters × per blister + loose, or the Total stock box if only that was filled in. It replaces the current count. Low-confidence rows need checking against the paper.</p>
+    <div class="actions"><button type="button" class="btn solid" id="scApply" ${canWrite && inc.length ? "" : "disabled"}>Apply ${inc.length} row${inc.length === 1 ? "" : "s"}</button><button type="button" class="btn" id="scClear">Discard</button></div>`;
+}
+async function applyScan() {
+  if (!scan || !db) return;
+  const todo = scan.lines.filter(l => l.include), btn = $("#scApply"); btn.disabled = true; let n = 0;
+  try {
+    for (const l of todo) {
+      const at = Date.now(), u = unitsOf(l), data = {};
+      if (u != null) Object.assign(data, { qty: u, cBy: me.id, cAt: at });
+      if (l.perChanged || (l.p && l.per !== packOf(l.p))) data.pack = Number(l.per) || 1;
+      if (l.lcab || l.ldrw || l.ltab) Object.assign(data, { lcab: l.lcab, ldrw: l.ldrw, ltab: l.ltab });
+      const src = "Count sheet " + (l.sheet || scan.sheets.join(", "));
+      if (l.p) {
+        if (!Object.keys(data).length) continue;
+        const prev = isCounted(l.p) ? l.p.qty : null;
+        parts.set(l.id, Object.assign({}, l.p, data)); await writePart(l.id, data);
+        if (u != null) { try { await db.collection("log").add({ pid: l.id, rmc: l.rmc, prev, qty: u, by: me.id, at, src, type: "Count" }); } catch (e) {} }
+      } else {
+        const doc = Object.assign({ rmc: l.rmc, name: tidyName(l.desc) || l.rmc, cat: l.cat, sub: l.sub, cal: l.cal || "", abc: guessAbc(l.desc), price: null, qty: null, note: "", used: 0, src, flag: "Added from count sheet - check description, category and cost", pack: Number(l.per) || 1 }, data);
+        await db.collection("parts").doc(l.id).set(doc); parts.set(l.id, Object.assign({ id: l.id }, doc));
+        if (u != null) { try { await db.collection("log").add({ pid: l.id, rmc: l.rmc, prev: null, qty: u, by: me.id, at, src, type: "Count" }); } catch (e) {} }
+      }
+      n++; btn.textContent = `Applying… ${n} / ${todo.length}`;
+    }
+    $("#scMsg").textContent = `Applied ${n} row${n === 1 ? "" : "s"}.`; scan = null; $("#scPreview").innerHTML = ""; $("#scFile").value = ""; renderAll();
+  } catch (e) { $("#scMsg").textContent = `Stopped after ${n} of ${todo.length} rows. Check those counts before trying again.`; renderAll(); btn.disabled = false; }
+}
+$("#pdfDrawers").addEventListener("click", pdfDrawers);
+$("#scRead").addEventListener("click", readSheets);
+$("#scPreview").addEventListener("change", e => {
+  const t = e.target, i = t.dataset.si; if (i == null || !scan) return;
+  const l = scan.lines[+i], f = t.dataset.sf;
+  if (f === "include") l.include = t.checked;
+  else if (f === "loc") { const a = t.value.split(/[\/\s,.-]+/).filter(Boolean); l.lcab = a[0] || ""; l.ldrw = a[1] || ""; l.ltab = a[2] || ""; }
+  else { const v = t.value === "" ? null : Math.max(0, Math.round(Number(t.value))); if (f === "per") { l.per = v || 1; l.perChanged = true; } else { l[f] = v; l.hasCount = l.blisters != null || l.loose != null || l.total != null; } }
+  renderScan();
+});
+$("#scPreview").addEventListener("click", e => { if (e.target.id === "scApply") applyScan(); if (e.target.id === "scClear") { scan = null; renderScan(); $("#scMsg").textContent = ""; } });
+
+/* ---------- boot ---------- */
+async function refreshNames(list) {
+  if (!user) return;
+  const ids = [...new Set((list || [...parts.values()]).map(p => p.cBy).filter(Boolean))];
+  if (!ids.length) return;
+  try { profiles = Object.assign(profiles, await user.profiles(ids)); } catch (e) {}
+}
+(async () => {
+  const loadT = setTimeout(() => { if (!loaded) $("#loading").textContent = "The parts list can't be reached yet. Check your connection; it will load on its own once it can."; }, 10000);
+  if (!window.claude || !window.claude.use) { $("#loading").textContent = "Open this page in claude.ai to use the shared count."; return; }
+  [db, user, downloads, sample] = await Promise.all([claude.use("db"), claude.use("user"), claude.use("downloads"), claude.use("sample")]);
+  if (!db) { clearTimeout(loadT); $("#loading").textContent = "Sign in to claude.ai with your J. Vair account to see and update the count."; return; }
+  if (user) { try { me = await user.me(); if (await user.can("data.write") === false) canWrite = false; } catch (e) {} }
+  db.collection("models").onSnapshot(snap => {
+    for (const ch of snap.docChanges()) { if (ch.type === "removed") models.delete(ch.doc.id); else models.set(ch.doc.id, Object.assign({ id: ch.doc.id }, ch.doc.data())); }
+    if (!loaded) return;
+    fillFilters(); if (st.view === "models" && !document.activeElement.closest("#modelsView")) renderModels(); renderList();
+  }, () => {});
+  db.collection("parts").onSnapshot(async snap => {
+    const changes = snap.docChanges();
+    for (const ch of changes) {
+      if (ch.type === "removed") parts.delete(ch.doc.id);
+      else parts.set(ch.doc.id, Object.assign({ id: ch.doc.id }, ch.doc.data()));
+    }
+    if (!snap.metadata.fromCache) clearTimeout(loadT);
+    const first = !loaded; loaded = true;
+    await refreshNames();
+    if (first || changes.some(c => c.type !== "modified")) renderAll();
+    else { renderTotals(); renderIndex(); renderReorderTab(); changes.forEach(c => patchRow(c.doc.id)); if (st.view === "reorder") renderReorder(); }
+  }, () => { clearTimeout(loadT); $("#list").innerHTML = `<div class="empty">The parts list stopped updating. Reload the page to reconnect.</div>`; });
+})();
+</script>
+
+</body></html>
