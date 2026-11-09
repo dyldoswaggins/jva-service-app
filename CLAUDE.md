@@ -18,7 +18,7 @@ Sections:
 ## 2. Stack (agreed)
 
 - **Code** lives in `C:\Users\dylan\jva-service-app` (not OneDrive: sync breaks on `node_modules`), backed up to a private GitHub repo. Netlify publishes from GitHub. OneDrive source files (Jared's lists, ROLP invoices, intake worksheet) are read in place.
-- **Website** hosted on **Netlify** (store already uses it for the intake form).
+- **Website** hosted on **Netlify** (store already uses it for the intake form). This app: site `watchservicejva` (https://watchservicejva.netlify.app), team "Watch Service", auto-deploys from GitHub `dyldoswaggins/jva-service-app` branch `main`. Supabase URL/key set as Netlify build env vars.
 - **Supabase**: Postgres database, auth, realtime. Project `jva-service` (ref `lexvtfypmutjirluuwwn`), region ca-central-1. URL + publishable key in `.env.local` (not committed) and Netlify env vars.
 - **Sign-in with Microsoft (Entra)** using staff JVA accounts. One login per person.
 - **2–4 people at once**, live updates via Supabase Realtime.
