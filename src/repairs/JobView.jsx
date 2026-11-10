@@ -3,6 +3,7 @@ import { api } from '../data.js'
 import { CONDITIONS, braceletLine, conditionText, dialLine, fmtTime, openPrompts, termsFor, watchLine } from '../rules.js'
 import JobParts from './JobParts.jsx'
 import JobServiceInfo from './JobServiceInfo.jsx'
+import JobDocuments from './JobDocuments.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -184,6 +185,11 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       {/* ---- parts: CTR kit + added ---- */}
       <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}
         onChange={async () => { await load(); await actions.reload() }} />
+
+      {can.edit && (
+        <JobDocuments job={job} allParts={allParts} userId={userId} actions={actions}
+          onChange={async () => { await load(); await actions.reload() }} printPdf={printPdf} />
+      )}
 
       {/* ---- watch details (declaration) ---- */}
       <section className="panel">

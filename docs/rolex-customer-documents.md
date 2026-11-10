@@ -11,7 +11,15 @@ JVA Vintage Analysis Fee form.
 - **Content grows with the information** (Dylan, 2026-11-09): text wraps and flows onto new pages, header repeated on each page, page numbers "1/2". Never fixed boxes that cut text off.
 - **Legal notices** = JVA's Alberta version (`src/docs/legal-notices.json`, extracted from page 2 of "Rolex Receipt (Modern & Classic) - Editable.pdf" by `scripts/extract-legal-notices.mjs`).
   ⚠ The 2025 SAV Estimate/Confirmation templates' legal page says "confidential arbitration under **Ontario law in Toronto**" and "J.Vair Anderson **Canada** Ltd." — not used; flag to Dylan / legal.
-- Built: Receipt (`src/receipt.js`). To build on the same engine: Estimate, Confirmation, Invoice.
+- Built (2026-11-09): Receipt (`src/receipt.js`), **Estimate, Confirmation, Invoice** (`src/docs/serviceDocs.js`), lines from one builder (`src/docs/lines.js`):
+  - Necessary: Complete overhaul (CTR tier price, "– Clean case and bracelet"), Refinish case and bracelet (polish price), billable parts marked Required ("Replace <component>", "– <part #> <description>", retail × qty), extra service lines.
+  - Optional: billable parts marked Optional + optional extra lines. CTR kit / In-CTR / upgrade parts never printed.
+  - Notes: exchange-basis legal sentence + one "While examining your watch, our watchmakers found that the … is …" per priced finding (auto until edited) + reasons for declined requests.
+  - Estimate: requests, analysis, necessary + totals (GST 5%), notes, optional, client's decision boxes, validity 3 months, delivery ≈ N weeks (from ETA), remarks, undersigned + date/signature, legal notices.
+  - Confirmation: requests, analysis, accepted work + totals, notes, Delivery + Delivery mode (Counter), Optional work (DECLINED) + totals, legal notices.
+  - Invoice: services provided (accepted work) + totals, guarantee line.
+  - Admin flow on the job page (`JobDocuments`): client details → prices (must all be set) → Create estimate → Record decision (declined parts go back to stock) → Create confirmation → Create invoice. Each PDF is filed on the job (Print / Open / Email to service manager).
+  - Client name/address: `job_clients` (Admin, and the Sales associate who took it in); saved at intake. Watchmakers never see it.
 
 ## The process (Plaque I)
 1. **Receipt** — formal confirmation of reception + customer request. Not the job bag. Archived (scanned/saved). ✅ built (signed on iPad, filed on the job).

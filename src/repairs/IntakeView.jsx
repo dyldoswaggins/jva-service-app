@@ -102,7 +102,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     }
     try {
       const pdf = await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, quote })
-      const id = await api.createJob(clean, conds, allReqs)
+      const id = await api.createJob(clean, conds, allReqs, client)
       const doc = await api.uploadJobDoc(id, 'receipt', pdf, receiptFileName(clean), userId)
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
       actions.say(`Job ${clean.edge_no} taken in. Receipt saved.`)

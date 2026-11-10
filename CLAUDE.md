@@ -12,7 +12,7 @@ Sections:
 |---|---|---|
 | 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Invoice import (PDF, adds stock + cost, Undo in History) done. Still to port from the prototype: PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
 | 2 | Repairs (intake, watchmaker bench screen, parts on a job) | **Parts 1–2 built** (`src/repairs/`): iPad intake with signed receipt, jobs list, job page with condition + request prompts and status gate, CTR kits from Jared's lists (auto), + Add (In CTR / Upgrades / Billable / Search), stock taken when a job leaves Estimate. Next: client-facing intake redesign (Sales see only intake), CTR + polish price, ETA from queue, iPad photos. |
-| 3 | Documents (intake receipt, estimate, confirmation, invoice) | Not started; design here in Claude Code |
+| 3 | Documents (intake receipt, estimate, confirmation, invoice) | **Built** on one harmonized layout from JVA's SAV templates (`src/docs/`, `docs/rolex-customer-documents.md`). Admin creates Estimate → records decision → Confirmation → Invoice on the job page. |
 | 4 | Service Manager Dashboard | Not started; design here in Claude Code |
 
 ## 2. Stack (agreed)
@@ -273,3 +273,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Migration 011: client-facing intake ("Rolex Service Reception"), Sales limited to intake (UI + RLS), CTR price by tier + polishing offer by family (Admin → Settings), queue ETA with watchmaker override, iPad photos. |
 | 2026-11-09 | Rolex customer documents reviewed → `docs/rolex-customer-documents.md`. Migration 013: bracelet ref + dial ref saved at intake, WSR check (gates Estimate). Intake requires model name, bracelet ref + description, dial description; watch line `M<ref> Rolex <model>`; requests in Rolex wording (Do not refinish case/bracelet when no polish); receipt restructured. Added Dial "Stained", Bracelet "Stretched". |
 | 2026-11-09 | Harmonized document engine `src/docs/rolexDoc.js` copying JVA's SAV templates; content flows onto extra pages (no clipping); JVA Alberta legal notices page on every document; receipt rebuilt on it. Condition text grouped by part. Old fixed-field receipt template removed. |
+| 2026-11-09 | Migration 014: Estimate, Confirmation, Invoice. `job_clients` (client name/address, Admin + intake associate only — extends the receipt exception), `jobs.extra_lines/estimate_notes/estimate_decision`, `job_parts.decision`, `set_job_part_price()`, `record_decision()` (declined parts back to stock), `create_job(…, p_client)`. |

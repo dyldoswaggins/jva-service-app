@@ -87,6 +87,10 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
       text('TOTAL CAD', L, y, { font: f.bold, size: 7.5 }); right(money(sub + tax), R, y, { font: f.bold, size: 7.5 }); y -= 4; rule(y, 1.2); rule(y - 2, 1.2); y -= 14
       return { sub, tax, total: sub + tax }
     },
+    row(label, value) {
+      ensure(12)
+      text(label, L, y, { font: f.bold, size: 7.5 }); text(value, 155, y, { size: 8 }); y -= 11
+    },
     checkbox(label, { checked = false, price } = {}) {
       ensure(14)
       page.drawRectangle({ x: L, y: y - 1.5, width: 8, height: 8, borderWidth: 0.8, borderColor: black })

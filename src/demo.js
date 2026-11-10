@@ -100,11 +100,22 @@ export function makeDemo() {
     },
     async loadJobs() { const s = await load(); return (s.jobs || []).map(j => ({ ...j })) },
     async loadJob(id) { const s = await load(); return { ...s.jobs.find(j => j.id === id) } },
-    async createJob(job, conditions, requests) {
+    async saveJobClient(jobId, fields) { const s = await load(); const j = s.jobs.find(x => x.id === jobId); j.job_clients = { job_id: jobId, ...(j.job_clients || {}), ...fields } },
+    async setJobPartPrice(lineId, retail) { const s = await load(); for (const j of s.jobs) { const l = (j.job_parts || []).find(x => x.id === lineId); if (l) l.retail = retail } },
+    async recordDecision(jobId, { refused, accepted, declined, extra }) {
+      const s = await load(), j = s.jobs.find(x => x.id === jobId)
+      for (const l of j.job_parts || []) {
+        if (accepted.includes(l.id)) l.decision = 'accepted'
+        if (declined.includes(l.id) && l.state === 'active') { await this.removeJobPart(l.id); l.decision = 'declined' }
+      }
+      Object.assign(j, { estimate_decision: refused ? 'refused' : 'accepted', decision_at: new Date().toISOString(), extra_lines: extra ?? j.extra_lines })
+    },
+    async createJob(job, conditions, requests, client = null) {
       const s = await load(); s.jobs = s.jobs || []
       if (s.jobs.some(j => j.edge_no === job.edge_no)) throw new Error(`Job ${job.edge_no} already exists`)
       const id = crypto.randomUUID(), at = new Date().toISOString()
-      s.jobs.unshift({ id, ...job, watch_ref: (job.watch_ref || '').toUpperCase(), status: 'Estimate', intake_by: me.id, intake_at: at,
+      s.jobs.unshift({ id, ...job, watch_ref: (job.watch_ref || '').toUpperCase(), status: 'Estimate', intake_by: me.id, intake_at: at, extra_lines: [],
+        job_clients: client ? { job_id: id, ...client } : null, job_photos: [],
         job_conditions: conditions.map(c => ({ id: crypto.randomUUID(), job_id: id, ...c, source: 'intake', state: 'to_confirm', by_user: me.id, at })),
         job_requests: requests.map(r => ({ id: crypto.randomUUID(), job_id: id, ...r, state: 'to_review', by_user: me.id, at })),
         job_status_log: [{ id: crypto.randomUUID(), status: 'Estimate', by_user: me.id, at }], job_docs: [] })

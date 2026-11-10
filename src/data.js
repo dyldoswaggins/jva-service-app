@@ -89,14 +89,28 @@ const live = {
   },
   async loadJob(id) {
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*), job_photos(*)').eq('id', id).single()
+      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*), job_photos(*), job_clients(*)').eq('id', id).single()
     if (error) throw error
     return data
   },
-  async createJob(job, conditions, requests) {
-    const { data, error } = await supabase.rpc('create_job', { p_job: job, p_conditions: conditions, p_requests: requests })
+  async createJob(job, conditions, requests, client = null) {
+    const { data, error } = await supabase.rpc('create_job', { p_job: job, p_conditions: conditions, p_requests: requests, p_client: client })
     if (error) throw error
     return data
+  },
+  // ---------- estimate / confirmation / invoice ----------
+  async saveJobClient(jobId, fields, exists) {
+    const q = exists ? supabase.from('job_clients').update(fields).eq('job_id', jobId) : supabase.from('job_clients').insert({ job_id: jobId, ...fields })
+    const { error } = await q
+    if (error) throw error
+  },
+  async setJobPartPrice(lineId, retail) {
+    const { error } = await supabase.rpc('set_job_part_price', { p_line: lineId, p_retail: retail })
+    if (error) throw error
+  },
+  async recordDecision(jobId, { refused, accepted, declined, extra }) {
+    const { error } = await supabase.rpc('record_decision', { p_job: jobId, p_refused: refused, p_accepted: accepted, p_declined: declined, p_extra: extra })
+    if (error) throw error
   },
   async updateJob(id, fields) {
     const { error } = await supabase.from('jobs').update(fields).eq('id', id)

@@ -156,6 +156,12 @@ table.imp { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.jobs tr.click { cursor: pointer; }
 table.jobs tr.click:hover td { background: var(--hover); }
 details summary { cursor: pointer; }
+.job .panel { min-width: 0; overflow-x: auto; }
+.docsteps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.docstep { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.docstep .btn { align-self: flex-start; }
+.stackfield { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.stackfield textarea { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 8px; }
 .kitline { display: flex; flex-direction: column; gap: 6px; }
 table.imp tr.click { cursor: pointer; }
 table.imp tr.click:hover td { background: var(--hover); }
