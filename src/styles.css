@@ -227,3 +227,6 @@ table.imp tr.click:hover td { background: var(--hover); }
 .timer-value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .timer:not(.on) .timer-value { color: var(--muted); }
 .timer-people { font-size: 12px; text-align: right; }
+
+/* necessary / optional assessment */
+.job .panel h4 { margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }

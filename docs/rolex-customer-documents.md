@@ -66,3 +66,7 @@ All documents **dated**; **typed** (only signatures, pre-approval form, timing s
 Bezel: discoloured, scratched, dented · Insert (disc for bezel): discoloured, scratched, chipped · Crystal: chipped, cracked, damaged ·
 Dial: discoloured, scratched, stained · Hands: discoloured, scratched, stained · Mid-case: dented, scratched · Crown: damaged, dented, worn ·
 Bracelet: dented, scratched, stretched, worn.
+
+## Watchmaker assessment (Dylan, 2026-11-09)
+- The watchmaker decides Necessary vs Optional on the job page (`JobAssessment`): billable parts (Parts → + Add → Billable) and service lines (+ Service). The office prices them in `JobDocuments`.
+- **Optional work must be backed by a confirmed finding in the watch analysis** (component + term). Enforced in the database (migration 016: `add_job_part`, `set_job_part_need`, trigger on `jobs.extra_lines`) and in the UI; the estimate can't be created while an optional line is unbacked. Each backed line gets its "While examining your watch…" note.

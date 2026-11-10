@@ -5,6 +5,7 @@ import JobParts from './JobParts.jsx'
 import JobServiceInfo from './JobServiceInfo.jsx'
 import JobDocuments from './JobDocuments.jsx'
 import JobTimer from './JobTimer.jsx'
+import JobAssessment from './JobAssessment.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -184,6 +185,9 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
           </ul>
         </section>
       )}
+
+      {/* ---- the watchmaker's assessment: necessary vs optional ---- */}
+      <JobAssessment job={job} allParts={allParts} can={can} actions={actions} onChange={load} />
 
       {/* ---- parts: CTR kit + added ---- */}
       <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}

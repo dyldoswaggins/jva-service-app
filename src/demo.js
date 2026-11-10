@@ -33,6 +33,7 @@ export function makeDemo() {
     return store
   }
   const emit = (kind, row) => listeners.forEach(l => l[kind]?.(row))
+  const demoBacked = (j, c, t) => !!c && !!t && (j.job_conditions || []).some(x => x.state === 'confirmed' && x.component.toLowerCase() === c.toLowerCase() && x.term.toLowerCase() === t.toLowerCase())
   return {
     mode: 'demo',
     configured: true,
@@ -136,6 +137,10 @@ export function makeDemo() {
     },
     async updateJob(id, fields) {
       const s = await load(), j = s.jobs.find(x => x.id === id)
+      for (const x of fields.extra_lines || []) { // mirrors trigger jobs_extra_lines_backed (016)
+        const o = (j.extra_lines || []).find(y => y.id === x.id && y.kind === 'optional' && y.component === x.component && y.term === x.term)
+        if (x.kind === 'optional' && !o && !demoBacked(j, x.component, x.term)) throw new Error(`Optional work must be backed by the watch analysis ("${x.label}")`)
+      }
       if (fields.status && fields.status !== j.status) j.job_status_log.push({ id: crypto.randomUUID(), status: fields.status, by_user: me.id, at: new Date().toISOString() })
       // stock comes off when the job leaves Estimate (mirrors take_job_stock)
       if (j.status === 'Estimate' && fields.status && !['Estimate', 'Cancelled'].includes(fields.status) && !j.stock_taken_at) {
@@ -205,12 +210,24 @@ export function makeDemo() {
     },
     async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null }) {
       const s = await load(), j = s.jobs.find(x => x.id === jobId), p = s.parts.get(partId)
-      if (kind === 'billable' && (!component || !condition || !required)) throw new Error('Billable parts need a component, a condition and Required / Optional')
+      if (kind === 'billable' && (!component || !condition || !required)) throw new Error('Billable parts need a component, a condition and Necessary / Optional')
+      if (kind === 'billable' && required === 'optional' && !demoBacked(j, component, condition)) throw new Error(`Optional work must be backed by the watch analysis: confirm or add "${component} ${condition.toLowerCase()}" first`)
       j.job_parts = j.job_parts || []
       const l = { id: crypto.randomUUID(), job_id: jobId, part_id: partId, rmc: p.rmc, qty, kind, source, component, condition_term: condition, required, retail: p.retail, consumed_qty: 0, short_qty: 0, state: 'active', at: new Date().toISOString() }
       j.job_parts.push(l)
       if (j.stock_taken_at) { const take = Math.min(qty, p.qty ?? 0); s.parts.set(partId, { ...p, qty: (p.qty ?? 0) - take }); l.consumed_qty = take; l.short_qty = qty - take }
       return l.id
+    },
+    async setJobPartNeed(lineId, required, component = null, term = null) {
+      const s = await load()
+      for (const j of s.jobs) {
+        const l = (j.job_parts || []).find(x => x.id === lineId)
+        if (!l) continue
+        if (j.estimate_decision) throw new Error('The client has already decided; change it on a new estimate')
+        const c = component || l.component, t = term || l.condition_term
+        if (required === 'optional' && !demoBacked(j, c, t)) throw new Error(`Optional work must be backed by the watch analysis: confirm or add "${c} ${String(t).toLowerCase()}" first`)
+        Object.assign(l, { required, component: c, condition_term: t })
+      }
     },
     async removeJobPart(lineId) {
       const s = await load()

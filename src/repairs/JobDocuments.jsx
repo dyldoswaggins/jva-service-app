@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { money, openPrompts, weeksUntil } from '../rules.js'
-import { autoNotes, decidedLines, documentLines, sumLines, unpriced } from '../docs/lines.js'
+import { autoNotes, decidedLines, documentLines, sumLines, unbackedOptional, unpriced } from '../docs/lines.js'
 import { buildConfirmation, buildEstimate, buildInvoice, docFileName } from '../docs/serviceDocs.js'
 
 const one = x => (Array.isArray(x) ? x[0] : x) || null
@@ -13,13 +13,13 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
   const [notes, setNotes] = useState(job.estimate_notes ?? autoNotes(job, allParts))
   // Until someone edits the notes, keep them in step with the findings
   useEffect(() => { if (job.estimate_notes == null) setNotes(autoNotes(job, allParts)) }, [job, allParts])
-  const [nx, setNx] = useState({ label: '', details: '', price: '', kind: 'necessary' })
   const [dec, setDec] = useState(null) // { refused, optional: { key: true/false } }
   const [busy, setBusy] = useState('')
   const [msg, setMsg] = useState('')
 
   const { necessary, optional } = useMemo(() => documentLines(job, allParts), [job, allParts])
   const missingPrice = unpriced([...necessary, ...optional])
+  const notBacked = unbackedOptional(job, allParts)
   const prompts = openPrompts(job)
   const weeks = weeksUntil(job.eta_override || job.eta_quoted)
   const run = async (label, fn) => { setBusy(label); setMsg(''); try { await fn() } catch (e) { setMsg(e.message) } finally { setBusy('') } }
@@ -36,12 +36,6 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
       onChange()
     })
   }
-  const addExtra = () => run('', async () => {
-    if (!nx.label.trim()) throw new Error('Enter the service, e.g. "Repair case middle part"')
-    const line = { id: crypto.randomUUID(), label: nx.label.trim(), details: nx.details.trim() || null, price: nx.price === '' ? null : Number(nx.price), kind: nx.kind }
-    await api.updateJob(job.id, { extra_lines: [...(job.extra_lines || []), line] })
-    setNx({ label: '', details: '', price: '', kind: nx.kind }); onChange()
-  })
   const removeExtra = l => run('', async () => { await api.updateJob(job.id, { extra_lines: (job.extra_lines || []).filter(x => x.id !== l.id) }); onChange() })
 
   async function makeDoc(kind) {
@@ -106,15 +100,9 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
           <tbody><LineRows lines={optional} /></tbody>
         </table>
       )}
-      <div className="actions">
-        <input value={nx.label} onChange={e => setNx({ ...nx, label: e.target.value })} placeholder="Add a service, e.g. Repair case middle part" style={{ flex: 2, minWidth: 220 }} />
-        <input value={nx.details} onChange={e => setNx({ ...nx, details: e.target.value })} placeholder="Details / part # (optional)" style={{ flex: 2, minWidth: 180 }} />
-        <input type="number" min="0" step="0.01" value={nx.price} onChange={e => setNx({ ...nx, price: e.target.value })} placeholder="Price" style={{ width: 100 }} />
-        <select value={nx.kind} onChange={e => setNx({ ...nx, kind: e.target.value })}><option value="necessary">Necessary</option><option value="optional">Optional</option></select>
-        <button type="button" className="btn" onClick={addExtra}>Add</button>
-      </div>
-      <p className="msg">Parts come from the job's billable parts (Required → Necessary, Optional → Optional). Prices are MSRP: services from the Rolex Service Handbook, parts from MyRolexWorldService.</p>
+      <p className="msg">The watchmaker's assessment (Necessary and optional work) fills these lines; services are added there. Prices are MSRP: services from the Rolex Service Handbook, parts from MyRolexWorldService.</p>
       {missingPrice.length > 0 && <p className="msg warn">Price needed for: {missingPrice.map(l => l.label).join(', ')}.</p>}
+      {notBacked.length > 0 && <p className="msg warn">Optional work not backed by the watch analysis: {notBacked.map(l => l.label).join(', ')}. Confirm the finding or make it necessary.</p>}
 
       <label className="stackfield">Notes on the estimate (one finding per line)
         <textarea rows={5} value={notes} onChange={e => setNotes(e.target.value)} onBlur={saveNotes} />
@@ -128,7 +116,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         <div className="docstep">
           <b>1. Estimate</b>
           <span className="msg">{docsOf('estimate').length ? `Created ${docsOf('estimate').length}×` : 'Within 24 h of intake (Rolex)'}</span>
-          <button type="button" className="btn solid" disabled={!!busy || missingPrice.length > 0} onClick={() => makeDoc('estimate')}>Create estimate</button>
+          <button type="button" className="btn solid" disabled={!!busy || missingPrice.length > 0 || notBacked.length > 0} onClick={() => makeDoc('estimate')}>Create estimate</button>
         </div>
         <div className="docstep">
           <b>2. Client's decision</b>

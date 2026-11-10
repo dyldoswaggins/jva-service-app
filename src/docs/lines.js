@@ -24,11 +24,18 @@ export function documentLines(job, allParts) {
     ;(l.required === 'optional' ? optional : necessary).push(line)
   }
   for (const x of job.extra_lines || []) {
-    const line = { key: 'extra:' + x.id, id: x.id, source: 'extra', label: x.label, price: x.price ?? null, subs: x.details ? [x.details] : [], decision: x.decision || null }
+    const line = { key: 'extra:' + x.id, id: x.id, source: 'extra', label: x.label, price: x.price ?? null, subs: x.details ? [x.details] : [], decision: x.decision || null,
+      component: x.component || null, term: x.term || null }
     ;(x.kind === 'optional' ? optional : necessary).push(line)
   }
   return { necessary, optional }
 }
+
+// Optional work must be backed by a confirmed finding in the watch analysis (Dylan, 2026-11-09)
+export const findings = job => (job.job_conditions || []).filter(c => c.state === 'confirmed')
+export const isBacked = (job, component, term) =>
+  !!component && !!term && findings(job).some(c => lc(c.component) === lc(component) && lc(c.term) === lc(term))
+export const unbackedOptional = (job, allParts) => documentLines(job, allParts).optional.filter(l => !l.decision && !isBacked(job, l.component, l.term))
 
 export const sumLines = lines => Math.round(lines.reduce((s, l) => s + (Number(l.price) || 0), 0) * 100) / 100
 export const unpriced = lines => lines.filter(l => l.price == null)
@@ -52,7 +59,7 @@ export const EXCHANGE_NOTE = 'This estimate is intended to inform the Client on 
 export function autoNotes(job, allParts) {
   const { necessary, optional } = documentLines(job, allParts)
   const out = []
-  for (const l of [...necessary, ...optional].filter(x => x.source === 'part' && x.component && x.term)) {
+  for (const l of [...necessary, ...optional].filter(x => (x.source === 'part' || x.source === 'extra') && x.component && x.term)) {
     const nec = necessary.includes(l)
     out.push(`While examining your watch, our watchmakers found that the ${lc(l.component)} is ${lc(l.term)}. ` +
       (nec ? 'Its replacement is necessary and is included in the necessary work.' : 'Therefore its replacement is proposed in the optional work.'))

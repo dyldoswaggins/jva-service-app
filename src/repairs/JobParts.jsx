@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { ORDER_LIMIT, fitsModel, locStr, money, num, termsFor } from '../rules.js'
+import { isBacked } from '../docs/lines.js'
 
 const KIND = { ctr_kit: 'CTR kit', in_ctr: 'In CTR', upgrade: 'Upgrade', billable: 'Billable' }
 const STATUS_LABEL = { often_changed: 'Often changed', keep_stock: 'Keep stock', upgrade: 'Systematic upgrade' }
@@ -132,7 +133,7 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
             {extra.map(l => { const p = allParts.get(l.part_id); return (
               <tr key={l.id}>
                 <td className="mono b">{l.rmc}</td><td className="d" title={p?.name}>{p?.name}</td><td>{KIND[l.kind]}</td>
-                <td>{l.kind === 'billable' ? `${l.component} · ${l.condition_term} · ${l.required === 'optional' ? 'Optional' : 'Required'}` : ''}</td>
+                <td>{l.kind === 'billable' ? `${l.component} · ${l.condition_term} · ${l.required === 'optional' ? 'Optional' : 'Necessary'}` : ''}</td>
                 <td className="r">{l.qty}</td><td className="r">{l.retail != null ? money(l.retail * l.qty) : '–'}</td>
                 <td className="r">{stockCell(p)}</td><td>{lineState(l)}</td>
                 <td>{can.bench && <button type="button" className="btn" onClick={() => remove(l)}>Remove</button>}</td>
@@ -179,14 +180,20 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
                     {termsForComponent(pick.component).map(t => <button key={t} type="button" className="chip" aria-pressed={pick.condition === t} onClick={() => setPick({ ...pick, condition: t })}>{t}</button>)}
                   </div>
                   <div className="chips small">
-                    <button type="button" className="chip" aria-pressed={pick.required === 'required'} onClick={() => setPick({ ...pick, required: 'required' })}>Required</button>
+                    <button type="button" className="chip" aria-pressed={pick.required === 'required'} onClick={() => setPick({ ...pick, required: 'required' })}>Necessary</button>
                     <button type="button" className="chip" aria-pressed={pick.required === 'optional'} onClick={() => setPick({ ...pick, required: 'optional' })}>Optional</button>
                   </div>
+                  {pick.required === 'optional' && (confirmed.length ? (
+                    <div className="chips small"><span className="msg">Backed by (watch analysis)</span>
+                      {confirmed.map(c => <button key={c.id} type="button" className="chip" aria-pressed={isBacked(job, pick.component, pick.condition) && pick.component === c.component && pick.condition === c.term}
+                        onClick={() => setPick({ ...pick, component: c.component, condition: c.term })}>{c.component} {c.term.toLowerCase()}</button>)}
+                    </div>
+                  ) : <p className="msg warn">Optional work must be backed by a finding: confirm or add it in Watch analysis first.</p>)}
                 </>
               )}
               {over && <p className="msg warn">Over the Rolex limit for class {pick.part.abc} ({ORDER_LIMIT[pick.part.abc]} per job).</p>}
               <div className="actions">
-                <button type="button" className="btn solid" disabled={pick.kind === 'billable' && !pick.condition} onClick={add}>Add to job</button>
+                <button type="button" className="btn solid" disabled={pick.kind === 'billable' && (!pick.condition || (pick.required === 'optional' && !isBacked(job, pick.component, pick.condition)))} onClick={add}>Add to job</button>
                 <button type="button" className="btn" onClick={() => setPick(null)}>Back</button>
               </div>
             </div>
