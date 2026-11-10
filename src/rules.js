@@ -52,7 +52,13 @@ export const REQ = {
   noBracelet: 'Do not refinish bracelet',
 }
 export const REQUEST_OPTIONS = ['Replace crystal', 'Adjust bracelet', 'Timekeeping check', 'Water resistance test', 'Repair crown', 'Replace bracelet']
-export const JOB_NO = /^\d{4,7}-\d{3}$/
+// Requests that are part of a complete overhaul anyway (no extra work)
+export const CTR_INCLUDED = ['Adjust bracelet', 'Timekeeping check', 'Water resistance test']
+// Workflow golden rule 3 (Dylan, 2026-11-09): give the client a timeframe at intake only for a plain CTR,
+// i.e. no optional service (polishing) and no requested work beyond the overhaul. Otherwise timing comes with the estimate.
+export const timeframeAtIntake = ({ isCTR, polish, requests }) =>
+  !!isCTR && !polish && (requests || []).every(r => CTR_INCLUDED.includes(r.request || r))
+export const JOB_NO =/^\d{4,7}-\d{3}$/
 
 // ---------- Rolex watch description (mandatory on Receipt, Estimate, Confirmation, Invoice) ----------
 // 1. Model number + description: "M126710BLNR Rolex GMT-Master II"

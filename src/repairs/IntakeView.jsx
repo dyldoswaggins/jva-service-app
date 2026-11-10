@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, braceletLine, conditionText, dialLine, modelId, money, watchLine, weeksUntil } from '../rules.js'
+import { CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
 import { makeReceipt, receiptFileName } from '../receipt.js'
 import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
@@ -69,6 +69,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     ...reqs,
   ]
 
+  const showEta = timeframeAtIntake({ isCTR, polish, requests: reqs })
   const missing = [
     !JOB_NO.test(job.edge_no.trim()) && 'Edge job # (like 124595-001)',
     !job.watch_ref.trim() && 'model number',
@@ -90,7 +91,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     const clean = {
       ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
-      polish_price: polishPrice ?? null, eta_quoted: eta?.eta || null,
+      polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
     }
     const quote = {
       items: [
@@ -98,7 +99,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         ...(polish ? [{ label: 'Refinish case and bracelet', price: polishPrice ?? 'On estimate' }] : []),
       ],
       total: total || null,
-      weeks: weeksUntil(eta?.eta),
+      weeks: showEta ? weeksUntil(eta?.eta) : null,
     }
     try {
       const pdf = await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, quote })
@@ -225,8 +226,13 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
             <div className="msg">{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</div></div>
-          <div><div className="msg">Estimated ready</div><div className="big-num">{eta?.eta ? longDate(eta.eta) : '—'}</div>
-            <div className="msg">{eta ? `${eta.ahead} watch${eta.ahead === 1 ? '' : 'es'} ahead in our workshop. ` : ''}We'll confirm after the analysis.</div></div>
+          {showEta ? (
+            <div><div className="msg">Estimated ready</div><div className="big-num">{eta?.eta ? longDate(eta.eta) : '—'}</div>
+              <div className="msg">{eta ? `${eta.ahead} watch${eta.ahead === 1 ? '' : 'es'} ahead in our workshop. ` : ''}We'll confirm after the analysis.</div></div>
+          ) : (
+            <div><div className="msg">Timing</div><div className="big-num">With your estimate</div>
+              <div className="msg">{isCTR ? 'Your request includes work beyond the complete service, so ' : ''}our watchmakers will assess it first; we'll confirm the timing with your estimate.</div></div>
+          )}
         </div>
       </section>
 
