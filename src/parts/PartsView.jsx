@@ -4,12 +4,14 @@ import {
 } from '../rules.js'
 import PartMore from './PartMore.jsx'
 import PartForm from './PartForm.jsx'
+import ImportPanel from './ImportPanel.jsx'
 
 const loadShut = () => { try { return new Set(JSON.parse(localStorage.getItem('jva-parts-shut') || '[]')) } catch { return new Set() } }
 const saveShut = s => { try { localStorage.setItem('jva-parts-shut', JSON.stringify([...s])) } catch { /* ignore */ } }
 const tally = list => `${list.filter(isCounted).length} / ${list.length}`
 
-export default function PartsView({ parts, models, can, actions, who, modelFilter, setModelFilter }) {
+export default function PartsView({ parts, allParts, models, can, actions, who, modelFilter, setModelFilter }) {
+  const [importing, setImporting] = useState(false)
   const [q, setQ] = useState('')
   const [cal, setCal] = useState('')
   const [onlyOpen, setOnlyOpen] = useState(false)
@@ -133,10 +135,13 @@ export default function PartsView({ parts, models, can, actions, who, modelFilte
           <label className="tog"><input type="checkbox" checked={onlyOpen} onChange={e => setOnlyOpen(e.target.checked)} /> Not counted</label>
           <label className="tog"><input type="checkbox" checked={onlyFlag} onChange={e => setOnlyFlag(e.target.checked)} /> To check</label>
           <span className="grow" />
+          {can.edit && <button className="btn" onClick={() => setImporting(a => !a)}>Import invoice</button>}
           {can.edit && <button className="btn" onClick={() => setAdding(a => !a)}>Add part</button>}
           <button className="btn" onClick={() => setAll(true)}>Collapse all</button>
           <button className="btn" onClick={() => setAll(false)}>Expand all</button>
         </div>
+
+        {importing && <ImportPanel allParts={allParts} actions={actions} onClose={() => setImporting(false)} />}
 
         {adding && (
           <div className="panel">

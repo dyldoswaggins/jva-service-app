@@ -10,7 +10,7 @@ Sections:
 
 | # | Section | Status |
 |---|---|---|
-| 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Still to port from the prototype: invoice import, PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
+| 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Invoice import (PDF, adds stock + cost, Undo in History) done. Still to port from the prototype: PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
 | 2 | Repairs (intake, watchmaker bench screen, parts on a job) | Designed (this file), not built |
 | 3 | Documents (intake receipt, estimate, confirmation, invoice) | Not started; design here in Claude Code |
 | 4 | Service Manager Dashboard | Not started; design here in Claude Code |
@@ -48,7 +48,13 @@ Anyone without a role = View only. Watchmaker steps must be **minimal** (main ta
 - **Every stock change** updates `parts.qty` and adds a `log` row in the same transaction.
 - **Never hard-delete** jobs (use `cancelled`), log rows, or parts (use `archived`).
 - **Only add fields**; don't rename or drop existing ones without a migration and a changelog line.
-- **ROLP invoices update COST only** (`price`, `pack`, `packPrice`, `priceSrc`, `pricePrev`). Never add invoice quantities to stock. Latest invoice date wins. Skip M (watches), E (tools/service cards), RP/IMR (promo).
+- **ROLP invoice import adds received stock and updates cost** (changed 2026-11-09 by Dylan; was cost-only). Runs as one transaction via `apply_invoice()`; Undo via `undo_invoice()` (takes units back, never below 0; restores cost if still from that invoice). Rules:
+  - Invoices dated **on or before 2026-11-05** (11.5 stock confirmation) update **cost only**, never stock (enforced in the database).
+  - Cost: `price`, `pack`, `pack_price`, `price_src`, `price_prev`, `price_date`; **latest invoice date wins**.
+  - Skip M (watches), E (tools/service cards), RP/IMR (promo); no-charge lines default off.
+  - Same invoice number can't be imported twice (unless undone).
+  - Nearly every line carries a customer reference (MRWS #); store it per line. **If the MRWS # matches a repair job, prompt at import to set the part aside for that job; otherwise it is stock.** (Set-aside prompt to build with Repairs.)
+  - Reader is layout parsing of the Rolex PDF (`src/invoice.js`), no AI; checked against all 52 invoices in `ROLP Invoices` (`node scripts/test-invoices.mjs "<folder>"`).
 - **Order limits per job (Rolex):** A up to 25, B up to 5, C 1. Warn when a job goes over.
 - Money in CAD, stored as numbers, shown `$412.50`. Who/when = user id + timestamp; names looked up when shown.
 - Serials: lists show last 4 only (`•••3F2A`); full number on the job and its documents.
@@ -219,3 +225,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Supabase project `jva-service` created in ca-central-1 (replaces US-East "Watch Service", to be deleted). App skeleton: Vite + React + supabase-js. |
 | 2026-11-09 | Database created (migrations 001–002): snake_case names (mapping in §5), profiles/roles, RLS, `stock_change()`, add-only log, no hard deletes, realtime. Prototype data imported and verified: 906 parts, 412 models, 924 log rows, 535 parts / 3,007 units in stock. Netlify team-login wall turned off (Microsoft sign-in + RLS protect the app). |
 | 2026-11-09 | Parts screens built (Count, Reorder, History, Models) with rules in `src/rules.js`, data access in `src/data.js`. Undo toast replaces confirm prompts (archive replaces delete). Excel exports are CSV for now. Demo mode for local testing: `npm run dev`, open `/?demo` (loads `data/` in memory; `src/demo.js` never ships in the build). |
+| 2026-11-09 | **Rule change (Dylan): invoices now add received stock**, not cost only. Migration 003: `apply_invoice()` / `undo_invoice()`, `parts.price_date`, unique active invoice number, baseline date 2026-11-05 enforced server-side. MRWS # stored per line; set-aside-for-job prompt deferred to Repairs. PDF reader in `src/invoice.js` (pdf.js). |

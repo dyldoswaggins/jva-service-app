@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api } from '../data.js'
-import { fmtTime, num, toCsv, download } from '../rules.js'
+import { fmtTime, money, num, toCsv, download } from '../rules.js'
 
-export default function HistoryView({ who }) {
+export default function HistoryView({ who, can, actions }) {
+  const [openInv, setOpenInv] = useState(null)
   const [log, setLog] = useState(null)
   const [invoices, setInvoices] = useState([])
   const [q, setQ] = useState('')
@@ -33,14 +34,51 @@ export default function HistoryView({ who }) {
         {invoices.length ? (
           <div className="imp-wrap">
             <table className="imp">
-              <thead><tr><th>Imported</th><th>Invoice #</th><th>Invoice date</th><th className="r">Lines</th><th>By</th></tr></thead>
+              <thead><tr><th>Imported</th><th>Invoice #</th><th>Invoice date</th><th className="r">Lines</th><th className="r">Units added</th><th>By</th><th /></tr></thead>
               <tbody>
-                {invoices.map(x => (
-                  <tr key={x.id} className={x.undone ? 'off' : ''}>
-                    <td>{fmtTime(x.at)}</td><td className="b">{x.invoice_no || x.file || '—'}</td><td>{x.date || ''}</td>
-                    <td className="r">{(x.lines || []).length}</td><td>{who(x.by_user)}</td>
-                  </tr>
-                ))}
+                {invoices.flatMap(x => {
+                  const lines = x.lines || []
+                  const units = lines.reduce((s, l) => s + (l.stocked ? l.units : 0), 0)
+                  const open = openInv === x.id
+                  return [
+                    <tr key={x.id} className={x.undone ? 'off' : ''}>
+                      <td>{fmtTime(x.at)}</td><td className="b">{x.invoice_no || x.file || '—'}</td><td>{x.date || ''}</td>
+                      <td className="r">{lines.length}</td><td className="r">{units ? num(units) : 'Costs only'}</td><td>{who(x.by_user)}</td>
+                      <td className="actions">
+                        <button type="button" className="btn" onClick={() => setOpenInv(open ? null : x.id)}>{open ? 'Hide' : 'Lines'}</button>
+                        {x.undone ? <span className="msg">Undone {fmtTime(x.undone_at)}</span>
+                          : can.edit && (
+                            <button type="button" className="btn" onClick={async () => {
+                              try {
+                                const r = await api.undoInvoice(x.id)
+                                await actions.reload(); load()
+                                actions.say(r.short?.length ? `Undone. ${r.short.length} parts had already been used, so less came off.` : `Invoice ${x.invoice_no} undone`)
+                              } catch (e) { actions.say(e.message) }
+                            }}>Undo</button>
+                          )}
+                      </td>
+                    </tr>,
+                    open && (
+                      <tr key={x.id + '-l'}>
+                        <td colSpan={7}>
+                          <table className="imp">
+                            <thead><tr><th>On invoice</th><th>Part #</th><th className="r">Qty</th><th className="r">Pack</th><th className="r">Units</th><th className="r">Unit cost</th><th>MRWS #</th><th>Done</th></tr></thead>
+                            <tbody>
+                              {lines.map((l, i) => (
+                                <tr key={i}>
+                                  <td className="mono">{l.ref}</td><td className="mono b">{l.rmc}</td><td className="r">{num(l.qty)}</td>
+                                  <td className="r">×{l.pack}</td><td className="r">{num(l.units)}</td>
+                                  <td className="r">{l.unit_cost != null ? money(l.unit_cost) : '–'}</td><td>{l.mrws_ref || ''}</td>
+                                  <td>{[l.stocked && 'Stock', l.costed && 'Cost', l.added && 'New part'].filter(Boolean).join(' · ')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    ),
+                  ]
+                })}
               </tbody>
             </table>
           </div>

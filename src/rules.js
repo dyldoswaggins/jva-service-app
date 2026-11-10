@@ -22,6 +22,56 @@ export const USAGE_MONTHS = 22
 export const partId = rmc => 'p_' + String(rmc).replace(/[^A-Za-z0-9_\-.~:@+]/g, '_')
 export const modelId = ref => 'm_' + String(ref).toUpperCase().replace(/[^A-Z0-9]/g, '')
 
+// ---------- invoices ----------
+// The 11.5 stock confirmation already counts everything received up to this date:
+// invoices dated on or before it update cost only, never stock.
+export const STOCK_BASELINE_DATE = '2026-11-05'
+export const invoiceCanAddStock = isoDate => !!isoDate && isoDate > STOCK_BASELINE_DATE
+
+// Strip packaging codes: B3135-5100-G100 → 3135-5100 ×100 units; V14-601 → 14-601 ×1
+export function splitRef(ref) {
+  let s = String(ref || '').replace(/\s+/g, '').toUpperCase(), pack = 1
+  if (/^B(?=\d)/.test(s)) {
+    s = s.slice(1)
+    const m = s.match(/^(.*)-([A-Z])(\d+)$/)
+    if (m) { s = m[1]; pack = Number(m[3]) || 1 }
+  } else if (/^V(?=\d)/.test(s)) s = s.slice(1)
+  return { rmc: s, pack }
+}
+// Not parts: M = watches, E = tools / service cards, RP / IMR = promo
+export const isSkippedRef = ref => /^(M\d|E\d|E-|RP[-\d]|IMR[-\d])/i.test(String(ref || '').trim())
+
+// Best guess for a part that isn't in the list yet (staff check it afterwards)
+export function guessCat(rmc, desc) {
+  const t = String(desc || '').toUpperCase()
+  if (rmc.startsWith('13/') || /\bDIAL\b/.test(t)) return ['Display', 'Dials', '']
+  if (/^(14|15|410|41S)-/.test(rmc) || /\bHAND/.test(t)) return ['Display', 'Hands', '']
+  if (/^20-/.test(rmc)) return ['Bracelet', 'Bracelets', '']
+  if (/^21\d-/.test(rmc) || /\bSTRAP\b|\bSTR\b/.test(t)) return ['Bracelet', 'Straps', '']
+  if (/^(23|32)-/.test(rmc))
+    return ['Bracelet', /CLASP/.test(t) ? 'Clasps' : /\bSCREW|\bSCR\b/.test(t) ? 'Screws' : /SPRING ?BAR|\bBAR\b/.test(t) ? 'Spring bars' : /LINK/.test(t) ? 'Links' : 'TBD', '']
+  if (/\bSCREW|\bSCR\b/.test(t) && /^(24|25|29|31\d)-/.test(rmc)) return ['Case', 'Screws', '']
+  if (rmc.startsWith('29-') || (rmc.startsWith('316-') && /GASKET|GSK/.test(t))) return ['Case', 'Gaskets', '']
+  if (rmc.startsWith('25')) return ['Case', 'Crystals', '']
+  if (/^24-P/.test(rmc) || /PUSHER/.test(t)) return ['Case', 'Pushers', '']
+  if (rmc.startsWith('24-')) return ['Case', 'Crown', '']
+  if (rmc.startsWith('311-') || /CASE BACK/.test(t)) return ['Case', 'Case backs', '']
+  if (/^(313|315|317)-/.test(rmc) || /BEZEL|INSERT/.test(t)) return ['Case', 'Bezels', '']
+  if (/^(316|319)-/.test(rmc)) return ['Case', 'Gaskets', '']
+  const MV = ['15xx', '20xx', '21xx', '22xx', '30xx', '31xx', '32xx', '41xx']
+  const m = rmc.match(/^(\d{4})-/)
+  if (m && MV.includes(m[1].slice(0, 2) + 'xx')) return ['Movement', m[1].slice(0, 2) + 'xx', m[1]]
+  const c = t.match(/\b(15|20|21|22|30|31|32|41)\d\d\b/)
+  if (c) return ['Movement', c[1] + 'xx', c[0]]
+  return ['Movement', 'Interchangeable', '']
+}
+export function guessAbc(desc) {
+  const t = String(desc || '').toUpperCase()
+  if (/SCREW|GASKET|GSK|SPRING ?BAR|\bBAR\b/.test(t)) return 'A'
+  if (/\bDIAL\b|BRACELET|CASE BACK|BEZEL|CERAMIC|\b18 ?[YWP]G?\b|RL18/.test(t)) return 'C'
+  return 'B'
+}
+
 // ---------- stock ----------
 export const isCounted = p => typeof p.qty === 'number'
 

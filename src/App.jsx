@@ -121,6 +121,11 @@ function Workshop({ session }) {
         } catch (e) { say(e.message); return false }
       },
       showModel(id) { setModelFilter(id); setView('Parts') },
+      say,
+      async reload() {
+        const d = await api.loadAll()
+        setParts(new Map(d.parts.map(p => [p.id, p])))
+      },
     }),
     [say, session.user.id]
   )
@@ -157,11 +162,11 @@ function Workshop({ session }) {
           </div>
           {role === 'view' && <p className="msg">You can view everything. Ask Dylan for a role to make changes.</p>}
           {view === 'Parts' && (
-            <PartsView parts={list} models={models} can={can} actions={actions} who={who}
+            <PartsView parts={list} allParts={parts} models={models} can={can} actions={actions} who={who}
               modelFilter={modelFilter} setModelFilter={setModelFilter} />
           )}
           {view === 'Reorder' && <ReorderView parts={list} />}
-          {view === 'History' && <HistoryView who={who} parts={parts} />}
+          {view === 'History' && <HistoryView who={who} can={can} actions={actions} />}
           {view === 'Models' && <ModelsView models={models} parts={list} can={can} actions={actions} />}
         </>
       )}

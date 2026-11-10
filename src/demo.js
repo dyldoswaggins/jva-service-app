@@ -44,7 +44,49 @@ export function makeDemo() {
       return { parts: [...s.parts.values()], models: [...s.models.values()], profiles: [me] }
     },
     async loadLog(limit = 500) { return (await load()).log.slice(0, limit) },
-    async loadInvoices() { return [] },
+    async loadInvoices() { return [...((await load()).invoices || [])] },
+    // Mirrors apply_invoice() in supabase/migrations/003 (simplified)
+    async applyInvoice(inv, lines) {
+      const s = await load()
+      s.invoices = s.invoices || []
+      if (s.invoices.some(x => x.invoice_no === inv.invoice_no && !x.undone)) throw new Error(`Invoice ${inv.invoice_no} was already imported`)
+      const id = crypto.randomUUID(), canStock = inv.date > '2026-11-05', src = 'Invoice ' + inv.invoice_no, at = new Date().toISOString()
+      const out = []
+      for (const l of lines) {
+        if (!s.parts.has(l.part_id)) {
+          if (!l.new_part) throw new Error(`Part ${l.rmc} is not in the list`)
+          s.parts.set(l.part_id, { id: l.part_id, rmc: l.rmc, qty: null, archived: false, note: '', ...l.new_part, edge_refs: l.ref, src, flag: `Added from ${src}: check category and class` })
+        }
+        let p = s.parts.get(l.part_id), costed = false, stocked = false, prev_price = null
+        if (l.set_cost !== false && l.unit_cost > 0 && (!p.price_date || inv.date >= p.price_date)) {
+          prev_price = p.price
+          p = { ...p, price_prev: p.price, price: l.unit_cost, pack: l.pack ?? p.pack, pack_price: l.pack_price ?? p.pack_price, price_src: `${src} (${inv.date})`, price_date: inv.date }
+          costed = true
+        }
+        if (canStock && l.add_stock !== false && l.units > 0) {
+          const lg = { id: crypto.randomUUID(), part_id: p.id, rmc: p.rmc, prev: p.qty, qty: (p.qty ?? 0) + l.units, change: l.units, by_user: me.id, at, src, type: 'Received', ref: id }
+          p = { ...p, qty: lg.qty, c_by: me.id, c_at: at }
+          s.log.unshift(lg); emit('onLog', lg); stocked = true
+        }
+        s.parts.set(p.id, p)
+        out.push({ ...l, added: !!l.new_part, stocked, costed, prev_price })
+      }
+      s.invoices.unshift({ id, invoice_no: inv.invoice_no, date: inv.date, file: inv.file, add_stock: canStock, by_user: me.id, at, lines: out, undone: false })
+      return id
+    },
+    async undoInvoice(id) {
+      const s = await load(), inv = s.invoices.find(x => x.id === id)
+      if (!inv || inv.undone) throw new Error('Already undone')
+      let n = 0
+      for (const l of inv.lines) {
+        let p = s.parts.get(l.part_id)
+        if (l.stocked) { const take = Math.min(l.units, p.qty ?? 0); if (take) { p = { ...p, qty: p.qty - take }; n++ } }
+        if (l.costed && String(p.price_src).startsWith(`Invoice ${inv.invoice_no} (`)) p = { ...p, price: l.prev_price, price_date: null, price_src: `Restored (undo Invoice ${inv.invoice_no})` }
+        s.parts.set(p.id, p)
+      }
+      inv.undone = true; inv.undone_at = new Date().toISOString()
+      return { parts: n, short: [] }
+    },
     async stockChange({ partId, type, qty = null, delta = null, src = null, ref = null }) {
       const s = await load(), p = s.parts.get(partId)
       if (!p) throw new Error('Part not found')

@@ -48,6 +48,16 @@ const live = {
     if (error) throw error
     return data
   },
+  async applyInvoice(invoice, lines) {
+    const { data, error } = await supabase.rpc('apply_invoice', { p_invoice: invoice, p_lines: lines })
+    if (error) throw error
+    return data
+  },
+  async undoInvoice(id) {
+    const { data, error } = await supabase.rpc('undo_invoice', { p_id: id })
+    if (error) throw error
+    return data
+  },
   async updatePart(id, fields) {
     const { data, error } = await supabase.from('parts').update(fields).eq('id', id).select().single()
     if (error) throw error
