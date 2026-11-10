@@ -6,7 +6,7 @@ import ReorderView from './parts/ReorderView.jsx'
 import HistoryView from './parts/HistoryView.jsx'
 import ModelsView from './parts/ModelsView.jsx'
 import InboxView from './parts/InboxView.jsx'
-import SignIn from './SignIn.jsx'
+import SignIn, { ChangePassword } from './SignIn.jsx'
 import JobsView from './repairs/JobsView.jsx'
 import SalesHome from './repairs/SalesHome.jsx'
 import SettingsView from './SettingsView.jsx'
@@ -146,6 +146,7 @@ function Workshop({ session }) {
       <span className="me">
         {me.name || me.email || session.user.email} · {role === 'view' ? 'View only' : role[0].toUpperCase() + role.slice(1)}
         {api.mode === 'demo' && <b className="tag warn">Demo</b>}
+        {api.mode !== 'demo' && <ChangePassword actions={actions} />}
         <button className="btn" onClick={api.signOut}>Sign out</button>
       </span>
     </div>

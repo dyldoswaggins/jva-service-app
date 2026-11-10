@@ -17,9 +17,18 @@ const live = {
   // Microsoft sign-in (needs IT; switch on with VITE_SIGNIN=microsoft)
   signIn: () =>
     supabase.auth.signInWithOAuth({ provider: 'azure', options: { scopes: 'email', redirectTo: location.origin } }),
-  // Email code sign-in (default): only @jvairanderson.com, enforced in the database
+  // Email + password (accounts created by Admin in Supabase → Authentication → Users)
+  async signInPassword(email, password) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) throw new Error(/invalid login|credentials/i.test(error.message) ? 'Email or password is wrong.' : error.message)
+  },
+  async changePassword(password) {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw new Error(/should be different/i.test(error.message) ? 'Choose a different password from your current one.' : error.message)
+  },
+  // Email code sign-in (backup): only @jvairanderson.com, enforced in the database
   async sendCode(email) {
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
     if (error) throw new Error(/database error|saving new user/i.test(error.message)
       ? 'Only J. Vair Anderson email addresses can sign in.'
       : /rate|limit|security purposes/i.test(error.message) ? 'Too many codes sent. Wait a minute and try again.' : error.message)

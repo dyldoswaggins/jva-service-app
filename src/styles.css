@@ -230,3 +230,5 @@ table.imp tr.click:hover td { background: var(--hover); }
 
 /* necessary / optional assessment */
 .job .panel h4 { margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+.pwform input { width: 150px; }
