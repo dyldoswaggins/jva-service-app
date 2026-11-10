@@ -2,14 +2,17 @@
 //  action "read": read one inbox document (Admin, from the app).
 //     Text PDFs (Rolex invoices) are left for the app's layout reader (no AI).
 //     Scans / photos are read by Claude into lines (part #, MRWS #, qty, price).
-//  action "mail": fetch new emailed documents from the shared mailbox (called on a schedule).
+//  action "check": Admin pressed "Check email": run the Gmail script (GMAIL_SCRIPT_URL) or fetch the M365 mailbox.
+//  action "ingest": the Gmail script drops off one attachment (secret INGEST_SECRET).
+//  action "mail": fetch the M365 mailbox (for an optional schedule; secret CRON_SECRET).
+// Email is only checked when asked: no timer.
 // Nothing is applied to stock here: documents wait in the Inbox for Admin to press Apply.
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   ANTHROPIC_API_KEY                      for reading scans
 //   CRON_SECRET                            shared with the schedule that calls action "mail"
 //   MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, INBOX_MAILBOX   for a Microsoft 365 mailbox (set up by IT)
-//   INGEST_SECRET                          for action "ingest" (Gmail Apps Script drop-off, scripts/gmail-inbox.gs)
+//   INGEST_SECRET, GMAIL_SCRIPT_URL        for the Gmail option (scripts/gmail-inbox.gs, deployed as a web app)
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
@@ -139,8 +142,28 @@ async function storeDoc(bin: Uint8Array, name: string, type: string, sender: str
   const { data: row } = await svc.from("inbox").insert({
     source: "email", sender, subject, file_path: path, file_name: name, mime: isPdf ? "application/pdf" : type,
   }).select("id").single();
-  if (row) await readDoc(row.id).catch(() => {});
+  // Read in the background so the caller isn't kept waiting on slow scans
+  if (row) background(readDoc(row.id).catch(() => {}));
   return row?.id ?? null;
+}
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+function background(p: Promise<unknown>) {
+  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(p);
+}
+
+async function checkEmail() {
+  const url = Deno.env.get("GMAIL_SCRIPT_URL");
+  const secret = Deno.env.get("INGEST_SECRET");
+  if (url && secret) {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ secret }), redirect: "follow" });
+    const out = await res.json().catch(() => ({ error: "The Gmail script didn't answer. Check its deployment." }));
+    if (out.error) throw new Error(out.error);
+    return { source: "gmail", documents: out.sent ?? 0, failed: out.failed ?? 0 };
+  }
+  const m = await fetchMail();
+  if ("skipped" in m) throw new Error("No email inbox is connected yet");
+  return { source: "microsoft", documents: m.documents, failed: 0 };
 }
 
 async function fetchMail() {
@@ -166,6 +189,7 @@ async function fetchMail() {
       if (a["@odata.type"] !== "#microsoft.graph.fileAttachment" || a.isInline) continue;
       const bin = Uint8Array.from(atob(a.contentBytes), (c) => c.charCodeAt(0));
       const id = await storeDoc(bin, a.name, a.contentType, m.from?.emailAddress?.address || null, m.subject || null).catch(() => null);
+      // (reading happens in the background inside storeDoc)
       if (id) docs++;
     }
     await g(`/messages/${m.id}`, { method: "PATCH", body: JSON.stringify({ isRead: true }) });
@@ -192,12 +216,13 @@ Deno.serve(async (req) => {
       const id = await storeDoc(bin, String(body.filename), String(body.mime || ""), body.sender || null, body.subject || null);
       return json(id ? { ok: true, id } : { ok: false, skipped: "Not a PDF or image" });
     }
-    if (body.action === "read" && body.id) {
+    if ((body.action === "read" && body.id) || body.action === "check") {
       const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, {
         global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
       });
       const { data: role } = await user.rpc("app_role");
-      if (role !== "admin") return json({ error: "Only Admin can read inbox documents" }, 403);
+      if (role !== "admin") return json({ error: "Only Admin can use the inbox" }, 403);
+      if (body.action === "check") return json(await checkEmail());
       return json(await readDoc(body.id, !!body.force));
     }
     return json({ error: "Unknown action" }, 400);

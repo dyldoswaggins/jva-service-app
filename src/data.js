@@ -88,6 +88,15 @@ const live = {
     }
     return data
   },
+  // "Check email": fetch new documents from the connected mailbox, only when asked
+  async checkEmail() {
+    const { data, error } = await supabase.functions.invoke('inbox', { body: { action: 'check' } })
+    if (error) {
+      const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
+      throw new Error(msg || error.message)
+    }
+    return data
+  },
   async inboxFile(row) {
     const { data, error } = await supabase.storage.from('inbox').download(row.file_path)
     if (error) throw error

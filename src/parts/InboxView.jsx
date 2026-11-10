@@ -28,6 +28,17 @@ export default function InboxView({ allParts, actions, userId }) {
     setBusy(''); load()
   }
 
+  async function checkEmail() {
+    setMsg(''); setBusy('Checking email…')
+    try {
+      const r = await api.checkEmail()
+      setBusy('')
+      setMsg(r.documents ? `${r.documents} new document${r.documents === 1 ? '' : 's'} from email. Reading them now.` : 'No new documents in the email inbox.')
+      if (r.failed) setMsg(m => `${m} ${r.failed} could not be sent; try again.`)
+      load()
+    } catch (e) { setBusy(''); setMsg(e.message) }
+  }
+
   async function openItem(item, force = false) {
     setMsg('')
     try {
@@ -64,6 +75,7 @@ export default function InboxView({ allParts, actions, userId }) {
     <div className="panel">
       <div className="actions">
         <h2 className="grow">Inbox: invoices and packing lists</h2>
+        <button type="button" className="btn solid" disabled={!!busy} onClick={checkEmail}>Check email</button>
         <label className="btn">Upload…
           <input type="file" multiple accept=".pdf,application/pdf,image/jpeg,image/png,image/webp" hidden
             onChange={e => { upload([...e.target.files]); e.target.value = '' }} />
@@ -71,7 +83,7 @@ export default function InboxView({ allParts, actions, userId }) {
         <label className="tog"><input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} /> Show applied</label>
         <button type="button" className="btn" onClick={load}>Refresh</button>
       </div>
-      <p className="msg">Documents emailed to the parts inbox appear here, already read. Rolex PDFs are read directly; scans and photos are read by Claude. Nothing changes stock until you open one and press Apply.</p>
+      <p className="msg">Press Check email to bring in documents sent to the parts inbox, or upload them. Rolex PDFs are read directly; scans and photos are read by Claude. Nothing changes stock until you open one and press Apply.</p>
       {busy && <p className="msg">{busy}</p>}
       {msg && <p className="msg warn">{msg}</p>}
       {!rows ? <p className="msg">Loading…</p> : shown.length ? (

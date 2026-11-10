@@ -103,6 +103,7 @@ export function makeDemo() {
       return row
     },
     async readInbox() { throw new Error('Demo mode: scans are read on the live site only') },
+    async checkEmail() { await new Promise(r => setTimeout(r, 600)); throw new Error('Demo mode: email is checked on the live site only') },
     async inboxFile(row) { return row._file },
     async updateInbox(id, fields) { const s = await load(); const r = s.inbox.find(x => x.id === id); Object.assign(r, fields) },
     async undoInvoice(id) {
