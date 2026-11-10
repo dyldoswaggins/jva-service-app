@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, conditionText, fmtTime, openPrompts, termsFor } from '../rules.js'
+import { CONDITIONS, braceletLine, conditionText, dialLine, fmtTime, openPrompts, termsFor, watchLine } from '../rules.js'
 import JobParts from './JobParts.jsx'
 import JobServiceInfo from './JobServiceInfo.jsx'
 
@@ -58,7 +58,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
 
   const setStatus = async s => {
     if (job.status === 'Estimate' && s !== 'Estimate' && s !== 'Cancelled' && pending)
-      return setMsg(`Answer the ${pending} prompt${pending === 1 ? '' : 's'} first (condition and client requests).`)
+      return setMsg(`Answer the ${pending} prompt${pending === 1 ? '' : 's'} first (WSR check, condition and client requests).`)
     const prev = job.status
     await run(() => api.updateJob(id, { status: s }))
     await actions.reload() // stock may have come off (leaving Estimate)
@@ -75,7 +75,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
     <div className="job">
       <div className="actions">
         <button type="button" className="btn" onClick={onBack}>← Jobs</button>
-        <h2 className="grow">Job {job.edge_no} · {[job.watch_ref, job.watch_name].filter(Boolean).join(' ')}</h2>
+        <h2 className="grow">Job {job.edge_no} · {watchLine(job)}</h2>
         <select value={job.status} onChange={e => setStatus(e.target.value)} disabled={!can.status} aria-label="Status">
           {statuses.map(s => <option key={s.name}>{s.name}</option>)}
         </select>
@@ -91,10 +91,16 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       <JobServiceInfo job={job} can={can} userId={userId} actions={actions} onChange={load} />
 
       {/* ---- prompts for the watchmaker ---- */}
-      {(toConfirm.length > 0 || toReview.length > 0) && (
+      {pending > 0 && (
         <section className="panel prompts">
           <h3>To confirm before the estimate ({pending})</h3>
           {!canBench && <p className="msg">The watchmaker confirms these.</p>}
+          {!job.wsr_checked_at && (
+            <div className="prompt">
+              <div className="grow"><b>WSR serial number check</b> <span className="msg">· Rolex: before any intervention or estimate (serial {job.serial || 'not entered'})</span></div>
+              {canBench && <button type="button" className="btn solid" onClick={() => run(() => api.updateJob(id, { wsr_checked_at: now(), wsr_checked_by: userId }), 'WSR check recorded')}>✓ Checked on WSR</button>}
+            </div>
+          )}
           {toConfirm.map(c => (
             <div key={c.id} className="prompt">
               <div className="grow"><span className="msg">Sales noted</span> <b>{c.component}: {c.term}</b>{c.note ? <span className="msg"> · {c.note}</span> : ''}</div>
@@ -183,15 +189,22 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       <section className="panel">
         <h3>Watch details</h3>
         <div className="grid">
-          {[['watch_ref', 'Reference'], ['watch_name', 'Model'], ['serial', 'Serial #'], ['calibre', 'Calibre'], ['movement_no', 'Movement #'],
-            ['dial_ref', 'Dial ref #'], ['dial_serial', 'Dial serial #'], ['dial', 'Dial'], ['bracelet_ref', 'Bracelet #'], ['bracelet', 'Bracelet'],
+          {[['watch_ref', 'Model number'], ['watch_name', 'Model name'], ['serial', 'Serial #'], ['calibre', 'Calibre'], ['movement_no', 'Movement #'],
+            ['dial_ref', 'Dial ref #'], ['dial_serial', 'Dial serial #'], ['dial', 'Dial description'], ['bracelet_ref', 'Bracelet reference'], ['bracelet', 'Bracelet description'],
             ['rolex_service_no', 'Rolex / WSC #'], ['mrws_ref', 'MRWS #']].map(([k, label]) => (
             <label key={k}>{label}
               <input key={job[k] ?? ''} defaultValue={job[k] ?? ''} disabled={!can.status} onBlur={e => saveField(k, e.target.value.trim())} />
             </label>
           ))}
         </div>
-        <p className="msg">Service: {job.service_type} · taken in {fmtTime(job.intake_at)} by {who(job.intake_by)}</p>
+        <div className="watchdesc">
+          <div><span>Watch</span>{watchLine(job) || '—'}</div>
+          <div><span>Serial #</span>{job.serial || '—'}</div>
+          <div><span>Bracelet</span>{braceletLine(job) || '—'}</div>
+          <div><span>Dial</span>{dialLine(job) || '—'}</div>
+        </div>
+        <p className="msg">Service: {job.service_type} · taken in {fmtTime(job.intake_at)} by {who(job.intake_by)}
+          {job.wsr_checked_at ? ` · WSR checked ${fmtTime(job.wsr_checked_at)} by ${who(job.wsr_checked_by)}` : ' · WSR not checked yet'}</p>
       </section>
 
       {/* ---- documents + history ---- */}

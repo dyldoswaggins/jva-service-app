@@ -65,6 +65,7 @@ Anyone without a role = View only. Watchmaker steps must be **minimal** (main ta
 - Serials: lists show last 4 only (`•••3F2A`); full number on the job and its documents.
 - File names carry no client details: `JVA-124595-001-Estimate.pdf`.
 - Nothing personal is sent to any AI service.
+- **Customer documents (Receipt, Estimate, Confirmation, Invoice) must follow Rolex's required content and share one harmonized template — read `docs/rolex-customer-documents.md` before touching any document.** Watch description is always 4 parts: `watchLine()` (M + model number + "Rolex" + model name), serial, `braceletLine()` (bracelet ref + description), `dialLine()` (dial description). Customer requests in Rolex wording (`REQ` in `src/rules.js`). WSR serial check before the estimate.
 
 ## 5. Data (from the Parts prototype — see `data/`)
 
@@ -270,3 +271,5 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Job documents: Print from the site + Email to service manager via parts Gmail (Edge Function `send-doc`, migration 009). Open idea from Dylan: remote digital signature for estimates (client signs from home) — decide with Documents. |
 | 2026-11-09 | Repairs part 2 (migration 010): CTR kits from Jared's lists, parts on jobs, stock taken on leaving Estimate (never negative, shortfalls flagged), returns, learning `fits`, Always Order → reorder. Intake now fills model + calibre as soon as the ref matches. Requested next: client-facing intake design, Sales limited to intake, CTR + polish price, queue ETA, iPad photos. |
 | 2026-11-09 | Migration 011: client-facing intake ("Rolex Service Reception"), Sales limited to intake (UI + RLS), CTR price by tier + polishing offer by family (Admin → Settings), queue ETA with watchmaker override, iPad photos. |
+| 2026-11-09 | Rolex customer documents reviewed → `docs/rolex-customer-documents.md`. Migration 013: bracelet ref + dial ref saved at intake, WSR check (gates Estimate). Intake requires model name, bracelet ref + description, dial description; watch line `M<ref> Rolex <model>`; requests in Rolex wording (Do not refinish case/bracelet when no polish); receipt restructured. Added Dial "Stained", Bracelet "Stretched". |
+| 2026-11-09 | Harmonized document engine `src/docs/rolexDoc.js` copying JVA's SAV templates; content flows onto extra pages (no clipping); JVA Alberta legal notices page on every document; receipt rebuilt on it. Condition text grouped by part. Old fixed-field receipt template removed. |

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, JOB_NO, REQUEST_OPTIONS, SERVICE_TYPES, conditionText, modelId, money } from '../rules.js'
+import { CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, braceletLine, conditionText, dialLine, modelId, money, watchLine, weeksUntil } from '../rules.js'
 import { makeReceipt, receiptFileName } from '../receipt.js'
 import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
 
 const INTAKE_CONDITIONS = CONDITIONS.filter(x => x.intake !== false)
-const blank = { edge_no: '', rolex_service_no: '', mrws_ref: '', service_type: 'CTR', watch_ref: '', watch_name: '', calibre: '', serial: '', bracelet: '', dial: '' }
+const blank = { edge_no: '', rolex_service_no: '', mrws_ref: '', service_type: 'CTR', watch_ref: '', watch_name: '', calibre: '', serial: '', bracelet_ref: '', bracelet: '', dial: '' }
 const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }) : '')
 // Suggest the polishing line from the watch name ("Submariner Date" → "Submariner / GMT-Master / …")
 const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
@@ -62,17 +62,21 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const ctrPrice = isCTR && tier ? ctrPrices[tier] : null
   const polishPrice = polish && family ? polishPrices[family] : null
   const total = (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
-  // Requests that follow from the service choices (shown to the watchmaker as prompts too)
+  // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
-    ...(isCTR ? [{ request: 'Complete service', note: tier ? `${tier} CTR` : '' }] : []),
-    ...(polish ? [{ request: 'Polish', note: family }] : []),
-    ...reqs.filter(r => !(isCTR && r.request === 'Complete service') && !(polish && r.request === 'Polish')),
+    ...(isCTR ? [{ request: REQ.overhaul, note: tier ? `${tier} CTR` : '' }] : []),
+    ...(polish ? [{ request: REQ.refinish, note: family }] : isCTR ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
+    ...reqs,
   ]
 
   const missing = [
     !JOB_NO.test(job.edge_no.trim()) && 'Edge job # (like 124595-001)',
-    !job.watch_ref.trim() && 'watch reference',
+    !job.watch_ref.trim() && 'model number',
+    !job.watch_name.trim() && 'model name',
     !job.serial.trim() && 'serial #',
+    !job.bracelet_ref.trim() && 'bracelet reference',
+    !job.bracelet.trim() && 'bracelet description',
+    !job.dial.trim() && 'dial description',
     isCTR && !tier && 'CTR tier',
     polish && !family && 'polishing line',
     !allReqs.length && 'at least one request',
@@ -88,14 +92,16 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
       polish_price: polishPrice ?? null, eta_quoted: eta?.eta || null,
     }
-    const serviceLines = [
-      isCTR ? `Rolex complete service (CTR), ${tier}: ${ctrPrice != null ? money(ctrPrice) : 'price on estimate'}.` : `Service: ${job.service_type}.`,
-      polish ? `Polishing (${family}): ${polishPrice != null ? money(polishPrice) : 'price on estimate'}.` : 'No polishing requested.',
-      total ? `Estimate before tax: ${money(total)}. The final estimate follows our watchmakers' analysis.` : '',
-      eta?.eta ? `Estimated ready: ${longDate(eta.eta)} (to be confirmed after analysis).` : '',
-    ].filter(Boolean)
+    const quote = {
+      items: [
+        isCTR ? { label: `Complete overhaul (${tier})`, price: ctrPrice ?? 'On estimate' } : { label: job.service_type, price: 'On estimate' },
+        ...(polish ? [{ label: 'Refinish case and bracelet', price: polishPrice ?? 'On estimate' }] : []),
+      ],
+      total: total || null,
+      weeks: weeksUntil(eta?.eta),
+    }
     try {
-      const pdf = await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, serviceLines })
+      const pdf = await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, quote })
       const id = await api.createJob(clean, conds, allReqs)
       const doc = await api.uploadJobDoc(id, 'receipt', pdf, receiptFileName(clean), userId)
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
@@ -119,13 +125,20 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       <section className="step">
         <h2><span>1</span>Your timepiece</h2>
         <div className="grid big">
-          <label>Reference<input value={job.watch_ref} onChange={set('watch_ref')} placeholder="126610LN" autoCapitalize="characters" /></label>
-          <label>Model<input value={job.watch_name} onChange={set('watch_name')} placeholder="Submariner Date" /></label>
+          <label>Model number<input value={job.watch_ref} onChange={set('watch_ref')} placeholder="126710BLNR" autoCapitalize="characters" /></label>
+          <label>Model name<input value={job.watch_name} onChange={set('watch_name')} placeholder="GMT-Master II / Oyster Perpetual" /></label>
           <label>Serial number<input value={job.serial} onChange={set('serial')} autoCapitalize="characters" /></label>
-          <label>Bracelet<input value={job.bracelet} onChange={set('bracelet')} placeholder="Oyster, Oystersteel" /></label>
-          <label>Dial<input value={job.dial} onChange={set('dial')} placeholder="Black" /></label>
+          <label>Bracelet reference<input value={job.bracelet_ref} onChange={set('bracelet_ref')} placeholder="20-93150-20" autoCapitalize="characters" /></label>
+          <label>Bracelet description<input value={job.bracelet} onChange={set('bracelet')} placeholder="Rolex Oyster Fliplock Steel" /></label>
+          <label>Dial description<input value={job.dial} onChange={set('dial')} placeholder="126610 black markers w lgn" /></label>
         </div>
-        {model && <p className="msg">Rolex {model.name || model.ref}{model.cal ? ` · calibre ${model.cal}` : ''}</p>}
+        <div className="watchdesc" aria-label="Watch description as printed">
+          <div><span>Watch</span>{watchLine(job) || '—'}</div>
+          <div><span>Serial #</span>{job.serial || '—'}</div>
+          <div><span>Bracelet</span>{braceletLine(job) || '—'}</div>
+          <div><span>Dial</span>{dialLine(job) || '—'}</div>
+        </div>
+        {model && <p className="msg">{model.cal ? `Calibre ${model.cal}` : ''}{model.ok ? '' : ' (model details unconfirmed)'}</p>}
       </section>
 
       <section className="step">
@@ -183,7 +196,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           </div>
         )}
         <div className="offer" data-on={polish}>
-          <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Add polishing of case and bracelet</label>
+          <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Refinish (polish and satin-finish) case and bracelet</label>
+          {!polish && isCTR && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
           {polish && (
             <div className="cards">
               {Object.entries(polishPrices).map(([f, p]) => (
@@ -196,7 +210,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         </div>
         <h3>Anything else you'd like?</h3>
         <div className="chips">
-          {[...REQUEST_OPTIONS.filter(r => !(isCTR && r === 'Complete service') && !(r === 'Polish')), ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
+          {[...REQUEST_OPTIONS, ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
             <button key={r} type="button" className="chip" aria-pressed={hasReq(r)} onClick={() => toggleReq(r)}>{r}</button>
           ))}
         </div>

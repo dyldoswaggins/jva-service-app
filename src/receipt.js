@@ -1,38 +1,36 @@
-// Fill JVA's own editable Rolex receipt (public/templates/receipt.pdf) and add the client's signature.
-// Client details only ever live inside this PDF (stored with the job, Admin + Sales only).
-import { PDFDocument } from 'pdf-lib'
+// Receipt (Rolex SAV document 1) on the shared harmonized layout (src/docs/rolexDoc.js).
+// Content: docs/rolex-customer-documents.md. Client details live only inside this PDF (Admin + Sales only).
+import { buildDocument } from './docs/rolexDoc.js'
 import { conditionText } from './rules.js'
 
-export async function makeReceipt({ job, client, requests, conditions, signaturePng, date = new Date(), serviceLines = [] }) {
-  const tpl = await fetch('/templates/receipt.pdf').then(r => { if (!r.ok) throw new Error('Receipt template missing'); return r.arrayBuffer() })
-  const pdf = await PDFDocument.load(tpl)
-  const form = pdf.getForm()
-  const set = (name, value) => { try { form.getTextField(name).setText(value || '') } catch { /* field missing */ } }
-  const day = date.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
-
-  set('Customer Name', client.name)
-  set('Address 1', client.address1)
-  set('Address 2', client.address2)
-  set('Address 3', client.address3)
-  set('Date', day)
-  set('Job Reference Number', job.edge_no)
-  set('Watch', [job.watch_ref, 'Rolex', job.watch_name].filter(Boolean).join(' '))
-  set('Serial Number', job.serial)
-  set('Bracelet', job.bracelet)
-  set('Dial Colour', job.dial)
-  const req = requests.map(r => r.request + (r.note ? ` (${r.note})` : '')).join('; ')
-  const cond = conditions.length ? `Condition noted at intake: ${conditionText(conditions)}.` : 'Condition noted at intake: no visible marks noted.'
-  const service = serviceLines.length ? serviceLines.join('\n') : `Service type: ${job.service_type}.`
-  set('Customer Request', [req && `${req}.`, service, cond].filter(Boolean).join('\n\n'))
-  set('Undersigned Name', client.name)
-
-  if (signaturePng) {
-    const img = await pdf.embedPng(signaturePng)
-    const w = 140, h = Math.min(34, (img.height / img.width) * w)
-    pdf.getPage(0).drawImage(img, { x: 372, y: 213, width: w, height: h })
-  }
-  form.flatten()
-  return new Blob([await pdf.save()], { type: 'application/pdf' })
+// quote: { items: [{ label, price }], total, weeks }  (indicative, before the watchmakers' analysis)
+export async function makeReceipt({ job, client, requests, conditions, signaturePng, date = new Date(), quote }) {
+  return buildDocument({
+    title: 'Receipt', job, client, date, signaturePng,
+    body: d => {
+      d.para('Dear Sir, Madam,'); d.gap(4)
+      d.para('Thank you for entrusting the above-mentioned watch to us for an estimate of the potential work required, based on the details below. ' +
+        'We will contact you to review the completed estimate and next steps in 2-3 business days. Retain this document and present it alongside ' +
+        'government issued photo ID upon pick up. Our responsibility ends when the timepiece is delivered to the bearer of this claim letter.')
+      d.gap(6)
+      d.section('Customer requests')
+      d.bullets(requests.map(r => r.request))
+      d.gap(4)
+      d.section('Watch condition on arrival')
+      d.para(conditions.length ? conditionText(conditions) : 'No visible marks noted.')
+      d.gap(4)
+      if (quote?.items?.length) {
+        d.section('Indicative estimate (before analysis)', { rightHeading: 'MSRP CAD (TAX EXCL.)' })
+        quote.items.forEach(i => d.item(i))
+        if (quote.total) d.item({ label: 'Indicative total', price: quote.total })
+        d.para(`The detailed estimate follows our watchmakers' analysis.${quote.weeks ? ` Delivery: approximately ${quote.weeks} week${quote.weeks === 1 ? '' : 's'} on approval.` : ''}`, { size: 7.5 })
+        d.gap(4)
+      }
+      d.section('Acknowledgement and authorization')
+      d.signature('I, the undersigned {name}, declare that I have read and accepted the legal notices applicable to the establishment of the estimate ' +
+        '(appendix page). I confirm that the data transmitted on the watch is correct.', { name: client.name })
+    },
+  })
 }
 
 export const receiptFileName = job => `JVA-${job.edge_no}-Receipt.pdf`

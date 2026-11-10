@@ -33,9 +33,9 @@ export const CONDITIONS = [
   { c: 'Case back', t: ['Scratched', 'Engraved', 'Damaged', 'Worn'] },
   { c: 'Crown', t: ['Damaged', 'Dented', 'Worn', 'Corroded', 'Missing', 'Deformed'] },
   { c: 'Crown tube', t: ['Damaged', 'Corroded', 'Not water resistant', 'Missing', 'Worn'] },
-  { c: 'Dial', t: ['Discoloured', 'Scratched', 'Spotted', 'Corroded', 'Chipped', 'Cracked'] },
+  { c: 'Dial', t: ['Discoloured', 'Scratched', 'Stained', 'Spotted', 'Corroded', 'Chipped', 'Cracked'] },
   { c: 'Hands', t: ['Discoloured', 'Scratched', 'Stained', 'Missing'] },
-  { c: 'Bracelet', t: ['Dented', 'Scratched', 'Worn', 'Modified', 'Broken', 'Damaged'] },
+  { c: 'Bracelet', t: ['Dented', 'Scratched', 'Stretched', 'Worn', 'Modified', 'Broken', 'Damaged'] },
   { c: 'Clasp', t: ['Dented', 'Damaged', 'Not intended', 'Deformed', 'Missing', 'Corroded'] },
   { c: 'Lugs', t: ['Damaged', 'Missing', 'Worn', 'Broken', 'Cracked', 'Dented'] },
   { c: 'Springbars', t: ['Damaged', 'Missing', 'Worn', 'Broken', 'Cracked'] },
@@ -44,16 +44,47 @@ export const CONDITIONS = [
 ]
 export const termsFor = component => CONDITIONS.find(x => x.c === component)?.t || []
 export const SERVICE_TYPES = ['CTR', 'Partial', 'Warranty', 'Quick Service']
-export const REQUEST_OPTIONS = ['Complete service', 'Polish', 'No polish', 'Crystal', 'Bracelet sizing', 'Timekeeping check', 'Water resistance test']
+// Customer requests in Rolex wording (Rolex Harmonized documents)
+export const REQ = {
+  overhaul: 'Perform complete overhaul',
+  refinish: 'Refinish case and bracelet',
+  noCase: 'Do not refinish case',
+  noBracelet: 'Do not refinish bracelet',
+}
+export const REQUEST_OPTIONS = ['Replace crystal', 'Adjust bracelet', 'Timekeeping check', 'Water resistance test', 'Repair crown', 'Replace bracelet']
 export const JOB_NO = /^\d{4,7}-\d{3}$/
+
+// ---------- Rolex watch description (mandatory on Receipt, Estimate, Confirmation, Invoice) ----------
+// 1. Model number + description: "M126710BLNR Rolex GMT-Master II"
+export const watchLine = j => {
+  const ref = String(j.watch_ref || '').trim().toUpperCase()
+  const name = String(j.watch_name || '').trim().replace(/^rolex\s+/i, '')
+  return [ref && (ref.startsWith('M') ? ref : 'M' + ref), 'Rolex', name].filter(Boolean).join(' ')
+}
+// 3. Bracelet reference + description: "20-93150-20 Rolex Oyster Fliplock Steel"
+export const braceletLine = j => [j.bracelet_ref, j.bracelet].filter(Boolean).join(' ')
+// 4. Dial description: "Dial 16610 black markers w lgn"
+export const dialLine = j => { const d = String(j.dial || '').trim(); return d && !/^dial\b/i.test(d) ? 'Dial ' + d : d }
+// Rolex standard service lead times on documents
+export const LEAD_TIMES = [10, 15, 20] // business days
+export const weeksUntil = iso => (iso ? Math.max(1, Math.round((new Date(iso + 'T12:00:00') - new Date()) / (7 * 864e5))) : null)
 export const maskSerial = s => (s ? '•••' + String(s).slice(-4) : '')
 // "Crystal scratched, Bezel dented (at 2)"
-export const conditionText = list =>
-  list.map(x => `${x.component} ${String(x.term).toLowerCase()}${x.note ? ` (${x.note})` : ''}`).join(', ')
+// Grouped by part, note once: "Case scratched, dented (at 4 o'clock), Crystal chipped"
+export const conditionText = list => {
+  const by = new Map()
+  for (const x of list) {
+    const g = by.get(x.component) || { terms: [], notes: new Set() }
+    g.terms.push(String(x.term).toLowerCase()); if (x.note) g.notes.add(x.note); by.set(x.component, g)
+  }
+  return [...by].map(([c, g]) => `${c} ${g.terms.join(', ')}${g.notes.size ? ` (${[...g.notes].join('; ')})` : ''}`).join(', ')
+}
 // Prompts the watchmaker must answer before the estimate goes out
+// (+1 until the WSR serial number check is done — Rolex: before any intervention / the estimate)
 export const openPrompts = job =>
   (job.job_conditions || []).filter(c => c.state === 'to_confirm').length +
-  (job.job_requests || []).filter(r => r.state === 'to_review').length
+  (job.job_requests || []).filter(r => r.state === 'to_review').length +
+  (job.wsr_checked_at ? 0 : 1)
 
 // ---------- invoices ----------
 // The 11.5 stock confirmation already counts everything received up to this date:
