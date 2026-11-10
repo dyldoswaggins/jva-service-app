@@ -4,6 +4,7 @@ import { CONDITIONS, braceletLine, conditionText, dialLine, fmtTime, openPrompts
 import JobParts from './JobParts.jsx'
 import JobServiceInfo from './JobServiceInfo.jsx'
 import JobDocuments from './JobDocuments.jsx'
+import JobTimer from './JobTimer.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -77,6 +78,8 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       <div className="actions">
         <button type="button" className="btn" onClick={onBack}>← Jobs</button>
         <h2 className="grow">Job {job.edge_no} · {watchLine(job)}</h2>
+        <JobTimer jobId={id} who={who} isAdmin={can.edit}
+          live={canBench && statuses.find(s => s.name === job.status)?.kind === 'open'} />
         <select value={job.status} onChange={e => setStatus(e.target.value)} disabled={!can.status} aria-label="Status">
           {statuses.map(s => <option key={s.name}>{s.name}</option>)}
         </select>

@@ -98,7 +98,20 @@ export function makeDemo() {
       return ['Estimate', 'Waiting on parts', 'On deck', 'Polishing', 'Timekeeping', 'Sent to Toronto', 'Done', 'Cancelled']
         .map((name, i) => ({ name, ord: i, kind: name === 'Done' ? 'done' : name === 'Cancelled' ? 'cancelled' : name === 'Sent to Toronto' ? 'away' : 'open' }))
     },
-    async loadJobs() { const s = await load(); return (s.jobs || []).map(j => ({ ...j })) },
+    async loadJobs() {
+      const s = await load()
+      // ?demo&sample → one realistic job to look at (e.g. ?demo&role=watchmaker&sample)
+      if (!s.jobs && new URLSearchParams(location.search).has('sample')) {
+        s.jobs = []
+        await this.createJob({ edge_no: '125100-001', service_type: 'CTR', watch_ref: '126610LN', watch_name: 'Submariner Date', serial: '9X8Y7Z66', calibre: '3235',
+          bracelet_ref: '20-72610', bracelet: 'Rolex Oyster Oystersteel', dial: '126610 black markers w lgn', ctr_tier: 'Modern', ctr_price: 1250,
+          polish: true, polish_family: 'Submariner / GMT-Master / Explorer / Sea-Dweller', polish_price: 350, eta_quoted: '2026-11-24' },
+        [{ component: 'Crystal', term: 'Chipped', note: "at 2 o'clock" }, { component: 'Bezel', term: 'Scratched', note: '' }, { component: 'Bracelet', term: 'Stretched', note: '' }],
+        [{ request: 'Perform complete overhaul', note: 'Modern CTR' }, { request: 'Refinish case and bracelet', note: '' }, { request: 'Replace crystal', note: '' }],
+        { name: 'Sample Client' })
+      }
+      return (s.jobs || []).map(j => ({ ...j }))
+    },
     async loadJob(id) { const s = await load(); return { ...s.jobs.find(j => j.id === id) } },
     async saveJobClient(jobId, fields) { const s = await load(); const j = s.jobs.find(x => x.id === jobId); j.job_clients = { job_id: jobId, ...(j.job_clients || {}), ...fields } },
     async setJobPartPrice(lineId, retail) { const s = await load(); for (const j of s.jobs) { const l = (j.job_parts || []).find(x => x.id === lineId); if (l) l.retail = retail } },
@@ -144,6 +157,29 @@ export function makeDemo() {
       return JSON.parse(JSON.stringify(s.settings))
     },
     async saveSetting(key, value) { const s = await load(); await this.loadSettings(); s.settings[key] = value },
+    // time on the job (mirrors migration 015)
+    async timeStart(jobId) {
+      if (!['admin', 'watchmaker'].includes(role)) return null
+      const s = await load(); s.time = s.time || []
+      s.time.forEach(t => { if (t.user_id === me.id) t.ended = true })
+      const t = { id: crypto.randomUUID(), job_id: jobId, user_id: me.id, started_at: Date.now(), last_seen_at: Date.now(), ended: false }
+      s.time.push(t); return t.id
+    },
+    async timeBeat(id) {
+      const t = ((await load()).time || []).find(x => x.id === id)
+      if (!t || t.ended || Date.now() - t.last_seen_at > 180000) return false
+      t.last_seen_at = Date.now(); return true
+    },
+    async timeStop(id) {
+      const t = ((await load()).time || []).find(x => x.id === id)
+      if (t && !t.ended) { if (Date.now() - t.last_seen_at <= 180000) t.last_seen_at = Date.now(); t.ended = true }
+    },
+    async jobTime(jobId) {
+      const rows = ((await load()).time || []).filter(t => t.job_id === jobId)
+      const sec = t => (t.last_seen_at - t.started_at) / 1000
+      const by = {}; rows.forEach(t => { by[t.user_id] = (by[t.user_id] || 0) + sec(t) })
+      return { seconds: Math.round(rows.reduce((a, t) => a + sec(t), 0)), people: role === 'admin' ? Object.entries(by).map(([user_id, seconds]) => ({ user_id, seconds })) : null }
+    },
     async queueEta(jobId = null) {
       const s = await load(), st = await this.loadSettings(), jobs = s.jobs || []
       const me_ = jobs.find(j => j.id === jobId)

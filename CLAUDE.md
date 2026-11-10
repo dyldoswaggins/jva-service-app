@@ -204,6 +204,12 @@ Default: stock comes off when the job leaves the first status (estimate), not wh
 - Learning targets (later): parts per model+calibre, ignored suggestions drop, parts found by search 3+ times join recommendations, turnaround time per status by calibre, estimate accuracy, reorder levels from usage + Rolex delivery times. Minimum 3 past jobs for a model before suggesting; else calibre; else nothing. Calculated from jobs and log, not stored.
 - Optional monthly review (Admin): AI reads last month's jobs with no client data or serials and lists suggested changes; Admin accepts or dismisses each.
 - Status changes saved to `statusLog` (status, by, at); jobs can move to any status, including backwards.
+
+### Time on the job (Dylan, 2026-11-09)
+- Header counter "On this job" in whole minutes (`src/repairs/JobTimer.jsx`, migration 015 `job_time`). Framed as job time, not a per-person tracker.
+- Runs automatically while an Admin/watchmaker has an open-status job on screen; one job at a time (opening another ends the previous). Heartbeat every minute; a session ends at its last beat (page closed, tab hidden, tablet asleep). Pauses after 60 min with no touch; tap the counter to pause/resume.
+- Everyone (not Sales) sees the job total (`job_time_total`); only Admin sees the split by person. Rows written only through `time_start/time_beat/time_stop`; never deleted.
+- Use later: turnaround and bench time by calibre/service in a report.
 - Privacy open questions: data retention period; Alberta PIPA consent wording on the intake receipt.
 
 ## 7. Job history analysis (done 2026-11-08)
@@ -274,3 +280,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Rolex customer documents reviewed → `docs/rolex-customer-documents.md`. Migration 013: bracelet ref + dial ref saved at intake, WSR check (gates Estimate). Intake requires model name, bracelet ref + description, dial description; watch line `M<ref> Rolex <model>`; requests in Rolex wording (Do not refinish case/bracelet when no polish); receipt restructured. Added Dial "Stained", Bracelet "Stretched". |
 | 2026-11-09 | Harmonized document engine `src/docs/rolexDoc.js` copying JVA's SAV templates; content flows onto extra pages (no clipping); JVA Alberta legal notices page on every document; receipt rebuilt on it. Condition text grouped by part. Old fixed-field receipt template removed. |
 | 2026-11-09 | Migration 014: Estimate, Confirmation, Invoice. `job_clients` (client name/address, Admin + intake associate only — extends the receipt exception), `jobs.extra_lines/estimate_notes/estimate_decision`, `job_parts.decision`, `set_job_part_price()`, `record_decision()` (declined parts back to stock), `create_job(…, p_client)`. |
+| 2026-11-09 | Migration 015: time on the job. `job_time` + `time_start/beat/stop`, `job_time_total` (Admin sees per person). Header counter in minutes, auto while a watchmaker has the job open. Demo `&sample` seeds once. |

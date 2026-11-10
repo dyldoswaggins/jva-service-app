@@ -116,6 +116,26 @@ const live = {
     const { error } = await supabase.from('jobs').update(fields).eq('id', id)
     if (error) throw error
   },
+  // ---------- time on the job (bench) ----------
+  async timeStart(jobId) {
+    const { data, error } = await supabase.rpc('time_start', { p_job: jobId })
+    if (error) throw error
+    return data
+  },
+  async timeBeat(id) {
+    const { data, error } = await supabase.rpc('time_beat', { p_id: id })
+    if (error) throw error
+    return data
+  },
+  async timeStop(id) {
+    const { error } = await supabase.rpc('time_stop', { p_id: id })
+    if (error) throw error
+  },
+  async jobTime(jobId) {
+    const { data, error } = await supabase.rpc('job_time_total', { p_job: jobId })
+    if (error) throw error
+    return data
+  },
   // ---------- settings, ETA, photos ----------
   async loadSettings() {
     const { data, error } = await supabase.from('app_settings').select('*')

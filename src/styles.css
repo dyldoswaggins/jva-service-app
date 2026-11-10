@@ -219,3 +219,11 @@ table.imp tr.click:hover td { background: var(--hover); }
   h1 { white-space: normal; }
   .me { margin-left: 0; }
 }
+
+/* time on this job (job header) */
+.jobtimer { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.timer { display: flex; align-items: baseline; gap: 8px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 4px 10px; color: var(--fg); }
+.timer-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.timer-value { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.timer:not(.on) .timer-value { color: var(--muted); }
+.timer-people { font-size: 12px; text-align: right; }
