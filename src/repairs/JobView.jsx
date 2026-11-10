@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../data.js'
 import { CONDITIONS, conditionText, fmtTime, openPrompts, termsFor } from '../rules.js'
 import JobParts from './JobParts.jsx'
+import JobServiceInfo from './JobServiceInfo.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -86,6 +87,8 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </div>
       )}
       {msg && <p className="msg warn">{msg}</p>}
+
+      <JobServiceInfo job={job} can={can} userId={userId} actions={actions} onChange={load} />
 
       {/* ---- prompts for the watchmaker ---- */}
       {(toConfirm.length > 0 || toReview.length > 0) && (

@@ -3,7 +3,7 @@
 import { PDFDocument } from 'pdf-lib'
 import { conditionText } from './rules.js'
 
-export async function makeReceipt({ job, client, requests, conditions, signaturePng, date = new Date() }) {
+export async function makeReceipt({ job, client, requests, conditions, signaturePng, date = new Date(), serviceLines = [] }) {
   const tpl = await fetch('/templates/receipt.pdf').then(r => { if (!r.ok) throw new Error('Receipt template missing'); return r.arrayBuffer() })
   const pdf = await PDFDocument.load(tpl)
   const form = pdf.getForm()
@@ -22,7 +22,8 @@ export async function makeReceipt({ job, client, requests, conditions, signature
   set('Dial Colour', job.dial)
   const req = requests.map(r => r.request + (r.note ? ` (${r.note})` : '')).join('; ')
   const cond = conditions.length ? `Condition noted at intake: ${conditionText(conditions)}.` : 'Condition noted at intake: no visible marks noted.'
-  set('Customer Request', [req && `${req}.`, `Service type: ${job.service_type}.`, cond].filter(Boolean).join('\n\n'))
+  const service = serviceLines.length ? serviceLines.join('\n') : `Service type: ${job.service_type}.`
+  set('Customer Request', [req && `${req}.`, service, cond].filter(Boolean).join('\n\n'))
   set('Undersigned Name', client.name)
 
   if (signaturePng) {

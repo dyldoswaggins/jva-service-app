@@ -54,7 +54,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who }
       {!jobs ? <p className="msg">Loading…</p> : shown.length ? (
         <div className="imp-wrap">
           <table className="imp jobs">
-            <thead><tr><th>Job #</th><th>Watch</th><th>Serial</th><th>Service</th><th>Status</th><th>To confirm</th><th>In since</th></tr></thead>
+            <thead><tr><th>Job #</th><th>Watch</th><th>Serial</th><th>Service</th><th>Status</th><th>To confirm</th><th>In since</th><th>ETA</th></tr></thead>
             <tbody>
               {shown.map(j => {
                 const n = openPrompts(j)
@@ -67,6 +67,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who }
                     <td>{j.status}</td>
                     <td>{n ? <b className="tag warn">{n} to confirm</b> : <span className="msg">✓</span>}</td>
                     <td>{fmtDate(String(j.intake_at).slice(0, 10))}</td>
+                    <td>{j.eta_override ? <b>{fmtDate(j.eta_override)}</b> : j.eta_quoted ? fmtDate(j.eta_quoted) : ''}</td>
                   </tr>
                 )
               })}

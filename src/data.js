@@ -89,7 +89,7 @@ const live = {
   },
   async loadJob(id) {
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*)').eq('id', id).single()
+      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*), job_photos(*)').eq('id', id).single()
     if (error) throw error
     return data
   },
@@ -101,6 +101,33 @@ const live = {
   async updateJob(id, fields) {
     const { error } = await supabase.from('jobs').update(fields).eq('id', id)
     if (error) throw error
+  },
+  // ---------- settings, ETA, photos ----------
+  async loadSettings() {
+    const { data, error } = await supabase.from('app_settings').select('*')
+    if (error) throw error
+    return Object.fromEntries(data.map(r => [r.key, r.value]))
+  },
+  async saveSetting(key, value) {
+    const { error } = await supabase.from('app_settings').update({ value, updated_at: new Date().toISOString() }).eq('key', key)
+    if (error) throw error
+  },
+  async queueEta(jobId = null) {
+    const { data, error } = await supabase.rpc('queue_eta', { p_job: jobId })
+    if (error) throw error
+    return data
+  },
+  async uploadJobPhoto(jobId, blob, label, userId) {
+    const path = `${jobId}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`
+    const up = await supabase.storage.from('job-photos').upload(path, blob, { contentType: 'image/jpeg' })
+    if (up.error) throw up.error
+    const { error } = await supabase.from('job_photos').insert({ job_id: jobId, file_path: path, label, by_user: userId })
+    if (error) throw error
+  },
+  async photoUrl(photo) {
+    const { data, error } = await supabase.storage.from('job-photos').createSignedUrl(photo.file_path, 3600)
+    if (error) throw error
+    return data.signedUrl
   },
   // ---------- CTR kits + parts on jobs ----------
   async loadKit(family) {
@@ -150,8 +177,9 @@ const live = {
     const path = `${jobId}/${Date.now()}-${fileName}`
     const up = await supabase.storage.from('job-docs').upload(path, blob, { contentType: 'application/pdf' })
     if (up.error) throw up.error
-    const { error } = await supabase.from('job_docs').insert({ job_id: jobId, kind, file_path: path, file_name: fileName, by_user: userId })
+    const { data, error } = await supabase.from('job_docs').insert({ job_id: jobId, kind, file_path: path, file_name: fileName, by_user: userId }).select().single()
     if (error) throw error
+    return data
   },
   // Email a job document to the watch service manager (Edge Function send-doc, parts Gmail)
   async emailJobDoc(docId) {

@@ -1,31 +1,48 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, JOB_NO, REQUEST_OPTIONS, SERVICE_TYPES, conditionText, modelId } from '../rules.js'
+import { CONDITIONS, JOB_NO, REQUEST_OPTIONS, SERVICE_TYPES, conditionText, modelId, money } from '../rules.js'
 import { makeReceipt, receiptFileName } from '../receipt.js'
+import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
 
 const INTAKE_CONDITIONS = CONDITIONS.filter(x => x.intake !== false)
 const blank = { edge_no: '', rolex_service_no: '', mrws_ref: '', service_type: 'CTR', watch_ref: '', watch_name: '', calibre: '', serial: '', bracelet: '', dial: '' }
+const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' }) : '')
+// Suggest the polishing line from the watch name ("Submariner Date" → "Submariner / GMT-Master / …")
+const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
 
-// Sales take in a watch on the iPad: job, watch, visible condition, client requests, signed receipt.
-export default function IntakeView({ models, actions, userId, onDone }) {
+// Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
+export default function IntakeView({ models, actions, userId, onDone, standalone }) {
   const [job, setJob] = useState(blank)
-  const [conds, setConds] = useState([])          // [{component, term, note}]
+  const [conds, setConds] = useState([])
   const [openComp, setOpenComp] = useState(null)
-  const [reqs, setReqs] = useState([])            // [{request, note}]
+  const [reqs, setReqs] = useState([])
   const [otherReq, setOtherReq] = useState('')
   const [client, setClient] = useState({ name: '', address1: '', address2: '', address3: '' })
   const [sig, setSig] = useState(null)
+  const [photos, setPhotos] = useState([])        // [{ blob, url }]
+  const [settings, setSettings] = useState(null)
+  const [tier, setTier] = useState('')
+  const [polish, setPolish] = useState(false)
+  const [family, setFamily] = useState('')
+  const [eta, setEta] = useState(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const camRef = useRef(null)
+
+  useEffect(() => {
+    api.loadSettings().then(setSettings).catch(() => setSettings({}))
+    api.queueEta(null).then(setEta).catch(() => setEta(null))
+  }, [])
 
   const set = k => e => setJob({ ...job, [k]: e.target.value })
-  const model = useMemo(() => models.get(modelId(job.watch_ref || '-')), [models, job.watch_ref])
-  // Fill model + calibre as soon as the reference matches a known model (not only when leaving the box)
+  const model = useMemo(() => models?.get?.(modelId(job.watch_ref || '-')), [models, job.watch_ref])
   useEffect(() => {
     if (model) setJob(j => ({ ...j, watch_name: j.watch_name || model.name, calibre: j.calibre || String(model.cal || '').split(/[,\s]+/)[0] }))
   }, [model])
-  const lookupRef = () => { if (model) setJob(j => ({ ...j, watch_ref: model.ref })) }
+  const ctrPrices = settings?.ctr_prices || {}
+  const polishPrices = settings?.polish_prices || {}
+  useEffect(() => { if (!family && job.watch_name) setFamily(suggestFamily(Object.keys(polishPrices), job.watch_name)) }, [job.watch_name, settings])
 
   const hasCond = (c, t) => conds.some(x => x.component === c && x.term === t)
   const toggleCond = (c, t) => setConds(cs => (hasCond(c, t) ? cs.filter(x => !(x.component === c && x.term === t)) : [...cs, { component: c, term: t, note: '' }]))
@@ -35,11 +52,30 @@ export default function IntakeView({ models, actions, userId, onDone }) {
   const toggleReq = r => setReqs(rs => (hasReq(r) ? rs.filter(x => x.request !== r) : [...rs, { request: r, note: '' }]))
   const addOther = () => { const r = otherReq.trim(); if (r && !hasReq(r)) setReqs(rs => [...rs, { request: r, note: '' }]); setOtherReq('') }
 
+  async function addPhotos(files) {
+    for (const f of files) {
+      try { const blob = await compressPhoto(f); setPhotos(p => [...p, { blob, url: URL.createObjectURL(blob) }]) } catch { setMsg('That photo could not be read.') }
+    }
+  }
+
+  const isCTR = job.service_type === 'CTR'
+  const ctrPrice = isCTR && tier ? ctrPrices[tier] : null
+  const polishPrice = polish && family ? polishPrices[family] : null
+  const total = (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
+  // Requests that follow from the service choices (shown to the watchmaker as prompts too)
+  const allReqs = [
+    ...(isCTR ? [{ request: 'Complete service', note: tier ? `${tier} CTR` : '' }] : []),
+    ...(polish ? [{ request: 'Polish', note: family }] : []),
+    ...reqs.filter(r => !(isCTR && r.request === 'Complete service') && !(polish && r.request === 'Polish')),
+  ]
+
   const missing = [
     !JOB_NO.test(job.edge_no.trim()) && 'Edge job # (like 124595-001)',
     !job.watch_ref.trim() && 'watch reference',
     !job.serial.trim() && 'serial #',
-    !reqs.length && 'at least one client request',
+    isCTR && !tier && 'CTR tier',
+    polish && !family && 'polishing line',
+    !allReqs.length && 'at least one request',
     !client.name.trim() && 'client name',
     !sig && 'client signature',
   ].filter(Boolean)
@@ -47,47 +83,67 @@ export default function IntakeView({ models, actions, userId, onDone }) {
   async function save() {
     if (missing.length) return setMsg('Still needed: ' + missing.join(', ') + '.')
     setBusy(true); setMsg('')
-    const clean = { ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase() }
+    const clean = {
+      ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
+      ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
+      polish_price: polishPrice ?? null, eta_quoted: eta?.eta || null,
+    }
+    const serviceLines = [
+      isCTR ? `Rolex complete service (CTR), ${tier}: ${ctrPrice != null ? money(ctrPrice) : 'price on estimate'}.` : `Service: ${job.service_type}.`,
+      polish ? `Polishing (${family}): ${polishPrice != null ? money(polishPrice) : 'price on estimate'}.` : 'No polishing requested.',
+      total ? `Estimate before tax: ${money(total)}. The final estimate follows our watchmakers' analysis.` : '',
+      eta?.eta ? `Estimated ready: ${longDate(eta.eta)} (to be confirmed after analysis).` : '',
+    ].filter(Boolean)
     try {
-      const pdf = await makeReceipt({ job: clean, client, requests: reqs, conditions: conds, signaturePng: sig })
-      const id = await api.createJob(clean, conds, reqs)
-      await api.uploadJobDoc(id, 'receipt', pdf, receiptFileName(clean), userId)
+      const pdf = await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, serviceLines })
+      const id = await api.createJob(clean, conds, allReqs)
+      const doc = await api.uploadJobDoc(id, 'receipt', pdf, receiptFileName(clean), userId)
+      for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
       actions.say(`Job ${clean.edge_no} taken in. Receipt saved.`)
-      onDone(id, pdf) // the job page offers "Open receipt" to print or share
+      onDone(id, pdf, doc, clean)
     } catch (e) { setMsg(e.message) } finally { setBusy(false) }
   }
 
   return (
-    <div className="intake">
-      <div className="actions"><h2 className="grow">Take in a watch</h2><button type="button" className="btn" onClick={() => onDone(null)}>Cancel</button></div>
-
-      <section className="panel">
-        <h3>Job</h3>
-        <div className="grid big">
-          <label>Edge job #<input value={job.edge_no} onChange={set('edge_no')} inputMode="numeric" placeholder="124595-001" /></label>
-          <label>Rolex / WSC #<input value={job.rolex_service_no} onChange={set('rolex_service_no')} /></label>
-          <label>MRWS #<input value={job.mrws_ref} onChange={set('mrws_ref')} inputMode="numeric" /></label>
+    <div className={'intake client' + (standalone ? ' standalone' : '')}>
+      <header className="welcome">
+        <img src="/jva-emblem.svg" alt="" className="emblem" />
+        <div>
+          <div className="brand">J. Vair Anderson</div>
+          <h1 className="title">Rolex Service Reception</h1>
+          <div className="msg">Official Rolex Retailer · Calgary · {new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
-        <div className="chips">
-          {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => setJob({ ...job, service_type: t })}>{t}</button>)}
-        </div>
-      </section>
+        {!standalone && <button type="button" className="btn" onClick={() => onDone(null)}>Cancel</button>}
+      </header>
 
-      <section className="panel">
-        <h3>Watch</h3>
+      <section className="step">
+        <h2><span>1</span>Your timepiece</h2>
         <div className="grid big">
-          <label>Reference<input value={job.watch_ref} onChange={set('watch_ref')} onBlur={lookupRef} placeholder="126610LN" autoCapitalize="characters" /></label>
+          <label>Reference<input value={job.watch_ref} onChange={set('watch_ref')} placeholder="126610LN" autoCapitalize="characters" /></label>
           <label>Model<input value={job.watch_name} onChange={set('watch_name')} placeholder="Submariner Date" /></label>
-          <label>Serial #<input value={job.serial} onChange={set('serial')} autoCapitalize="characters" /></label>
-          <label>Bracelet<input value={job.bracelet} onChange={set('bracelet')} placeholder="Oyster, steel" /></label>
+          <label>Serial number<input value={job.serial} onChange={set('serial')} autoCapitalize="characters" /></label>
+          <label>Bracelet<input value={job.bracelet} onChange={set('bracelet')} placeholder="Oyster, Oystersteel" /></label>
           <label>Dial<input value={job.dial} onChange={set('dial')} placeholder="Black" /></label>
         </div>
-        {model && <p className="msg">{model.ref} · {model.name || 'model'} · calibre {model.cal || 'not set'}{model.ok ? '' : ' (unconfirmed)'}</p>}
+        {model && <p className="msg">Rolex {model.name || model.ref}{model.cal ? ` · calibre ${model.cal}` : ''}</p>}
       </section>
 
-      <section className="panel">
-        <h3>Visible condition</h3>
-        <p className="msg">Tap each part, then what you see. The watchmaker confirms every mark during the estimate.</p>
+      <section className="step">
+        <h2><span>2</span>Photos</h2>
+        <p className="msg">A record of your watch as it arrived: dial, case back, clasp and any marks.</p>
+        <div className="photos">
+          {photos.map((p, i) => (
+            <div key={i} className="thumb"><img src={p.url} alt={`Photo ${i + 1}`} />
+              <button type="button" className="x" aria-label="Remove photo" onClick={() => setPhotos(photos.filter((_, j) => j !== i))}>×</button></div>
+          ))}
+          <button type="button" className="thumb add" onClick={() => camRef.current.click()}>+ Take photo</button>
+          <input ref={camRef} type="file" accept="image/*" capture="environment" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
+        </div>
+      </section>
+
+      <section className="step">
+        <h2><span>3</span>Condition on arrival</h2>
+        <p className="msg">Tap a part, then what you see. Our watchmakers confirm every note during the analysis.</p>
         <div className="chips">
           {INTAKE_CONDITIONS.map(({ c }) => {
             const n = conds.filter(x => x.component === c).length
@@ -108,38 +164,83 @@ export default function IntakeView({ models, actions, userId, onDone }) {
             )}
           </div>
         )}
-        <p className="msg">{conds.length ? conditionText(conds) : 'No marks noted yet.'}</p>
+        <p className="summary">{conds.length ? conditionText(conds) : 'No visible marks noted.'}</p>
       </section>
 
-      <section className="panel">
-        <h3>Client requests</h3>
+      <section className="step">
+        <h2><span>4</span>Your service</h2>
         <div className="chips">
-          {[...REQUEST_OPTIONS, ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
+          {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => setJob({ ...job, service_type: t })}>{t === 'CTR' ? 'Complete service' : t}</button>)}
+        </div>
+        {isCTR && (
+          <div className="cards">
+            {Object.entries(ctrPrices).map(([t, p]) => (
+              <button key={t} type="button" className="card" aria-pressed={tier === t} onClick={() => setTier(t)}>
+                <span className="card-title">{t}</span><span className="card-price">{p != null ? money(p) : 'Price on estimate'}</span>
+              </button>
+            ))}
+            {!Object.keys(ctrPrices).length && <p className="msg">CTR prices aren't set yet (Admin → Settings).</p>}
+          </div>
+        )}
+        <div className="offer" data-on={polish}>
+          <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Add polishing of case and bracelet</label>
+          {polish && (
+            <div className="cards">
+              {Object.entries(polishPrices).map(([f, p]) => (
+                <button key={f} type="button" className="card small" aria-pressed={family === f} onClick={() => setFamily(f)}>
+                  <span className="card-title">{f}</span><span className="card-price">{p != null ? money(p) : 'On estimate'}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <h3>Anything else you'd like?</h3>
+        <div className="chips">
+          {[...REQUEST_OPTIONS.filter(r => !(isCTR && r === 'Complete service') && !(r === 'Polish')), ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
             <button key={r} type="button" className="chip" aria-pressed={hasReq(r)} onClick={() => toggleReq(r)}>{r}</button>
           ))}
         </div>
         <div className="actions">
-          <input value={otherReq} onChange={e => setOtherReq(e.target.value)} placeholder="Other request" onKeyDown={e => e.key === 'Enter' && addOther()} />
+          <input value={otherReq} onChange={e => setOtherReq(e.target.value)} placeholder="Something else" onKeyDown={e => e.key === 'Enter' && addOther()} />
           <button type="button" className="btn" onClick={addOther} disabled={!otherReq.trim()}>Add</button>
         </div>
       </section>
 
-      <section className="panel">
-        <h3>Client (printed on the receipt only)</h3>
+      <section className="step quote">
+        <h2><span>5</span>Estimate and timing</h2>
+        <div className="quote-grid">
+          <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
+            <div className="msg">{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</div></div>
+          <div><div className="msg">Estimated ready</div><div className="big-num">{eta?.eta ? longDate(eta.eta) : '—'}</div>
+            <div className="msg">{eta ? `${eta.ahead} watch${eta.ahead === 1 ? '' : 'es'} ahead in our workshop. ` : ''}We'll confirm after the analysis.</div></div>
+        </div>
+      </section>
+
+      <section className="step">
+        <h2><span>6</span>Your details and signature</h2>
         <div className="grid big">
           <label>Name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} autoComplete="off" /></label>
           <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} autoComplete="off" /></label>
           <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" /></label>
           <label>Phone or postal code<input value={client.address3} onChange={e => setClient({ ...client, address3: e.target.value })} autoComplete="off" /></label>
         </div>
-        <p className="msg">The client reads the receipt terms, then signs. Their details are kept only in the signed receipt filed with this job.</p>
+        <p className="msg">By signing, you confirm the details above and accept the receipt terms (provided on the printed receipt). Your details are kept only on your signed receipt.</p>
         <SignaturePad onChange={setSig} />
+      </section>
+
+      <section className="step boutique">
+        <h2><span>·</span>For the boutique</h2>
+        <div className="grid">
+          <label>Edge job #<input value={job.edge_no} onChange={set('edge_no')} inputMode="numeric" placeholder="124595-001" /></label>
+          <label>Rolex / WSC #<input value={job.rolex_service_no} onChange={set('rolex_service_no')} /></label>
+          <label>MRWS #<input value={job.mrws_ref} onChange={set('mrws_ref')} inputMode="numeric" /></label>
+        </div>
       </section>
 
       <div className="savebar">
         <span className="msg warn">{msg}</span>
         <span className="grow" />
-        <button type="button" className="btn solid big" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save and print receipt'}</button>
+        <button type="button" className="btn solid big" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Confirm and print receipt'}</button>
       </div>
     </div>
   )

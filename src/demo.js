@@ -1,7 +1,8 @@
 // Demo mode for local development only (npm run dev, then add ?demo to the address).
 // Loads the data/ export into memory. Never included in the public build.
 export function makeDemo() {
-  const me = { id: 'demo', email: 'demo@localhost', name: 'Dylan (demo)', role: 'admin', legacy_id: 'u_5FbqzfZ79582E4oxzrqCvw' }
+  const role = new URLSearchParams(location.search).get('role') || 'admin' // try ?demo&role=sales / watchmaker
+  const me = { id: 'demo', email: 'demo@localhost', name: 'Dylan (demo)', role, legacy_id: 'u_5FbqzfZ79582E4oxzrqCvw' }
   const ts = ms => (ms ? new Date(ms).toISOString() : null)
   let store = null
   const listeners = []
@@ -122,6 +123,25 @@ export function makeDemo() {
       }
       Object.assign(j, fields)
     },
+    async loadSettings() {
+      const s = await load()
+      s.settings = s.settings || {
+        ctr_prices: { Modern: 1250, Classic: 1450, Professional: 1650 },
+        polish_prices: { 'Oyster Perpetual / Datejust / Air-King': 300, 'Submariner / GMT-Master / Explorer / Sea-Dweller': 350, 'Daytona / Yacht-Master / Sky-Dweller': 450, 'Day-Date / gold': 550 },
+        bench: { watches_per_week: 6, parts_wait_days: 0 },
+      }
+      return JSON.parse(JSON.stringify(s.settings))
+    },
+    async saveSetting(key, value) { const s = await load(); await this.loadSettings(); s.settings[key] = value },
+    async queueEta(jobId = null) {
+      const s = await load(), st = await this.loadSettings(), jobs = s.jobs || []
+      const me_ = jobs.find(j => j.id === jobId)
+      const ahead = jobs.filter(j => !['Done', 'Cancelled', 'Sent to Toronto'].includes(j.status) && (!me_ || (j.id !== jobId && j.intake_at < me_.intake_at))).length
+      const d = new Date(); d.setDate(d.getDate() + Math.ceil((ahead + 1) / Math.max(st.bench.watches_per_week, 0.5)) * 7 + (st.bench.parts_wait_days || 0))
+      return { ahead, eta: d.toISOString().slice(0, 10) }
+    },
+    async uploadJobPhoto(jobId, blob, label) { const s = await load(); const j = s.jobs.find(x => x.id === jobId); (j.job_photos = j.job_photos || []).push({ id: crypto.randomUUID(), label, _blob: blob, at: new Date().toISOString() }) },
+    async photoUrl(photo) { return URL.createObjectURL(photo._blob) },
     async loadKit(family) { const k = (await import('../data/ctr_kits.json')).default; return k.filter(x => x.family === family) },
     async buildKit(jobId) {
       const s = await load(), j = s.jobs.find(x => x.id === jobId)
@@ -154,7 +174,7 @@ export function makeDemo() {
     async updateCondition(id, f) { const s = await load(); for (const j of s.jobs) { const c = j.job_conditions.find(x => x.id === id); if (c) Object.assign(c, f) } },
     async addRequest(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_requests.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },
     async updateRequest(id, f) { const s = await load(); for (const j of s.jobs) { const r = j.job_requests.find(x => x.id === id); if (r) Object.assign(r, f) } },
-    async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); s.jobs.find(j => j.id === jobId).job_docs.push({ id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, at: new Date().toISOString() }) },
+    async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); const d = { id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async jobDocFile(doc) { return doc._blob },
     async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('Demo mode: email is sent from the live site only') },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },

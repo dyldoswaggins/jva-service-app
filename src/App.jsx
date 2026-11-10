@@ -8,8 +8,11 @@ import ModelsView from './parts/ModelsView.jsx'
 import InboxView from './parts/InboxView.jsx'
 import SignIn from './SignIn.jsx'
 import JobsView from './repairs/JobsView.jsx'
+import SalesHome from './repairs/SalesHome.jsx'
+import SettingsView from './SettingsView.jsx'
 
-const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox']
+const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings']
+const ADMIN_ONLY = ['Inbox', 'Settings']
 
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = checking
@@ -148,6 +151,21 @@ function Workshop({ session }) {
     </div>
   )
 
+  const toastEl = toast && (
+    <div className="toast" role="status">
+      <span>{toast.text}</span>
+      {toast.undo && <button className="btn" onClick={() => { const u = toast.undo; setToast(null); u() }}>Undo</button>}
+    </div>
+  )
+  // Sales associates: the client-facing intake only
+  if (role === 'sales')
+    return (
+      <main className="wrap page">
+        <SalesHome models={models} actions={actions} userId={session.user.id} me={me} onSignOut={api.signOut} />
+        {toastEl}
+      </main>
+    )
+
   return (
     <Shell right={totals}>
       {loadError && <p className="msg warn">Couldn't load the parts list: {loadError}</p>}
@@ -155,7 +173,7 @@ function Workshop({ session }) {
       {parts && (
         <>
           <div className="views" role="group" aria-label="View">
-            {VIEWS.filter(v => v !== 'Inbox' || can.edit).map(v => (
+            {VIEWS.filter(v => !ADMIN_ONLY.includes(v) || can.edit).map(v => (
               <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>
                 {v}{v === 'Reorder' && reorderN ? ` (${reorderN})` : ''}
               </button>
@@ -171,6 +189,7 @@ function Workshop({ session }) {
           {view === 'History' && <HistoryView who={who} can={can} actions={actions} />}
           {view === 'Models' && <ModelsView models={models} parts={list} can={can} actions={actions} />}
           {view === 'Inbox' && can.edit && <InboxView allParts={parts} actions={actions} userId={session.user.id} />}
+          {view === 'Settings' && can.edit && <SettingsView actions={actions} />}
         </>
       )}
       {toast && (
