@@ -28,7 +28,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who }
   }, [jobs, filter, q, statuses])
 
   if (mode.view === 'intake')
-    return <IntakeView models={models} actions={actions} userId={userId}
+    return <IntakeView models={models} actions={actions} userId={userId} staffName={who?.(userId)}
       onDone={(id, receipt) => { load(); setMode(id ? { view: 'job', id, receipt } : { view: 'list' }) }} />
   if (mode.view === 'job')
     return <JobView id={mode.id} receipt={mode.receipt} statuses={statuses} can={can} actions={actions} userId={userId} who={who}

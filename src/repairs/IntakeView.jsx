@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
 import { CLASSES, CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
-import { makeReceipt, makeVintageFee, receiptFileName, vintageFeeFileName } from '../receipt.js'
+import { immediateProceedFileName, makeImmediateProceed, makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
 import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
 
@@ -12,7 +12,7 @@ const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA',
 const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
-export default function IntakeView({ models, actions, userId, onDone, standalone }) {
+export default function IntakeView({ models, actions, userId, onDone, standalone, staffName }) {
   const [job, setJob] = useState(blank)
   const [conds, setConds] = useState([])
   const [openComp, setOpenComp] = useState(null)
@@ -118,13 +118,17 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       weeks: showEta ? weeksUntil(eta?.eta) : null,
     }
     try {
-      const pdf = vintage
-        ? await makeVintageFee({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, fee: vfee, weeks: vweeks })
-        : await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, quote })
+      const args = { job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig }
+      // Vintage (Workflow v2.1, 1.1): Vintage Analysis Fee form + Rolex Immediate Proceed form, both signed
+      const feePdf = vintage ? await makeVintageFee({ ...args, fee: vfee, weeks: vweeks }) : null
+      const ipPdf = vintage ? await makeImmediateProceed({ ...args, amount: vfee, staffName }) : null
+      const mainPdf = vintage ? feePdf : await makeReceipt({ ...args, quote })
       const id = await api.createJob(clean, conds, allReqs, client)
-      const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', pdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
+      const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', mainPdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
+      if (ipPdf) await api.uploadJobDoc(id, 'immediate_proceed', ipPdf, immediateProceedFileName(clean), userId)
+      const pdf = vintage ? await mergePdfs([feePdf, ipPdf]) : mainPdf // printed together
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
-      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee form' : 'Receipt'} saved.`)
+      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee and Immediate Proceed forms' : 'Receipt'} saved.`)
       onDone(id, pdf, doc, clean)
     } catch (e) { setMsg(e.message) } finally { setBusy(false) }
   }

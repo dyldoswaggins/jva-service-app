@@ -40,10 +40,10 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
           </header>
           <section className="step">
             {done.job.classification === 'Vintage'
-              ? <p>Your signed Vintage Analysis Fee form is ready. Please keep it and bring it with photo ID when you collect your watch. Your watch will be analysed by Rolex; we'll contact you with the estimate.</p>
+              ? <p>Your signed Vintage Analysis Fee and Immediate Proceed forms are ready. Please keep it and bring it with photo ID when you collect your watch. Your watch will be analysed by Rolex; we'll contact you with the estimate.</p>
               : <p>Your signed receipt is ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
             <div className="actions">
-              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' ? 'Print form' : 'Print receipt'}</button>
+              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' ? 'Print forms' : 'Print receipt'}</button>
               <button type="button" className="btn big" onClick={email}>Email to service manager</button>
               <span className="grow" />
               <button type="button" className="btn big" onClick={() => { setDone(null); setKey(k => k + 1); setMsg('') }}>Next client</button>
@@ -52,7 +52,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
           </section>
         </div>
       ) : (
-        <IntakeView key={key} standalone models={models} actions={actions} userId={userId}
+        <IntakeView key={key} standalone models={models} actions={actions} userId={userId} staffName={me.name || me.email}
           onDone={(id, pdf, doc, job) => id && setDone({ pdf, doc, job })} />
       )}
     </div>
