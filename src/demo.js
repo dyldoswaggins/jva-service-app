@@ -120,6 +120,7 @@ export function makeDemo() {
     async updateRequest(id, f) { const s = await load(); for (const j of s.jobs) { const r = j.job_requests.find(x => x.id === id); if (r) Object.assign(r, f) } },
     async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); s.jobs.find(j => j.id === jobId).job_docs.push({ id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, at: new Date().toISOString() }) },
     async jobDocFile(doc) { return doc._blob },
+    async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('Demo mode: email is sent from the live site only') },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },
     async uploadToInbox(file) {
       const s = await load()

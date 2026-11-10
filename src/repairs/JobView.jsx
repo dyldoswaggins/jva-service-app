@@ -2,6 +2,17 @@ import { useEffect, useState } from 'react'
 import { api } from '../data.js'
 import { CONDITIONS, conditionText, fmtTime, openPrompts, termsFor } from '../rules.js'
 
+// Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
+function printPdf(blob) {
+  const url = URL.createObjectURL(blob)
+  if (/iPad|iPhone|Macintosh/.test(navigator.userAgent) && 'ontouchend' in document) return window.open(url, '_blank')
+  const f = document.createElement('iframe')
+  f.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0'
+  f.src = url
+  f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print() } catch { window.open(url, '_blank') } setTimeout(() => f.remove(), 60000) }
+  document.body.appendChild(f)
+}
+
 // One job. The watchmaker answers every intake prompt (condition + client request) before the estimate.
 export default function JobView({ id, receipt, statuses, can, actions, userId, who, onBack }) {
   const [job, setJob] = useState(null)
@@ -52,6 +63,10 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
   }
   const saveField = (k, v) => v !== (job[k] ?? '') && run(() => api.updateJob(id, { [k]: v || null }))
   const openDoc = async d => { try { window.open(URL.createObjectURL(await api.jobDocFile(d)), '_blank') } catch (e) { setMsg(e.message) } }
+  const printDoc = async blobOrDoc => {
+    try { printPdf(blobOrDoc instanceof Blob ? blobOrDoc : await api.jobDocFile(blobOrDoc)) } catch (e) { setMsg(e.message) }
+  }
+  const emailDoc = d => run(async () => { const r = await api.emailJobDoc(d.id); actions.say(`${d.file_name} emailed to ${r.to}`) })
 
   return (
     <div className="job">
@@ -63,7 +78,10 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </select>
       </div>
       {receipt && (
-        <div className="flagline good">Receipt signed and filed. <button type="button" className="btn" onClick={() => window.open(URL.createObjectURL(receipt), '_blank')}>Open receipt to print</button></div>
+        <div className="flagline good">Receipt signed and filed.
+          <button type="button" className="btn solid" onClick={() => printDoc(receipt)}>Print receipt</button>
+          <button type="button" className="btn" onClick={() => window.open(URL.createObjectURL(receipt), '_blank')}>Open</button>
+        </div>
       )}
       {msg && <p className="msg warn">{msg}</p>}
 
@@ -171,7 +189,12 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       <section className="panel">
         <h3>Documents</h3>
         {(job.job_docs || []).length ? (job.job_docs || []).map(d => (
-          <div key={d.id} className="actions"><span className="grow">{d.file_name} · {fmtTime(d.at)}</span><button type="button" className="btn" onClick={() => openDoc(d)}>Open</button></div>
+          <div key={d.id} className="actions">
+            <span className="grow">{d.file_name} · {fmtTime(d.at)}{d.emailed_at ? <span className="msg"> · emailed {fmtTime(d.emailed_at)}</span> : ''}</span>
+            <button type="button" className="btn" onClick={() => printDoc(d)}>Print</button>
+            <button type="button" className="btn" onClick={() => openDoc(d)}>Open</button>
+            <button type="button" className="btn" onClick={() => emailDoc(d)}>Email to service manager</button>
+          </div>
         )) : <p className="msg">{can.intake ? 'No documents yet.' : 'Signed documents are visible to the office only.'}</p>}
         <details>
           <summary className="msg">Status history</summary>

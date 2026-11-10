@@ -125,6 +125,15 @@ const live = {
     const { error } = await supabase.from('job_docs').insert({ job_id: jobId, kind, file_path: path, file_name: fileName, by_user: userId })
     if (error) throw error
   },
+  // Email a job document to the watch service manager (Edge Function send-doc, parts Gmail)
+  async emailJobDoc(docId) {
+    const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_id: docId } })
+    if (error) {
+      const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
+      throw new Error(msg || error.message)
+    }
+    return data
+  },
   async jobDocFile(doc) {
     const { data, error } = await supabase.storage.from('job-docs').download(doc.file_path)
     if (error) throw error

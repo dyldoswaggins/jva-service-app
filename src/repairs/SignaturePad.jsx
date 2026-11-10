@@ -20,7 +20,12 @@ export default function SignaturePad({ onChange }) {
   }, [])
 
   const pos = e => { const r = ref.current.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top] }
-  const down = e => { e.preventDefault(); ref.current.setPointerCapture(e.pointerId); drawing.current = true; const ctx = ref.current.getContext('2d'); ctx.beginPath(); ctx.moveTo(...pos(e)) }
+  const down = e => {
+    e.preventDefault()
+    try { ref.current.setPointerCapture(e.pointerId) } catch { /* not supported: keep drawing anyway */ }
+    drawing.current = true
+    const ctx = ref.current.getContext('2d'); ctx.beginPath(); ctx.moveTo(...pos(e))
+  }
   const move = e => { if (!drawing.current) return; const ctx = ref.current.getContext('2d'); ctx.lineTo(...pos(e)); ctx.stroke(); if (empty) setEmpty(false) }
   const up = async () => {
     if (!drawing.current) return
