@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
-import { makeReceipt, receiptFileName } from '../receipt.js'
+import { CLASSES, CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
+import { makeReceipt, makeVintageFee, receiptFileName, vintageFeeFileName } from '../receipt.js'
 import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
 
@@ -26,6 +26,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [polish, setPolish] = useState(false)
   const [family, setFamily] = useState('')
   const [eta, setEta] = useState(null)
+  const [cls, setCls] = useState('')          // Modern | Classic | Vintage
+  const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const camRef = useRef(null)
@@ -58,20 +60,33 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     }
   }
 
+  const vintage = cls === 'Vintage'
+  const vfee = Number(settings?.vintage?.fee ?? 350), vweeks = settings?.vintage?.weeks ?? 18
+  const chooseClass = c => {
+    setCls(c)
+    if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier('') }
+    else {
+      setJob(j => ({ ...j, service_type: j.service_type === 'Vintage analysis' ? 'CTR' : j.service_type }))
+      if (c in ctrPrices) setTier(c)
+    }
+  }
   const isCTR = job.service_type === 'CTR'
   const ctrPrice = isCTR && tier ? ctrPrices[tier] : null
   const polishPrice = polish && family ? polishPrices[family] : null
-  const total = (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
+  const total = vintage ? vfee : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
   // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
+    ...(vintage ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
     ...(isCTR ? [{ request: REQ.overhaul, note: tier ? `${tier} CTR` : '' }] : []),
     ...(polish ? [{ request: REQ.refinish, note: family }] : isCTR ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
     ...reqs,
   ]
 
-  const showEta = timeframeAtIntake({ isCTR, polish, requests: reqs })
+  const showEta = !vintage && timeframeAtIntake({ isCTR, polish, requests: reqs })
   const missing = [
     !JOB_NO.test(job.edge_no.trim()) && 'Edge job # (like 124595-001)',
+    !cls && 'Modern, Classic or Vintage',
+    vintage && !feeOk && 'acceptance of the analysis fee',
     !job.watch_ref.trim() && 'model number',
     !job.watch_name.trim() && 'model name',
     !job.serial.trim() && 'serial #',
@@ -92,6 +107,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
       polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
+      classification: cls, vintage_fee: vintage ? vfee : null,
     }
     const quote = {
       items: [
@@ -102,11 +118,13 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       weeks: showEta ? weeksUntil(eta?.eta) : null,
     }
     try {
-      const pdf = await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, quote })
+      const pdf = vintage
+        ? await makeVintageFee({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, fee: vfee, weeks: vweeks })
+        : await makeReceipt({ job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig, quote })
       const id = await api.createJob(clean, conds, allReqs, client)
-      const doc = await api.uploadJobDoc(id, 'receipt', pdf, receiptFileName(clean), userId)
+      const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', pdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
-      actions.say(`Job ${clean.edge_no} taken in. Receipt saved.`)
+      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee form' : 'Receipt'} saved.`)
       onDone(id, pdf, doc, clean)
     } catch (e) { setMsg(e.message) } finally { setBusy(false) }
   }
@@ -183,9 +201,22 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
 
       <section className="step">
         <h2><span>4</span>Your service</h2>
-        <div className="chips">
-          {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => setJob({ ...job, service_type: t })}>{t === 'CTR' ? 'Complete service' : t}</button>)}
+        <div className="cards">
+          {CLASSES.map(c => (
+            <button key={c.name} type="button" className="card small" aria-pressed={cls === c.name} onClick={() => chooseClass(c.name)}>
+              <span className="card-title">{c.name}</span><span className="msg">{c.hint}</span>
+            </button>
+          ))}
         </div>
+        {vintage && (
+          <div className="offer" data-on="true">
+            <b>Rolex Vintage Analysis Fee · {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</b>
+            <p className="msg">An in-depth analysis is needed to prepare the estimate. Your watch is analysed and serviced by Rolex in Toronto. The fee remains payable if the estimate is refused or the watch is deemed counterfeit. Vintage estimates within 3 weeks; restoration estimates within 3 months of your approval.</p>
+          </div>
+        )}
+        {!vintage && <div className="chips">
+          {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => setJob({ ...job, service_type: t })}>{t === 'CTR' ? 'Complete service' : t}</button>)}
+        </div>}
         {isCTR && (
           <div className="cards">
             {Object.entries(ctrPrices).map(([t, p]) => (
@@ -196,7 +227,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             {!Object.keys(ctrPrices).length && <p className="msg">CTR prices aren't set yet (Admin → Settings).</p>}
           </div>
         )}
-        <div className="offer" data-on={polish}>
+        {!vintage && <div className="offer" data-on={polish}>
           <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Refinish (polish and satin-finish) case and bracelet</label>
           {!polish && isCTR && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
           {polish && (
@@ -208,7 +239,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
               ))}
             </div>
           )}
-        </div>
+        </div>}
         <h3>Anything else you'd like?</h3>
         <div className="chips">
           {[...REQUEST_OPTIONS, ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
@@ -225,8 +256,11 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <h2><span>5</span>Estimate and timing</h2>
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
-            <div className="msg">{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</div></div>
-          {showEta ? (
+            <div className="msg">{vintage ? 'Rolex Vintage Analysis Fee. The estimate for the work follows the analysis.' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
+          {vintage ? (
+            <div><div className="msg">Timing</div><div className="big-num">Estimate in about 3 weeks</div>
+              <div className="msg">Restoration estimates within 3 months. We'll contact you as soon as Rolex has analysed your watch.</div></div>
+          ) : showEta ? (
             <div><div className="msg">Estimated ready</div><div className="big-num">{eta?.eta ? longDate(eta.eta) : '—'}</div>
               <div className="msg">{eta ? `${eta.ahead} watch${eta.ahead === 1 ? '' : 'es'} ahead in our workshop. ` : ''}We'll confirm after the analysis.</div></div>
           ) : (
@@ -244,7 +278,10 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" /></label>
           <label>Phone or postal code<input value={client.address3} onChange={e => setClient({ ...client, address3: e.target.value })} autoComplete="off" /></label>
         </div>
-        <p className="msg">By signing, you confirm the details above and accept the receipt terms (provided on the printed receipt). Your details are kept only on your signed receipt.</p>
+        {vintage && (
+          <label className="tog big"><input type="checkbox" checked={feeOk} onChange={e => setFeeOk(e.target.checked)} /> I accept the Rolex Vintage Analysis Fee of {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</label>
+        )}
+        <p className="msg">By signing, you confirm the details above and accept the {vintage ? 'analysis fee and the' : ''} terms (provided on the printed document). Your details are kept only on your signed {vintage ? 'form' : 'receipt'}.</p>
         <SignaturePad onChange={setSig} />
       </section>
 
@@ -260,7 +297,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       <div className="savebar">
         <span className="msg warn">{msg}</span>
         <span className="grow" />
-        <button type="button" className="btn solid big" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Confirm and print receipt'}</button>
+        <button type="button" className="btn solid big" disabled={busy} onClick={save}>{busy ? 'Saving…' : vintage ? 'Confirm and print form' : 'Confirm and print receipt'}</button>
       </div>
     </div>
   )

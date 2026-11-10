@@ -28,6 +28,15 @@ export default function SettingsView({ actions }) {
           <button className="btn solid">Save</button>
         </form>
       </div>
+      <div className="panel">
+        <h2>Vintage Analysis Fee</h2>
+        <p className="msg">Signed at intake for Vintage watches (instead of the receipt). Printed on the J. Vair Vintage Analysis Fee form with GST 5%.</p>
+        <form className="actions" onSubmit={e => { e.preventDefault(); const f = new FormData(e.target); save('vintage', { fee: Number(f.get('fee')) || 350, weeks: Number(f.get('weeks')) || 18 }, 'Vintage fee') }}>
+          <label className="tog">Fee (CAD, before tax) <input name="fee" type="number" min="0" step="1" defaultValue={s.vintage?.fee ?? 350} style={{ width: 90 }} /></label>
+          <label className="tog">Delivery on approval (weeks) <input name="weeks" type="number" min="1" step="1" defaultValue={s.vintage?.weeks ?? 18} style={{ width: 70 }} /></label>
+          <button className="btn solid">Save</button>
+        </form>
+      </div>
     </>
   )
 }

@@ -70,3 +70,8 @@ Bracelet: dented, scratched, stretched, worn.
 ## Watchmaker assessment (Dylan, 2026-11-09)
 - The watchmaker decides Necessary vs Optional on the job page (`JobAssessment`): billable parts (Parts → + Add → Billable) and service lines (+ Service). The office prices them in `JobDocuments`.
 - **Optional work must be backed by a confirmed finding in the watch analysis** (component + term). Enforced in the database (migration 016: `add_job_part`, `set_job_part_need`, trigger on `jobs.extra_lines`) and in the UI; the estimate can't be created while an optional line is unbacked. Each backed line gets its "While examining your watch…" note.
+
+## Classification at intake (Workflow v2.1, 2026-11-09)
+- Sales picks **Modern / Classic / Vintage** (`jobs.classification`, migration 017). Modern/Classic: Receipt, in-store, CTR tier pre-selected when it has the same name.
+- **Vintage**: the signed document is the **J. Vair Vintage Analysis Fee** form (`makeVintageFee` in `src/receipt.js`, kind `vintage_fee`; wording from the JVA editable form; fee + delivery weeks in Settings, default $350 / 18 weeks). Service type `Vintage analysis`, no CTR tier/polish/kit, no timeframe from the bench queue, excluded from the queue ETA. Job page: Rolex Toronto note, no Parts; the assessment panel is for the office (RCL's lines for the invoice); the fee is a necessary line on documents.
+- ⚠ Rolex's **Immediate Proceed** form is headed "Modern & Classic watches category", but Workflow v2.1 lists it for Vintage intake. Not generated yet — ask Dylan whether it belongs to Vintage, or to Modern/Classic over-the-counter CTR.

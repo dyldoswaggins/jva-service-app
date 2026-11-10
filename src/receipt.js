@@ -34,3 +34,33 @@ export async function makeReceipt({ job, client, requests, conditions, signature
 }
 
 export const receiptFileName = job => `JVA-${job.edge_no}-Receipt.pdf`
+
+// J. Vair Vintage Analysis Fee form (Vintage watches, signed at intake instead of the receipt).
+// Wording from "Vintage Analysis Fee Form - Editable_1.pdf" (Customer Documents); same harmonized layout and legal notices.
+export async function makeVintageFee({ job, client, requests, conditions, signaturePng, date = new Date(), fee = 350, weeks = 18 }) {
+  return buildDocument({
+    title: 'Vintage Analysis Fee', job, client, date, signaturePng,
+    body: d => {
+      d.section('Customer requests')
+      d.bullets(requests.map(r => r.request))
+      d.gap(4)
+      d.section('Watch condition on arrival')
+      d.para(conditions.length ? conditionText(conditions) : 'No visible marks noted.')
+      d.gap(4)
+      d.section('Necessary work', { rightHeading: 'MSRP CAD (TAX EXCL.)' })
+      d.item({ label: 'Rolex Vintage Analysis Fee', price: fee })
+      d.para('An in-depth analysis of the watch will be necessary in order to prepare an estimate. This fee remains payable in the event of refusal ' +
+        'of the estimate, or if the watch is deemed to be counterfeit. Vintage estimates are available within 3 weeks; Restoration estimates are ' +
+        'available within 3 months from the day we receive your approval to proceed with the analysis.', { size: 7.5 })
+      d.totals(fee)
+      d.section("Client's decision")
+      d.checkbox('I accept the analysis fee', { checked: !!signaturePng })
+      d.checkbox('I decline the analysis fee')
+      d.para(`This estimate is valid for 3 months from the date of issue. Delivery: approximately ${weeks} weeks on approval.`)
+      d.gap(4)
+      d.signature('I, the undersigned {name}, certify that I have read and understood the estimate as well as the legal notices attached and ' +
+        'confirm my decision for the above-mentioned watch.', { name: client.name })
+    },
+  })
+}
+export const vintageFeeFileName = job => `JVA-${job.edge_no}-Vintage-Analysis-Fee.pdf`

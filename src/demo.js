@@ -104,7 +104,7 @@ export function makeDemo() {
       // ?demo&sample → one realistic job to look at (e.g. ?demo&role=watchmaker&sample)
       if (!s.jobs && new URLSearchParams(location.search).has('sample')) {
         s.jobs = []
-        await this.createJob({ edge_no: '125100-001', service_type: 'CTR', watch_ref: '126610LN', watch_name: 'Submariner Date', serial: '9X8Y7Z66', calibre: '3235',
+        await this.createJob({ edge_no: '125100-001', service_type: 'CTR', classification: 'Modern', watch_ref: '126610LN', watch_name: 'Submariner Date', serial: '9X8Y7Z66', calibre: '3235',
           bracelet_ref: '20-72610', bracelet: 'Rolex Oyster Oystersteel', dial: '126610 black markers w lgn', ctr_tier: 'Modern', ctr_price: 1250,
           polish: true, polish_family: 'Submariner / GMT-Master / Explorer / Sea-Dweller', polish_price: 350, eta_quoted: '2026-11-24' },
         [{ component: 'Crystal', term: 'Chipped', note: "at 2 o'clock" }, { component: 'Bezel', term: 'Scratched', note: '' }, { component: 'Bracelet', term: 'Stretched', note: '' }],
@@ -158,6 +158,7 @@ export function makeDemo() {
         ctr_prices: { Modern: 1250, Classic: 1450, Professional: 1650 },
         polish_prices: { 'Oyster Perpetual / Datejust / Air-King': 300, 'Submariner / GMT-Master / Explorer / Sea-Dweller': 350, 'Daytona / Yacht-Master / Sky-Dweller': 450, 'Day-Date / gold': 550 },
         bench: { watches_per_week: 6, parts_wait_days: 0 },
+        vintage: { fee: 350, weeks: 18 },
       }
       return JSON.parse(JSON.stringify(s.settings))
     },
@@ -188,7 +189,7 @@ export function makeDemo() {
     async queueEta(jobId = null) {
       const s = await load(), st = await this.loadSettings(), jobs = s.jobs || []
       const me_ = jobs.find(j => j.id === jobId)
-      const ahead = jobs.filter(j => !['Done', 'Cancelled', 'Sent to Toronto'].includes(j.status) && (!me_ || (j.id !== jobId && j.intake_at < me_.intake_at))).length
+      const ahead = jobs.filter(j => !['Done', 'Cancelled', 'Sent to Toronto'].includes(j.status) && j.classification !== 'Vintage' && (!me_ || (j.id !== jobId && j.intake_at < me_.intake_at))).length
       const d = new Date(); d.setDate(d.getDate() + Math.ceil((ahead + 1) / Math.max(st.bench.watches_per_week, 0.5)) * 7 + (st.bench.parts_wait_days || 0))
       return { ahead, eta: d.toISOString().slice(0, 10) }
     },

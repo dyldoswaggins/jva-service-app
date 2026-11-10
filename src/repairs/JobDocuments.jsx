@@ -31,6 +31,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
     await run('', async () => {
       if (l.source === 'ctr') await api.updateJob(job.id, { ctr_price: n })
       else if (l.source === 'polish') await api.updateJob(job.id, { polish_price: n })
+      else if (l.source === 'vintage') await api.updateJob(job.id, { vintage_fee: n })
       else if (l.source === 'part') await api.setJobPartPrice(l.id, n == null ? null : Math.round((n / (l.qty || 1)) * 100) / 100)
       else await api.updateJob(job.id, { extra_lines: (job.extra_lines || []).map(x => (x.id === l.id ? { ...x, price: n } : x)) })
       onChange()

@@ -52,6 +52,13 @@ export const REQ = {
   noBracelet: 'Do not refinish bracelet',
 }
 export const REQUEST_OPTIONS = ['Replace crystal', 'Adjust bracelet', 'Timekeeping check', 'Water resistance test', 'Repair crown', 'Replace bracelet']
+// Classification at intake (Rolex Service Workflow v2.1): decides the forms, where it is serviced and who handles parts
+export const CLASSES = [
+  { name: 'Modern', hint: 'Serviced in-store · Receipt' },
+  { name: 'Classic', hint: 'Serviced in-store · Receipt' },
+  { name: 'Vintage', hint: 'Rolex Toronto · Vintage Analysis Fee' },
+]
+export const VINTAGE_REQUEST = 'Perform vintage analysis and estimate'
 // Requests that are part of a complete overhaul anyway (no extra work)
 export const CTR_INCLUDED = ['Adjust bracelet', 'Timekeeping check', 'Water resistance test']
 // Workflow golden rule 3 (Dylan, 2026-11-09): give the client a timeframe at intake only for a plain CTR,

@@ -28,16 +28,21 @@ export default function JobServiceInfo({ job, can, userId, actions, onChange }) 
     }
     onChange()
   }
-  const total = (Number(job.ctr_price) || 0) + (job.polish ? Number(job.polish_price) || 0 : 0)
+  const total = job.classification === 'Vintage' ? Number(job.vintage_fee) || 0 : (Number(job.ctr_price) || 0) + (job.polish ? Number(job.polish_price) || 0 : 0)
 
   return (
     <section className="panel">
       <h3>Service, price and timing</h3>
+      {job.classification === 'Vintage' && (
+        <p className="flagline">Vintage: always serviced by Rolex Toronto (RCL). Watchmaker gathers the WSC information only (calibre, bracelet, serial, reference, condition); the Service Manager completes the WSC Declaration before shipping. Photos required.</p>
+      )}
       <div className="facts">
+        <div><dt>Class</dt><dd>{job.classification || '—'}</dd></div>
         <div><dt>Service</dt><dd>{job.service_type}{job.ctr_tier ? ` · ${job.ctr_tier}` : ''}{job.ctr_price != null ? ` · ${money(job.ctr_price)}` : ''}</dd></div>
+        {job.classification === 'Vintage' && <div><dt>Analysis fee</dt><dd>{job.vintage_fee != null ? money(job.vintage_fee) : '—'} + GST · accepted at intake</dd></div>}
         <div><dt>Polishing</dt><dd>{job.polish ? `Yes · ${job.polish_family || ''}${job.polish_price != null ? ` · ${money(job.polish_price)}` : ''}` : 'No'}</dd></div>
         <div><dt>Quoted at intake</dt><dd>{total ? money(total) : '—'}{job.eta_quoted ? ` · ready ~${fmtDate(job.eta_quoted)}` : ''}</dd></div>
-        <div><dt>ETA now</dt><dd><b>{eta ? fmtDate(eta) : '—'}</b> {job.eta_override ? '(set by watchmaker)' : queue ? `(queue: ${queue.ahead} ahead)` : ''}</dd></div>
+        {job.classification !== 'Vintage' && <div><dt>ETA now</dt><dd><b>{eta ? fmtDate(eta) : '—'}</b> {job.eta_override ? '(set by watchmaker)' : queue ? `(queue: ${queue.ahead} ahead)` : ''}</dd></div>}
       </div>
       {can.bench && (
         <div className="actions">

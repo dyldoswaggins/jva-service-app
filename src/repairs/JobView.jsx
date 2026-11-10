@@ -86,7 +86,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </select>
       </div>
       {receipt && (
-        <div className="flagline good">Receipt signed and filed.
+        <div className="flagline good">{job.classification === 'Vintage' ? 'Vintage Analysis Fee form' : 'Receipt'} signed and filed.
           <button type="button" className="btn solid" onClick={() => printDoc(receipt)}>Print receipt</button>
           <button type="button" className="btn" onClick={() => window.open(URL.createObjectURL(receipt), '_blank')}>Open</button>
         </div>
@@ -187,11 +187,15 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       )}
 
       {/* ---- the watchmaker's assessment: necessary vs optional ---- */}
-      <JobAssessment job={job} allParts={allParts} can={can} actions={actions} onChange={load} />
+      {/* Vintage: Rolex Toronto assesses, estimates and supplies parts; the office enters RCL's lines for the invoice */}
+      {(job.classification !== 'Vintage' || can.edit) &&
+        <JobAssessment job={job} allParts={allParts} can={can} actions={actions} onChange={load} />}
 
       {/* ---- parts: CTR kit + added ---- */}
-      <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}
-        onChange={async () => { await load(); await actions.reload() }} />
+      {job.classification !== 'Vintage' && (
+        <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}
+          onChange={async () => { await load(); await actions.reload() }} />
+      )}
 
       {can.edit && (
         <JobDocuments job={job} allParts={allParts} userId={userId} actions={actions}

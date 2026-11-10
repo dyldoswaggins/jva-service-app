@@ -19,7 +19,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
   }
   const email = async () => {
     setMsg('')
-    try { const r = await api.emailJobDoc(done.doc.id); actions.say(`Receipt emailed to ${r.to}`) } catch (e) { setMsg(e.message) }
+    try { const r = await api.emailJobDoc(done.doc.id); actions.say(`${done.doc.file_name || 'Document'} emailed to ${r.to}`) } catch (e) { setMsg(e.message) }
   }
 
   return (
@@ -39,9 +39,11 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
             </div>
           </header>
           <section className="step">
-            <p>Your signed receipt is ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>
+            {done.job.classification === 'Vintage'
+              ? <p>Your signed Vintage Analysis Fee form is ready. Please keep it and bring it with photo ID when you collect your watch. Your watch will be analysed by Rolex; we'll contact you with the estimate.</p>
+              : <p>Your signed receipt is ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
             <div className="actions">
-              <button type="button" className="btn solid big" onClick={print}>Print receipt</button>
+              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' ? 'Print form' : 'Print receipt'}</button>
               <button type="button" className="btn big" onClick={email}>Email to service manager</button>
               <span className="grow" />
               <button type="button" className="btn big" onClick={() => { setDone(null); setKey(k => k + 1); setMsg('') }}>Next client</button>

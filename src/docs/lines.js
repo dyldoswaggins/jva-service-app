@@ -6,6 +6,8 @@ const lc = s => String(s || '').toLowerCase()
 
 export function documentLines(job, allParts) {
   const necessary = [], optional = []
+  // Vintage: the analysis fee is charged whatever the client decides on the Rolex estimate
+  if (job.classification === 'Vintage') necessary.push({ key: 'vintage_fee', label: 'Rolex Vintage Analysis Fee', price: job.vintage_fee ?? null, source: 'vintage' })
   if (job.service_type === 'CTR') {
     necessary.push({ key: 'ctr', label: 'Complete overhaul', price: job.ctr_price ?? null, subs: ['Clean case and bracelet'], source: 'ctr' })
   }

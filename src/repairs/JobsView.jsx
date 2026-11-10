@@ -63,7 +63,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who }
                     <td className="mono b">{j.edge_no}</td>
                     <td>{[j.watch_ref, j.watch_name].filter(Boolean).join(' · ')}</td>
                     <td className="mono">{maskSerial(j.serial)}</td>
-                    <td>{j.service_type}</td>
+                    <td>{j.service_type}{j.classification ? <span className="msg"> · {j.classification}</span> : ''}</td>
                     <td>{j.status}</td>
                     <td>{n ? <b className="tag warn">{n} to confirm</b> : <span className="msg">✓</span>}</td>
                     <td>{fmtDate(String(j.intake_at).slice(0, 10))}</td>
