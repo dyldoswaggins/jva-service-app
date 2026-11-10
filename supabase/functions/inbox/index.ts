@@ -8,7 +8,8 @@
 // Secrets (Supabase → Edge Functions → Secrets):
 //   ANTHROPIC_API_KEY                      for reading scans
 //   CRON_SECRET                            shared with the schedule that calls action "mail"
-//   MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, INBOX_MAILBOX   for the mailbox (set up by IT)
+//   MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, INBOX_MAILBOX   for a Microsoft 365 mailbox (set up by IT)
+//   INGEST_SECRET                          for action "ingest" (Gmail Apps Script drop-off, scripts/gmail-inbox.gs)
 import Anthropic from "npm:@anthropic-ai/sdk";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding@1/base64";
@@ -17,7 +18,7 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret, x-ingest-secret",
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -127,6 +128,21 @@ async function readDoc(id: string, force = false) {
   }
 }
 
+// Save one emailed attachment to the inbox and read it
+async function storeDoc(bin: Uint8Array, name: string, type: string, sender: string | null, subject: string | null) {
+  type = String(type || "").toLowerCase();
+  const isPdf = type === "application/pdf" || /\.pdf$/i.test(name);
+  if (!isPdf && !ACCEPT.includes(type)) return null;
+  const path = `email/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}-${String(name).replace(/[^\w.\-]+/g, "_")}`;
+  const up = await svc.storage.from("inbox").upload(path, bin, { contentType: isPdf ? "application/pdf" : type });
+  if (up.error) throw new Error("Could not save the file");
+  const { data: row } = await svc.from("inbox").insert({
+    source: "email", sender, subject, file_path: path, file_name: name, mime: isPdf ? "application/pdf" : type,
+  }).select("id").single();
+  if (row) await readDoc(row.id).catch(() => {});
+  return row?.id ?? null;
+}
+
 async function fetchMail() {
   const env = (k: string) => Deno.env.get(k) || "";
   const [tenant, clientId, secret, mailbox] = ["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET", "INBOX_MAILBOX"].map(env);
@@ -148,18 +164,9 @@ async function fetchMail() {
     const atts = await g(`/messages/${m.id}/attachments`).then((r) => r.json());
     for (const a of atts.value || []) {
       if (a["@odata.type"] !== "#microsoft.graph.fileAttachment" || a.isInline) continue;
-      const type = String(a.contentType || "").toLowerCase();
-      const isPdf = type === "application/pdf" || /\.pdf$/i.test(a.name);
-      if (!isPdf && !ACCEPT.includes(type)) continue;
       const bin = Uint8Array.from(atob(a.contentBytes), (c) => c.charCodeAt(0));
-      const path = `email/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}-${String(a.name).replace(/[^\w.\-]+/g, "_")}`;
-      const up = await svc.storage.from("inbox").upload(path, bin, { contentType: isPdf ? "application/pdf" : type });
-      if (up.error) continue;
-      const { data: row } = await svc.from("inbox").insert({
-        source: "email", sender: m.from?.emailAddress?.address || null, subject: m.subject || null,
-        file_path: path, file_name: a.name, mime: isPdf ? "application/pdf" : type,
-      }).select("id").single();
-      if (row) { docs++; await readDoc(row.id).catch(() => {}); }
+      const id = await storeDoc(bin, a.name, a.contentType, m.from?.emailAddress?.address || null, m.subject || null).catch(() => null);
+      if (id) docs++;
     }
     await g(`/messages/${m.id}`, { method: "PATCH", body: JSON.stringify({ isRead: true }) });
   }
@@ -174,6 +181,16 @@ Deno.serve(async (req) => {
       const secret = Deno.env.get("CRON_SECRET");
       if (!secret || req.headers.get("x-cron-secret") !== secret) return json({ error: "Not allowed" }, 401);
       return json(await fetchMail());
+    }
+    // Drop-off from the Gmail Apps Script (or any mail forwarder): one attachment per call
+    if (body.action === "ingest") {
+      const secret = Deno.env.get("INGEST_SECRET");
+      if (!secret || secret.length < 24 || req.headers.get("x-ingest-secret") !== secret) return json({ error: "Not allowed" }, 401);
+      if (!body.data || !body.filename) return json({ error: "Missing file" }, 400);
+      const bin = Uint8Array.from(atob(body.data), (c) => c.charCodeAt(0));
+      if (bin.length > 25 * 1024 * 1024) return json({ error: "File too large" }, 413);
+      const id = await storeDoc(bin, String(body.filename), String(body.mime || ""), body.sender || null, body.subject || null);
+      return json(id ? { ok: true, id } : { ok: false, skipped: "Not a PDF or image" });
     }
     if (body.action === "read" && body.id) {
       const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, {
