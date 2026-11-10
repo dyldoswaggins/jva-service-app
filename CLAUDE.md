@@ -55,6 +55,11 @@ Anyone without a role = View only. Watchmaker steps must be **minimal** (main ta
   - Same invoice number can't be imported twice (unless undone).
   - Nearly every line carries a customer reference (MRWS #); store it per line. **If the MRWS # matches a repair job, prompt at import to set the part aside for that job; otherwise it is stock.** (Set-aside prompt to build with Repairs.)
   - Reader is layout parsing of the Rolex PDF (`src/invoice.js`), no AI; checked against all 52 invoices in `ROLP Invoices` (`node scripts/test-invoices.mjs "<folder>"`).
+- **Packing lists** (added 2026-11-09): same import as invoices but no costs (`doc_type = 'packing_list'`).
+  - **Whichever document arrives first adds the stock.** Lines are matched to the other document type on **MRWS # + part** (`receipt_lines`); a matched later line adds no stock (an invoice still updates cost). Packing list and invoice numbers differ, so never match on document number.
+  - The review screen shows each line's match, quantity differences, and lines on the other document missing from this one, before Apply.
+  - Undo of the first document **hands its stock over** to the matched later one instead of removing it.
+- **Inbox** (`inbox` table + private storage bucket `inbox`, Admin only): documents arrive by **email** (shared mailbox, fetched by Edge Function `inbox` action `mail`) or upload. Text PDFs (Rolex layout) are read in the browser, no AI. **Scans/photos are read by Claude** (`claude-opus-5-5`, structured output, Edge Function `inbox` action `read`); the file goes to Anthropic (part #s, MRWS #s, no customer names). **Nothing is applied automatically**: Admin checks and presses Apply.
 - **Order limits per job (Rolex):** A up to 25, B up to 5, C 1. Warn when a job goes over.
 - Money in CAD, stored as numbers, shown `$412.50`. Who/when = user id + timestamp; names looked up when shown.
 - Serials: lists show last 4 only (`•••3F2A`); full number on the job and its documents.
@@ -193,6 +198,11 @@ Kept 132 jobs: removed 172 sent to Toronto (FedEx / RCL / "shipped to Rolex"), 2
 - Wording: plain language, 1–2 word labels, symbols where clear (★ suggested, ••• masked, ✓ done), messages one short line. Same word for the same action everywhere.
 - One search box: job #, serial, part #.
 
+## 8b. Setup still to finish (needs people, not code)
+- **Microsoft sign-in:** IT completes `docs/microsoft-signin-setup.md` Part 1 → Dylan enters client ID / secret / tenant in Supabase → Authentication → Providers → Azure, and sets Site URL `https://watchservicejva.netlify.app` (+ redirect `http://localhost:5173`).
+- **Scan reading:** Dylan creates an Anthropic API key (JVA account) and adds it in Supabase → Edge Functions → Secrets as `ANTHROPIC_API_KEY`.
+- **Email inbox:** IT completes Part 2 → Dylan adds secrets `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `INBOX_MAILBOX`, `CRON_SECRET` → then schedule (SQL, once): enable `pg_cron` + `pg_net`, store the cron secret in Vault, and `cron.schedule('inbox-mail', '*/5 * * * *', …net.http_post to /functions/v1/inbox with body {"action":"mail"} and header x-cron-secret…)`.
+
 ## 9. Open items
 
 From Jared (he has the data; files go in his folder):
@@ -226,3 +236,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Database created (migrations 001–002): snake_case names (mapping in §5), profiles/roles, RLS, `stock_change()`, add-only log, no hard deletes, realtime. Prototype data imported and verified: 906 parts, 412 models, 924 log rows, 535 parts / 3,007 units in stock. Netlify team-login wall turned off (Microsoft sign-in + RLS protect the app). |
 | 2026-11-09 | Parts screens built (Count, Reorder, History, Models) with rules in `src/rules.js`, data access in `src/data.js`. Undo toast replaces confirm prompts (archive replaces delete). Excel exports are CSV for now. Demo mode for local testing: `npm run dev`, open `/?demo` (loads `data/` in memory; `src/demo.js` never ships in the build). |
 | 2026-11-09 | **Rule change (Dylan): invoices now add received stock**, not cost only. Migration 003: `apply_invoice()` / `undo_invoice()`, `parts.price_date`, unique active invoice number, baseline date 2026-11-05 enforced server-side. MRWS # stored per line; set-aside-for-job prompt deferred to Repairs. PDF reader in `src/invoice.js` (pdf.js). |
+| 2026-11-09 | Packing lists + Inbox (migration 004, Edge Function `inbox`): doc_type on documents, `receipt_lines` matching on MRWS # + part (first document adds stock), `receipt_matches()` preview, undo hands stock over, inbox table + private bucket, Claude reads scans, mailbox fetch ready (waiting on IT). Parts "Import invoice" → Inbox tab. |

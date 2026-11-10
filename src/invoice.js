@@ -34,18 +34,19 @@ function below(cells, anchor, re, maxGap = 22) {
 }
 
 export function parsePages(pages) {
-  const head = { invoiceNo: '', date: null, dateText: '' }
+  const head = { invoiceNo: '', date: null, dateText: '', docType: 'invoice' }
   const lines = []
   for (const items of pages) {
     const rows = rowsOf(items)
     const cells = rows.flatMap(r => r.cells)
+    if (cells.some(c => /packing\s*list|bordereau|delivery\s*note|bon de livraison/i.test(c.s))) head.docType = 'packing_list'
     if (!head.invoiceNo) {
-      const a = cells.find(c => /^Invoice( \/ Facture)?$/i.test(c.s))
-      const n = a && below(cells, a, /^\d{6,}$/)
+      const a = cells.find(c => /^(Invoice( \/ Facture)?|Packing list|Delivery( note)?)( (No\.?|number|#))?$/i.test(c.s))
+      const n = a && below(cells, a, /^[A-Z0-9-]{6,}$/i)
       if (n) head.invoiceNo = n.s
     }
     if (!head.date) {
-      const a = cells.find(c => /^Invoice date/i.test(c.s))
+      const a = cells.find(c => /^(Invoice|Delivery|Shipping|Packing list) date|^Date\b/i.test(c.s))
       const d = a && below(cells, a, /^[A-Za-z]+\s+\d{1,2},\s*\d{4}$/)
       if (d) { head.dateText = d.s; head.date = isoDate(d.s) }
     }

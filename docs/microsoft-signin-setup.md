@@ -35,4 +35,35 @@ Click **Grant admin consent for J. Vair Anderson Jewellers**.
 
 Please also add a calendar reminder to renew the secret before it expires.
 
+---
+
+# Part 2: Parts inbox mailbox (invoices and packing lists)
+
+Scanned packing lists and Rolex invoices will be emailed to a dedicated mailbox. The app checks it every few minutes, reads the attachments, and puts them in its Inbox for review. It only reads that one mailbox and marks messages as read; it never sends or deletes mail.
+
+## 7. Mailbox
+Create a **shared mailbox** (no licence needed), e.g. `parts@<our domain>`. Add Dylan as a member so he can see what arrived.
+
+## 8. App registration for reading it
+Separate from the sign-in app, so its secret only lives on the server:
+entra.microsoft.com → App registrations → **New registration**
+- Name: `JVA Watch Service – Parts Inbox`, single tenant, **no** redirect URI.
+- **Do not** add a tenant-wide Graph `Mail.*` permission here (that would cover every mailbox). Mail access is granted in step 9, scoped to the parts mailbox only.
+- **Certificates & secrets → New client secret** (24 months). Copy the Value.
+
+## 9. Grant mail access to that one mailbox only (Exchange RBAC for Applications)
+In Exchange Online PowerShell:
+```
+New-ServicePrincipal -AppId <Application (client) ID> -ObjectId <Enterprise app Object ID> -DisplayName "JVA Parts Inbox"
+New-ManagementScope -Name "JVA Parts Inbox" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'parts@<our domain>'"
+New-ManagementRoleAssignment -App <Enterprise app Object ID> -Role "Application Mail.ReadWrite" -CustomResourceScope "JVA Parts Inbox"
+Test-ServicePrincipalAuthorization -Identity <Enterprise app Object ID> -Resource parts@<our domain>
+```
+The test should show access to the parts mailbox and nothing else.
+
+## 10. Send back to Dylan
+- Mailbox address
+- Application (client) ID and Directory (tenant) ID of the Parts Inbox app
+- Its client secret Value: **separately and securely**, as before.
+
 Questions: contact Dylan.

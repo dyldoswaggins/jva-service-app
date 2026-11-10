@@ -49,8 +49,10 @@ export function makeDemo() {
     async applyInvoice(inv, lines) {
       const s = await load()
       s.invoices = s.invoices || []
-      if (s.invoices.some(x => x.invoice_no === inv.invoice_no && !x.undone)) throw new Error(`Invoice ${inv.invoice_no} was already imported`)
-      const id = crypto.randomUUID(), canStock = inv.date > '2026-11-05', src = 'Invoice ' + inv.invoice_no, at = new Date().toISOString()
+      const type = inv.doc_type || 'invoice'
+      if (s.invoices.some(x => x.doc_type === type && x.invoice_no === inv.invoice_no && !x.undone)) throw new Error(`${inv.invoice_no} was already imported`)
+      const id = crypto.randomUUID(), canStock = inv.date > '2026-11-05', src = (type === 'invoice' ? 'Invoice ' : 'Packing list ') + inv.invoice_no, at = new Date().toISOString()
+      const pool = s.invoices.filter(d => !d.undone && d.doc_type !== type).flatMap(d => d.lines.filter(x => !x.matched))
       const out = []
       for (const l of lines) {
         if (!s.parts.has(l.part_id)) {
@@ -58,22 +60,51 @@ export function makeDemo() {
           s.parts.set(l.part_id, { id: l.part_id, rmc: l.rmc, qty: null, archived: false, note: '', ...l.new_part, edge_refs: l.ref, src, flag: `Added from ${src}: check category and class` })
         }
         let p = s.parts.get(l.part_id), costed = false, stocked = false, prev_price = null
-        if (l.set_cost !== false && l.unit_cost > 0 && (!p.price_date || inv.date >= p.price_date)) {
+        const match = pool.find(x => !x.matched && x.part_id === l.part_id && (x.mrws_ref || '') === (l.mrws_ref || ''))
+        if (match) match.matched = true
+        if (type === 'invoice' && l.set_cost !== false && l.unit_cost > 0 && (!p.price_date || inv.date >= p.price_date)) {
           prev_price = p.price
           p = { ...p, price_prev: p.price, price: l.unit_cost, pack: l.pack ?? p.pack, pack_price: l.pack_price ?? p.pack_price, price_src: `${src} (${inv.date})`, price_date: inv.date }
           costed = true
         }
-        if (canStock && l.add_stock !== false && l.units > 0) {
+        if (canStock && l.add_stock !== false && l.units > 0 && !(match && match.stocked)) {
           const lg = { id: crypto.randomUUID(), part_id: p.id, rmc: p.rmc, prev: p.qty, qty: (p.qty ?? 0) + l.units, change: l.units, by_user: me.id, at, src, type: 'Received', ref: id }
           p = { ...p, qty: lg.qty, c_by: me.id, c_at: at }
           s.log.unshift(lg); emit('onLog', lg); stocked = true
         }
         s.parts.set(p.id, p)
-        out.push({ ...l, added: !!l.new_part, stocked, costed, prev_price })
+        out.push({ ...l, added: !!l.new_part, stocked, costed, prev_price, matched: !!match, matched_units: match?.units })
       }
-      s.invoices.unshift({ id, invoice_no: inv.invoice_no, date: inv.date, file: inv.file, add_stock: canStock, by_user: me.id, at, lines: out, undone: false })
+      s.invoices.unshift({ id, doc_type: type, invoice_no: inv.invoice_no, date: inv.date, file: inv.file, add_stock: canStock, by_user: me.id, at, lines: out, undone: false })
       return id
     },
+    async receiptMatches(docType, lines) {
+      const s = await load(), used = new Set()
+      const pool = (s.invoices || []).filter(d => !d.undone && d.doc_type !== docType)
+        .flatMap(d => d.lines.map((l, k) => ({ ...l, key: d.id + k, doc_type: d.doc_type, doc_no: d.invoice_no, matched: l.matched })))
+        .filter(l => !l.matched)
+      const out = lines.map((l, i) => {
+        const m = pool.find(p => !used.has(p.key) && p.part_id === l.part_id && (p.mrws_ref || '') === (l.mrws_ref || ''))
+        if (!m) return null
+        used.add(m.key)
+        return { i, doc_type: m.doc_type, doc_no: m.doc_no, units: m.units, stocked: m.stocked }
+      })
+      const refs = new Set(lines.map(l => l.mrws_ref).filter(Boolean))
+      return { lines: out, missing: pool.filter(p => !used.has(p.key) && refs.has(p.mrws_ref)).map(p => ({ doc_type: p.doc_type, doc_no: p.doc_no, rmc: p.rmc, mrws_ref: p.mrws_ref, units: p.units })) }
+    },
+    async loadInbox() { const s = await load(); return [...(s.inbox || [])] },
+    async uploadToInbox(file) {
+      const s = await load()
+      s.inbox = s.inbox || []
+      const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf'
+      const row = { id: crypto.randomUUID(), received_at: new Date().toISOString(), source: 'upload', file_name: file.name, mime: file.type, _file: file,
+        status: isPdf ? 'ready' : 'error', read_by: isPdf ? 'layout' : null, error: isPdf ? null : 'Demo mode: scans are read on the live site only' }
+      s.inbox.unshift(row)
+      return row
+    },
+    async readInbox() { throw new Error('Demo mode: scans are read on the live site only') },
+    async inboxFile(row) { return row._file },
+    async updateInbox(id, fields) { const s = await load(); const r = s.inbox.find(x => x.id === id); Object.assign(r, fields) },
     async undoInvoice(id) {
       const s = await load(), inv = s.invoices.find(x => x.id === id)
       if (!inv || inv.undone) throw new Error('Already undone')

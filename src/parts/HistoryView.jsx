@@ -30,11 +30,11 @@ export default function HistoryView({ who, can, actions }) {
   return (
     <>
       <div className="panel">
-        <div className="actions"><h2 className="grow">Imported invoices</h2><button type="button" className="btn" onClick={load}>Refresh</button></div>
+        <div className="actions"><h2 className="grow">Imported invoices and packing lists</h2><button type="button" className="btn" onClick={load}>Refresh</button></div>
         {invoices.length ? (
           <div className="imp-wrap">
             <table className="imp">
-              <thead><tr><th>Imported</th><th>Invoice #</th><th>Invoice date</th><th className="r">Lines</th><th className="r">Units added</th><th>By</th><th /></tr></thead>
+              <thead><tr><th>Imported</th><th>Document</th><th>Date</th><th className="r">Lines</th><th className="r">Units added</th><th>By</th><th /></tr></thead>
               <tbody>
                 {invoices.flatMap(x => {
                   const lines = x.lines || []
@@ -42,7 +42,7 @@ export default function HistoryView({ who, can, actions }) {
                   const open = openInv === x.id
                   return [
                     <tr key={x.id} className={x.undone ? 'off' : ''}>
-                      <td>{fmtTime(x.at)}</td><td className="b">{x.invoice_no || x.file || '—'}</td><td>{x.date || ''}</td>
+                      <td>{fmtTime(x.at)}</td><td className="b">{x.doc_type === 'packing_list' ? 'Packing list ' : 'Invoice '}{x.invoice_no || x.file || '—'}</td><td>{x.date || ''}</td>
                       <td className="r">{lines.length}</td><td className="r">{units ? num(units) : 'Costs only'}</td><td>{who(x.by_user)}</td>
                       <td className="actions">
                         <button type="button" className="btn" onClick={() => setOpenInv(open ? null : x.id)}>{open ? 'Hide' : 'Lines'}</button>

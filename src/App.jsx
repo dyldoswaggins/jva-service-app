@@ -5,8 +5,9 @@ import PartsView from './parts/PartsView.jsx'
 import ReorderView from './parts/ReorderView.jsx'
 import HistoryView from './parts/HistoryView.jsx'
 import ModelsView from './parts/ModelsView.jsx'
+import InboxView from './parts/InboxView.jsx'
 
-const VIEWS = ['Parts', 'Reorder', 'History', 'Models']
+const VIEWS = ['Parts', 'Reorder', 'History', 'Models', 'Inbox']
 
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = checking
@@ -121,6 +122,7 @@ function Workshop({ session }) {
         } catch (e) { say(e.message); return false }
       },
       showModel(id) { setModelFilter(id); setView('Parts') },
+      goInbox() { setView('Inbox') },
       say,
       async reload() {
         const d = await api.loadAll()
@@ -154,7 +156,7 @@ function Workshop({ session }) {
       {parts && (
         <>
           <div className="views" role="group" aria-label="View">
-            {VIEWS.map(v => (
+            {VIEWS.filter(v => v !== 'Inbox' || can.edit).map(v => (
               <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>
                 {v}{v === 'Reorder' && reorderN ? ` (${reorderN})` : ''}
               </button>
@@ -168,6 +170,7 @@ function Workshop({ session }) {
           {view === 'Reorder' && <ReorderView parts={list} />}
           {view === 'History' && <HistoryView who={who} can={can} actions={actions} />}
           {view === 'Models' && <ModelsView models={models} parts={list} can={can} actions={actions} />}
+          {view === 'Inbox' && can.edit && <InboxView allParts={parts} actions={actions} userId={session.user.id} />}
         </>
       )}
       {toast && (

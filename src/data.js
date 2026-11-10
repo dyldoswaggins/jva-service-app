@@ -58,6 +58,45 @@ const live = {
     if (error) throw error
     return data
   },
+  async receiptMatches(docType, lines) {
+    const { data, error } = await supabase.rpc('receipt_matches', { p_doc_type: docType, p_lines: lines })
+    if (error) throw error
+    return data
+  },
+  // ---------- inbox ----------
+  async loadInbox() {
+    const { data, error } = await supabase.from('inbox').select('*').order('received_at', { ascending: false }).limit(150)
+    if (error) throw error
+    return data
+  },
+  async uploadToInbox(file, userId) {
+    const path = `upload/${new Date().toISOString().slice(0, 7)}/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]+/g, '_')}`
+    const mime = file.type || (/\.pdf$/i.test(file.name) ? 'application/pdf' : '')
+    const up = await supabase.storage.from('inbox').upload(path, file, { contentType: mime || undefined })
+    if (up.error) throw up.error
+    const { data, error } = await supabase.from('inbox')
+      .insert({ source: 'upload', file_path: path, file_name: file.name, mime, by_user: userId }).select().single()
+    if (error) throw error
+    await live.readInbox(data.id).catch(() => {}) // errors are saved on the inbox row
+    return data
+  },
+  async readInbox(id, force = false) {
+    const { data, error } = await supabase.functions.invoke('inbox', { body: { action: 'read', id, force } })
+    if (error) {
+      const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
+      throw new Error(msg || error.message)
+    }
+    return data
+  },
+  async inboxFile(row) {
+    const { data, error } = await supabase.storage.from('inbox').download(row.file_path)
+    if (error) throw error
+    return new File([data], row.file_name, { type: row.mime || data.type })
+  },
+  async updateInbox(id, fields) {
+    const { error } = await supabase.from('inbox').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id)
+    if (error) throw error
+  },
   async updatePart(id, fields) {
     const { data, error } = await supabase.from('parts').update(fields).eq('id', id).select().single()
     if (error) throw error
@@ -74,12 +113,13 @@ const live = {
     if (error) throw error
     return data
   },
-  subscribe({ onPart, onModel, onLog }) {
+  subscribe({ onPart, onModel, onLog, onInbox }) {
     const ch = supabase
-      .channel('parts-live')
+      .channel('live-' + crypto.randomUUID())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'parts' }, e => onPart?.(e.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'models' }, e => onModel?.(e.new))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log' }, e => onLog?.(e.new))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox' }, e => onInbox?.(e.new))
       .subscribe()
     return () => supabase.removeChannel(ch)
   },
