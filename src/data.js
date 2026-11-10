@@ -89,7 +89,7 @@ const live = {
   },
   async loadJob(id) {
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*)').eq('id', id).single()
+      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*)').eq('id', id).single()
     if (error) throw error
     return data
   },
@@ -100,6 +100,34 @@ const live = {
   },
   async updateJob(id, fields) {
     const { error } = await supabase.from('jobs').update(fields).eq('id', id)
+    if (error) throw error
+  },
+  // ---------- CTR kits + parts on jobs ----------
+  async loadKit(family) {
+    const { data, error } = await supabase.from('ctr_kit_items').select('*').eq('family', family)
+    if (error) throw error
+    return data
+  },
+  async buildKit(jobId) {
+    const { data, error } = await supabase.rpc('build_ctr_kit', { p_job: jobId })
+    if (error) throw error
+    return data
+  },
+  async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null }) {
+    const { data, error } = await supabase.rpc('add_job_part', {
+      p_job: jobId, p_part: partId, p_qty: qty, p_kind: kind, p_source: source,
+      p_component: component, p_condition: condition, p_required: required,
+    })
+    if (error) throw error
+    return data
+  },
+  async removeJobPart(lineId) {
+    const { data, error } = await supabase.rpc('remove_job_part', { p_line: lineId })
+    if (error) throw error
+    return data
+  },
+  async requestReorder(partId, on) {
+    const { error } = await supabase.rpc('request_reorder', { p_part: partId, p_on: on })
     if (error) throw error
   },
   async addCondition(row) {
@@ -208,6 +236,7 @@ const live = {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, e => onJob?.(e.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_conditions' }, e => onJob?.({ id: e.new?.job_id }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'job_requests' }, e => onJob?.({ id: e.new?.job_id }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_parts' }, e => onJob?.({ id: e.new?.job_id }))
       .subscribe()
     return () => supabase.removeChannel(ch)
   },

@@ -156,6 +156,9 @@ table.imp { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.jobs tr.click { cursor: pointer; }
 table.jobs tr.click:hover td { background: var(--hover); }
 details summary { cursor: pointer; }
+.kitline { display: flex; flex-direction: column; gap: 6px; }
+table.imp tr.click { cursor: pointer; }
+table.imp tr.click:hover td { background: var(--hover); }
 
 /* Toast with Undo */
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; display: flex; gap: 12px; align-items: center;

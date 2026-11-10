@@ -5,7 +5,7 @@ import IntakeView from './IntakeView.jsx'
 import JobView from './JobView.jsx'
 
 // All repair jobs. Sales start an intake here; anyone opens a job.
-export default function JobsView({ models, can, actions, userId, who }) {
+export default function JobsView({ models, allParts, can, actions, userId, who }) {
   const [jobs, setJobs] = useState(null)
   const [statuses, setStatuses] = useState([])
   const [filter, setFilter] = useState('open')
@@ -32,6 +32,7 @@ export default function JobsView({ models, can, actions, userId, who }) {
       onDone={(id, receipt) => { load(); setMode(id ? { view: 'job', id, receipt } : { view: 'list' }) }} />
   if (mode.view === 'job')
     return <JobView id={mode.id} receipt={mode.receipt} statuses={statuses} can={can} actions={actions} userId={userId} who={who}
+      allParts={allParts} models={models}
       onBack={() => { load(); setMode({ view: 'list' }) }} />
 
   const count = s => (jobs || []).filter(j => j.status === s).length

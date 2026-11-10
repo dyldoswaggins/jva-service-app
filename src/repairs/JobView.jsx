@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../data.js'
 import { CONDITIONS, conditionText, fmtTime, openPrompts, termsFor } from '../rules.js'
+import JobParts from './JobParts.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -14,7 +15,7 @@ function printPdf(blob) {
 }
 
 // One job. The watchmaker answers every intake prompt (condition + client request) before the estimate.
-export default function JobView({ id, receipt, statuses, can, actions, userId, who, onBack }) {
+export default function JobView({ id, receipt, statuses, can, actions, userId, who, onBack, allParts, models }) {
   const [job, setJob] = useState(null)
   const [msg, setMsg] = useState('')
   const [changing, setChanging] = useState(null)   // condition id being changed
@@ -59,6 +60,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       return setMsg(`Answer the ${pending} prompt${pending === 1 ? '' : 's'} first (condition and client requests).`)
     const prev = job.status
     await run(() => api.updateJob(id, { status: s }))
+    await actions.reload() // stock may have come off (leaving Estimate)
     actions.say(`${job.edge_no}: ${s}`, () => run(() => api.updateJob(id, { status: prev }), `${job.edge_no}: back to ${prev}`))
   }
   const saveField = (k, v) => v !== (job[k] ?? '') && run(() => api.updateJob(id, { [k]: v || null }))
@@ -169,6 +171,10 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
           </ul>
         </section>
       )}
+
+      {/* ---- parts: CTR kit + added ---- */}
+      <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}
+        onChange={async () => { await load(); await actions.reload() }} />
 
       {/* ---- watch details (declaration) ---- */}
       <section className="panel">

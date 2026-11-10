@@ -132,10 +132,10 @@ export const isLow = p => isCounted(p) && minOf(p) > 0 && p.qty <= minOf(p)
 
 export function reorderList(parts) {
   return parts
-    .filter(p => !p.archived && isLow(p))
+    .filter(p => !p.archived && (isLow(p) || p.reorder_req))   // reorder_req = ticked after a CTR ("Always Order")
     .map(p => {
       const k = bigPack(p)
-      const short = Math.max(1, minOf(p) - p.qty)
+      const short = Math.max(1, minOf(p) - (p.qty ?? 0))
       return { p, need: k ? Math.ceil(short / k) * k : short, packs: k ? Math.ceil(short / k) : 0 }
     })
     .sort((a, b) => 'ABC'.indexOf(a.p.abc || 'B') - 'ABC'.indexOf(b.p.abc || 'B') || (b.p.used || 0) - (a.p.used || 0))

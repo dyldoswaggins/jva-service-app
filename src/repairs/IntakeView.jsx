@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { CONDITIONS, JOB_NO, REQUEST_OPTIONS, SERVICE_TYPES, conditionText, modelId } from '../rules.js'
 import { makeReceipt, receiptFileName } from '../receipt.js'
@@ -21,9 +21,11 @@ export default function IntakeView({ models, actions, userId, onDone }) {
 
   const set = k => e => setJob({ ...job, [k]: e.target.value })
   const model = useMemo(() => models.get(modelId(job.watch_ref || '-')), [models, job.watch_ref])
-  const lookupRef = () => {
-    if (model) setJob(j => ({ ...j, watch_ref: model.ref, watch_name: j.watch_name || model.name, calibre: j.calibre || model.cal.split(/[,\s]+/)[0] }))
-  }
+  // Fill model + calibre as soon as the reference matches a known model (not only when leaving the box)
+  useEffect(() => {
+    if (model) setJob(j => ({ ...j, watch_name: j.watch_name || model.name, calibre: j.calibre || String(model.cal || '').split(/[,\s]+/)[0] }))
+  }, [model])
+  const lookupRef = () => { if (model) setJob(j => ({ ...j, watch_ref: model.ref })) }
 
   const hasCond = (c, t) => conds.some(x => x.component === c && x.term === t)
   const toggleCond = (c, t) => setConds(cs => (hasCond(c, t) ? cs.filter(x => !(x.component === c && x.term === t)) : [...cs, { component: c, term: t, note: '' }]))

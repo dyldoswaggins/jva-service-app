@@ -112,8 +112,44 @@ export function makeDemo() {
     async updateJob(id, fields) {
       const s = await load(), j = s.jobs.find(x => x.id === id)
       if (fields.status && fields.status !== j.status) j.job_status_log.push({ id: crypto.randomUUID(), status: fields.status, by_user: me.id, at: new Date().toISOString() })
+      // stock comes off when the job leaves Estimate (mirrors take_job_stock)
+      if (j.status === 'Estimate' && fields.status && !['Estimate', 'Cancelled'].includes(fields.status) && !j.stock_taken_at) {
+        for (const l of (j.job_parts || []).filter(x => x.state === 'active' && x.consumed_qty < x.qty)) {
+          const p = s.parts.get(l.part_id), want = l.qty - l.consumed_qty, take = Math.min(want, p.qty ?? 0)
+          s.parts.set(p.id, { ...p, qty: (p.qty ?? 0) - take }); l.consumed_qty += take; l.short_qty = want - take
+        }
+        j.stock_taken_at = new Date().toISOString()
+      }
       Object.assign(j, fields)
     },
+    async loadKit(family) { const k = (await import('../data/ctr_kits.json')).default; return k.filter(x => x.family === family) },
+    async buildKit(jobId) {
+      const s = await load(), j = s.jobs.find(x => x.id === jobId)
+      if (j.service_type !== 'CTR') throw new Error('This job is not a CTR')
+      const fam = /^\d{4}/.test(j.calibre || '') ? j.calibre.slice(0, 2) + 'xx' : null
+      if (!fam) throw new Error('Enter the calibre first')
+      j.job_parts = j.job_parts || []
+      const kit = (await import('../data/ctr_kits.json')).default.filter(x => x.family === fam && x.auto && x.part_id && (!x.only_for.length || x.only_for.includes(j.calibre)))
+      let n = 0
+      for (const k of kit) if (!j.job_parts.some(l => l.part_id === k.part_id && l.kind === 'ctr_kit' && l.state === 'active')) {
+        j.job_parts.push({ id: crypto.randomUUID(), job_id: jobId, part_id: k.part_id, rmc: k.rmc, qty: k.qty, kind: 'ctr_kit', source: 'kit', retail: k.retail, consumed_qty: 0, short_qty: 0, state: 'active', at: new Date().toISOString() }); n++
+      }
+      return n
+    },
+    async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null }) {
+      const s = await load(), j = s.jobs.find(x => x.id === jobId), p = s.parts.get(partId)
+      if (kind === 'billable' && (!component || !condition || !required)) throw new Error('Billable parts need a component, a condition and Required / Optional')
+      j.job_parts = j.job_parts || []
+      const l = { id: crypto.randomUUID(), job_id: jobId, part_id: partId, rmc: p.rmc, qty, kind, source, component, condition_term: condition, required, retail: p.retail, consumed_qty: 0, short_qty: 0, state: 'active', at: new Date().toISOString() }
+      j.job_parts.push(l)
+      if (j.stock_taken_at) { const take = Math.min(qty, p.qty ?? 0); s.parts.set(partId, { ...p, qty: (p.qty ?? 0) - take }); l.consumed_qty = take; l.short_qty = qty - take }
+      return l.id
+    },
+    async removeJobPart(lineId) {
+      const s = await load()
+      for (const j of s.jobs) { const l = (j.job_parts || []).find(x => x.id === lineId); if (l) { if (l.consumed_qty) { const p = s.parts.get(l.part_id); s.parts.set(p.id, { ...p, qty: (p.qty ?? 0) + l.consumed_qty }) } l.state = 'removed'; return l.consumed_qty } }
+    },
+    async requestReorder(partId, on) { const s = await load(); s.parts.set(partId, { ...s.parts.get(partId), reorder_req: on }) },
     async addCondition(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_conditions.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },
     async updateCondition(id, f) { const s = await load(); for (const j of s.jobs) { const c = j.job_conditions.find(x => x.id === id); if (c) Object.assign(c, f) } },
     async addRequest(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_requests.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },

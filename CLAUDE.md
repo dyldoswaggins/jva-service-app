@@ -11,7 +11,7 @@ Sections:
 | # | Section | Status |
 |---|---|---|
 | 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Invoice import (PDF, adds stock + cost, Undo in History) done. Still to port from the prototype: PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
-| 2 | Repairs (intake, watchmaker bench screen, parts on a job) | **Part 1 built** (`src/repairs/`): iPad intake by Sales with signed receipt, jobs list, job/bench page with condition + request prompts, status gate. Next: CTR kits (Jared's lists), + Add parts, stock on status change. |
+| 2 | Repairs (intake, watchmaker bench screen, parts on a job) | **Parts 1–2 built** (`src/repairs/`): iPad intake with signed receipt, jobs list, job page with condition + request prompts and status gate, CTR kits from Jared's lists (auto), + Add (In CTR / Upgrades / Billable / Search), stock taken when a job leaves Estimate. Next: client-facing intake redesign (Sales see only intake), CTR + polish price, ETA from queue, iPad photos. |
 | 3 | Documents (intake receipt, estimate, confirmation, invoice) | Not started; design here in Claude Code |
 | 4 | Service Manager Dashboard | Not started; design here in Claude Code |
 
@@ -128,6 +128,15 @@ Rebuild its sections as the job screen, **dropping the Client field**. Its watch
 - Tables: `jobs`, `job_conditions`, `job_requests`, `job_status_log` (trigger), `job_docs`, `job_statuses` (editable list; seeded Estimate, Waiting on parts, On deck, Polishing, Timekeeping, Sent to Toronto, Done, Cancelled). Migrations 006–007.
 - **Documents on a job:** Print (from the page; iPad opens the PDF to print/share), Open, and **Email to service manager** — sent from the parts Gmail by Edge Function `send-doc` (Admin + Sales; secrets `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `SERVICE_MANAGER_EMAIL`); `job_docs.emailed_at/_to/_by` recorded (migration 009). Estimates/invoices will use the same buttons when built.
 - Decided with defaults (2026-11-09, changeable): Toronto = own status; analysis keeps Mov't bridges + Balance wheel as on the worksheet; **part costs Admin only** (UI; watchmakers see retail).
+
+### CTR kits + parts on jobs (built 2026-11-09, migration 010)
+- `ctr_kit_items`: Jared's 21XX, 22XX, 31XX, 32XX, Oyster (= 41XX/4130) lists, 229 lines, all matched to `parts`. Re-import any time: `node scripts/import-ctr-kits.mjs "<Calibre Inventory>" <token>` (temporary `tmp_import_kits` + token, dropped after). Demo copy in `data/ctr_kits.json`.
+- **Auto kit** (`auto = true`): Always Change + Always Order + screws with a per-job quantity (Often Changed, "screw" in note or part name); "Only for …" notes → `only_for` exact calibres. Loads by itself when a watchmaker opens a CTR job at Estimate with a calibre (`build_ctr_kit`). Shown as one collapsed line; never printed.
+- **+ Add**: In CTR (Often Changed + Keep Stock, not auto), Upgrades (Systematic Upgrade), Billable (★ parts tagged to the watch ref first, then most-used case/bracelet/dial parts; filter box), Search all. Billable needs component → condition (pre-filled from confirmed analysis; Movement = Worn/Damaged) → Required/Optional. Shows stock + Lista location; out of stock = "Order". Warns over Rolex A/B/C limits.
+- **Stock**: comes off when the job leaves Estimate (trigger `take_job_stock`, once — `jobs.stock_taken_at`); parts added later come off when added. Never negative: what isn't there is recorded as `short_qty` ("short · order"). Log type Auto (kit) / Used (added), src `Job #…`. Remove = Returned. Learning: the job's watch ref is added to the part's `fits`, model created if missing.
+- **Always Order prompt** after stock is taken: tick → `parts.reorder_req` → part shows on the Reorder tab.
+- All writes go through `build_ctr_kit`, `add_job_part`, `remove_job_part`, `request_reorder` (watchmaker/Admin); `job_parts` has no direct write access.
+- Note: retail prices exist for 220 movement parts only (Jared's lists); case/bracelet parts mostly show "–" until retail is filled.
 
 ### Who does what
 - **Sales at intake:** job links (Edge #, Rolex #, MRWS), service type (CTR, Partial, Warranty, Quick Service), requests, **visible condition** using the same strict terms.
@@ -253,3 +262,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Sign-in switched to email codes (no IT needed): `src/SignIn.jsx`, migration 005 restricts logins to @jvairanderson.com. Microsoft sign-in kept behind `VITE_SIGNIN=microsoft`. |
 | 2026-11-09 | Repairs part 1: iPad intake (Sales) with signed receipt filed on the job (exception to the customer-data rule, Admin + Sales only), condition + request prompts the watchmaker must answer before a job leaves Estimate, jobs list, job page, status log. Costs hidden from non-Admins. Jared's folder now has 21XX (41XX = Oyster Inventory copy); 30xx still missing. |
 | 2026-11-09 | Job documents: Print from the site + Email to service manager via parts Gmail (Edge Function `send-doc`, migration 009). Open idea from Dylan: remote digital signature for estimates (client signs from home) — decide with Documents. |
+| 2026-11-09 | Repairs part 2 (migration 010): CTR kits from Jared's lists, parts on jobs, stock taken on leaving Estimate (never negative, shortfalls flagged), returns, learning `fits`, Always Order → reorder. Intake now fills model + calibre as soon as the ref matches. Requested next: client-facing intake design, Sales limited to intake, CTR + polish price, queue ETA, iPad photos. |

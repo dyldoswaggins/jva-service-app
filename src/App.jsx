@@ -162,7 +162,7 @@ function Workshop({ session }) {
             ))}
           </div>
           {role === 'view' && <p className="msg">You can view everything. Ask Dylan for a role to make changes.</p>}
-          {view === 'Jobs' && <JobsView models={models} can={can} actions={actions} userId={session.user.id} who={who} />}
+          {view === 'Jobs' && <JobsView models={models} allParts={parts} can={can} actions={actions} userId={session.user.id} who={who} />}
           {view === 'Parts' && (
             <PartsView parts={list} allParts={parts} models={models} can={can} actions={actions} who={who}
               modelFilter={modelFilter} setModelFilter={setModelFilter} />
