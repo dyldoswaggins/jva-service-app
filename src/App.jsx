@@ -6,6 +6,7 @@ import ReorderView from './parts/ReorderView.jsx'
 import HistoryView from './parts/HistoryView.jsx'
 import ModelsView from './parts/ModelsView.jsx'
 import InboxView from './parts/InboxView.jsx'
+import SignIn from './SignIn.jsx'
 
 const VIEWS = ['Parts', 'Reorder', 'History', 'Models', 'Inbox']
 
@@ -19,16 +20,7 @@ export default function App() {
 
   if (!api.configured) return <Shell><p className="msg">Not connected to the database yet.</p></Shell>
   if (session === undefined) return <Shell><p className="msg">Loading…</p></Shell>
-  if (!session)
-    return (
-      <Shell>
-        <div className="panel signin">
-          <h2>Sign in</h2>
-          <p className="msg">Use your J. Vair Anderson Microsoft account.</p>
-          <div><button className="btn solid" onClick={api.signIn}>Sign in with Microsoft</button></div>
-        </div>
-      </Shell>
-    )
+  if (!session) return <Shell><SignIn /></Shell>
   return <Workshop session={session} />
 }
 

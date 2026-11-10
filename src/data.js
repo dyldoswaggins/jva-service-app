@@ -14,8 +14,20 @@ const live = {
     const { data } = supabase.auth.onAuthStateChange((_e, s) => cb(s))
     return () => data.subscription.unsubscribe()
   },
+  // Microsoft sign-in (needs IT; switch on with VITE_SIGNIN=microsoft)
   signIn: () =>
     supabase.auth.signInWithOAuth({ provider: 'azure', options: { scopes: 'email', redirectTo: location.origin } }),
+  // Email code sign-in (default): only @jvairanderson.com, enforced in the database
+  async sendCode(email) {
+    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } })
+    if (error) throw new Error(/database error|saving new user/i.test(error.message)
+      ? 'Only J. Vair Anderson email addresses can sign in.'
+      : /rate|limit|security purposes/i.test(error.message) ? 'Too many codes sent. Wait a minute and try again.' : error.message)
+  },
+  async verifyCode(email, token) {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+    if (error) throw new Error(/expired|invalid/i.test(error.message) ? 'That code is wrong or has expired. Send a new one.' : error.message)
+  },
   signOut: () => supabase.auth.signOut(),
 
   async loadAll() {
