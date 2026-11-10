@@ -75,6 +75,61 @@ const live = {
     if (error) throw error
     return data
   },
+  // ---------- jobs ----------
+  async loadStatuses() {
+    const { data, error } = await supabase.from('job_statuses').select('*').order('ord')
+    if (error) throw error
+    return data
+  },
+  async loadJobs() {
+    const { data, error } = await supabase.from('jobs')
+      .select('*, job_conditions(state), job_requests(state)').order('intake_at', { ascending: false }).limit(500)
+    if (error) throw error
+    return data
+  },
+  async loadJob(id) {
+    const { data, error } = await supabase.from('jobs')
+      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*)').eq('id', id).single()
+    if (error) throw error
+    return data
+  },
+  async createJob(job, conditions, requests) {
+    const { data, error } = await supabase.rpc('create_job', { p_job: job, p_conditions: conditions, p_requests: requests })
+    if (error) throw error
+    return data
+  },
+  async updateJob(id, fields) {
+    const { error } = await supabase.from('jobs').update(fields).eq('id', id)
+    if (error) throw error
+  },
+  async addCondition(row) {
+    const { error } = await supabase.from('job_conditions').insert(row)
+    if (error) throw error
+  },
+  async updateCondition(id, fields) {
+    const { error } = await supabase.from('job_conditions').update(fields).eq('id', id)
+    if (error) throw error
+  },
+  async addRequest(row) {
+    const { error } = await supabase.from('job_requests').insert(row)
+    if (error) throw error
+  },
+  async updateRequest(id, fields) {
+    const { error } = await supabase.from('job_requests').update(fields).eq('id', id)
+    if (error) throw error
+  },
+  async uploadJobDoc(jobId, kind, blob, fileName, userId) {
+    const path = `${jobId}/${Date.now()}-${fileName}`
+    const up = await supabase.storage.from('job-docs').upload(path, blob, { contentType: 'application/pdf' })
+    if (up.error) throw up.error
+    const { error } = await supabase.from('job_docs').insert({ job_id: jobId, kind, file_path: path, file_name: fileName, by_user: userId })
+    if (error) throw error
+  },
+  async jobDocFile(doc) {
+    const { data, error } = await supabase.storage.from('job-docs').download(doc.file_path)
+    if (error) throw error
+    return data
+  },
   // ---------- inbox ----------
   async loadInbox() {
     const { data, error } = await supabase.from('inbox').select('*').order('received_at', { ascending: false }).limit(150)
@@ -134,13 +189,16 @@ const live = {
     if (error) throw error
     return data
   },
-  subscribe({ onPart, onModel, onLog, onInbox }) {
+  subscribe({ onPart, onModel, onLog, onInbox, onJob }) {
     const ch = supabase
       .channel('live-' + crypto.randomUUID())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'parts' }, e => onPart?.(e.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'models' }, e => onModel?.(e.new))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'log' }, e => onLog?.(e.new))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox' }, e => onInbox?.(e.new))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, e => onJob?.(e.new))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_conditions' }, e => onJob?.({ id: e.new?.job_id }))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'job_requests' }, e => onJob?.({ id: e.new?.job_id }))
       .subscribe()
     return () => supabase.removeChannel(ch)
   },

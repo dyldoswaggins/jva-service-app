@@ -7,8 +7,9 @@ import HistoryView from './parts/HistoryView.jsx'
 import ModelsView from './parts/ModelsView.jsx'
 import InboxView from './parts/InboxView.jsx'
 import SignIn from './SignIn.jsx'
+import JobsView from './repairs/JobsView.jsx'
 
-const VIEWS = ['Parts', 'Reorder', 'History', 'Models', 'Inbox']
+const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox']
 
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = checking
@@ -42,7 +43,7 @@ function Workshop({ session }) {
   const [parts, setParts] = useState(null) // Map id → part
   const [models, setModels] = useState(new Map())
   const [profiles, setProfiles] = useState([])
-  const [view, setView] = useState('Parts')
+  const [view, setView] = useState('Jobs')
   const [loadError, setLoadError] = useState('')
   const [toast, setToast] = useState(null)
   const [modelFilter, setModelFilter] = useState('')
@@ -64,7 +65,13 @@ function Workshop({ session }) {
 
   const me = profiles.find(p => p.id === session.user.id) || { role: 'view' }
   const role = me.role || 'view'
-  const can = { count: role === 'admin', edit: role === 'admin', models: role === 'admin' || role === 'watchmaker' }
+  const can = {
+    count: role === 'admin', edit: role === 'admin', models: role === 'admin' || role === 'watchmaker',
+    intake: role === 'admin' || role === 'sales',                       // take in a watch, see signed receipts
+    bench: role === 'admin' || role === 'watchmaker',                   // confirm conditions / requests
+    status: ['admin', 'sales', 'watchmaker'].includes(role),            // change status, edit watch details
+    costs: role === 'admin',                                            // what JVA pays (watchmakers see retail only)
+  }
 
   const who = useCallback(
     (id, legacy) => {
@@ -132,7 +139,7 @@ function Workshop({ session }) {
     <div className="totals" aria-live="polite">
       <span>Counted <b>{num(counted.length)} / {num(list.length)}</b></span>
       <span>Units <b>{num(counted.reduce((s, p) => s + p.qty, 0))}</b></span>
-      <span>Value <b>{money(counted.reduce((s, p) => s + p.qty * (Number(p.price) || 0), 0))}</b></span>
+      {can.costs && <span>Value <b>{money(counted.reduce((s, p) => s + p.qty * (Number(p.price) || 0), 0))}</b></span>}
       <span className="me">
         {me.name || me.email || session.user.email} · {role === 'view' ? 'View only' : role[0].toUpperCase() + role.slice(1)}
         {api.mode === 'demo' && <b className="tag warn">Demo</b>}
@@ -155,11 +162,12 @@ function Workshop({ session }) {
             ))}
           </div>
           {role === 'view' && <p className="msg">You can view everything. Ask Dylan for a role to make changes.</p>}
+          {view === 'Jobs' && <JobsView models={models} can={can} actions={actions} userId={session.user.id} who={who} />}
           {view === 'Parts' && (
             <PartsView parts={list} allParts={parts} models={models} can={can} actions={actions} who={who}
               modelFilter={modelFilter} setModelFilter={setModelFilter} />
           )}
-          {view === 'Reorder' && <ReorderView parts={list} />}
+          {view === 'Reorder' && <ReorderView parts={list} can={can} />}
           {view === 'History' && <HistoryView who={who} can={can} actions={actions} />}
           {view === 'Models' && <ModelsView models={models} parts={list} can={can} actions={actions} />}
           {view === 'Inbox' && can.edit && <InboxView allParts={parts} actions={actions} userId={session.user.id} />}

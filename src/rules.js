@@ -22,6 +22,39 @@ export const USAGE_MONTHS = 22
 export const partId = rmc => 'p_' + String(rmc).replace(/[^A-Za-z0-9_\-.~:@+]/g, '_')
 export const modelId = ref => 'm_' + String(ref).toUpperCase().replace(/[^A-Z0-9]/g, '')
 
+// ---------- repairs ----------
+// Strict condition terms, from the Rolex Service Overview Worksheet. `intake: false` = watchmaker only.
+export const CONDITIONS = [
+  { c: 'Case', t: ['Discoloured', 'Scratched', 'Dented', 'Chipped', 'Worn', 'Damaged'] },
+  { c: 'Bezel', t: ['Discoloured', 'Scratched', 'Dented', 'Chipped', 'Worn', 'Damaged'] },
+  { c: 'Disc for bezel', t: ['Discoloured', 'Scratched', 'Dented', 'Chipped', 'Damaged'] },
+  { c: 'Crystal', t: ['Chipped', 'Cracked', 'Damaged', 'Scratched', 'Missing'] },
+  { c: 'Case middle part', t: ['Dented', 'Scratched', 'Damaged', 'Worn'] },
+  { c: 'Case back', t: ['Scratched', 'Engraved', 'Damaged', 'Worn'] },
+  { c: 'Crown', t: ['Damaged', 'Dented', 'Worn', 'Corroded', 'Missing', 'Deformed'] },
+  { c: 'Crown tube', t: ['Damaged', 'Corroded', 'Not water resistant', 'Missing', 'Worn'] },
+  { c: 'Dial', t: ['Discoloured', 'Scratched', 'Spotted', 'Corroded', 'Chipped', 'Cracked'] },
+  { c: 'Hands', t: ['Discoloured', 'Scratched', 'Stained', 'Missing'] },
+  { c: 'Bracelet', t: ['Dented', 'Scratched', 'Worn', 'Modified', 'Broken', 'Damaged'] },
+  { c: 'Clasp', t: ['Dented', 'Damaged', 'Not intended', 'Deformed', 'Missing', 'Corroded'] },
+  { c: 'Lugs', t: ['Damaged', 'Missing', 'Worn', 'Broken', 'Cracked', 'Dented'] },
+  { c: 'Springbars', t: ['Damaged', 'Missing', 'Worn', 'Broken', 'Cracked'] },
+  { c: "Mov't bridges", t: ['No issues', 'Barrel', 'Train', 'Winding', 'Auto upper'], intake: false },
+  { c: 'Balance wheel', t: ['Within spec', 'Requires replacement'], intake: false, single: true },
+]
+export const termsFor = component => CONDITIONS.find(x => x.c === component)?.t || []
+export const SERVICE_TYPES = ['CTR', 'Partial', 'Warranty', 'Quick Service']
+export const REQUEST_OPTIONS = ['Complete service', 'Polish', 'No polish', 'Crystal', 'Bracelet sizing', 'Timekeeping check', 'Water resistance test']
+export const JOB_NO = /^\d{4,7}-\d{3}$/
+export const maskSerial = s => (s ? '•••' + String(s).slice(-4) : '')
+// "Crystal scratched, Bezel dented (at 2)"
+export const conditionText = list =>
+  list.map(x => `${x.component} ${String(x.term).toLowerCase()}${x.note ? ` (${x.note})` : ''}`).join(', ')
+// Prompts the watchmaker must answer before the estimate goes out
+export const openPrompts = job =>
+  (job.job_conditions || []).filter(c => c.state === 'to_confirm').length +
+  (job.job_requests || []).filter(r => r.state === 'to_review').length
+
 // ---------- invoices ----------
 // The 11.5 stock confirmation already counts everything received up to this date:
 // invoices dated on or before it update cost only, never stock.

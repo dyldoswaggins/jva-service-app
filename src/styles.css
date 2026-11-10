@@ -133,6 +133,30 @@ table.imp { border-collapse: collapse; width: 100%; font-size: 13px; }
 .imp input[type=text] { padding: 3px 6px; }
 .heard { font-size: 12px; color: var(--muted); font-weight: 400; }
 
+/* Repairs: iPad-friendly chips and prompts */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 9px 16px; font-size: 15px; min-height: 42px; }
+.chip[aria-pressed="true"] { background: var(--navy); border-color: var(--navy); color: var(--navy-fg); }
+.chip[data-marked="true"]:not([aria-pressed="true"]) { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.chip:disabled { opacity: .45; }
+.chips.small .chip { padding: 5px 12px; min-height: 32px; font-size: 13px; }
+.intake .panel h3, .job .panel h3 { margin: 0; font-size: 14px; color: var(--navy); }
+.grid.big input { font-size: 17px; padding: 10px 12px; min-height: 46px; }
+.grid.big label { font-size: 13px; }
+.subpanel { border: 1px dashed var(--line); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--hover); }
+.sigwrap { display: flex; flex-direction: column; gap: 6px; }
+.sigpad { width: 100%; height: 170px; border: 1px solid var(--line); border-radius: 6px; background: #fff; touch-action: none; }
+.savebar { position: sticky; bottom: 0; display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; margin-bottom: 20px; }
+.btn.big { font-size: 17px; padding: 12px 22px; }
+.prompts { border-left: 3px solid var(--warn); }
+.prompt { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line2); }
+.prompt:first-of-type { border-top: 0; }
+.prompt .btn { min-height: 40px; padding: 8px 14px; font-size: 14px; }
+.flagline.good { color: var(--fg); background: var(--band); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+table.jobs tr.click { cursor: pointer; }
+table.jobs tr.click:hover td { background: var(--hover); }
+details summary { cursor: pointer; }
+
 /* Toast with Undo */
 .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; display: flex; gap: 12px; align-items: center;
   background: var(--navy); color: var(--navy-fg); padding: 8px 10px 8px 14px; border-radius: 6px; font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.2); max-width: calc(100% - 32px); }

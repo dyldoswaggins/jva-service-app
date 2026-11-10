@@ -11,7 +11,7 @@ Sections:
 | # | Section | Status |
 |---|---|---|
 | 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Invoice import (PDF, adds stock + cost, Undo in History) done. Still to port from the prototype: PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
-| 2 | Repairs (intake, watchmaker bench screen, parts on a job) | Designed (this file), not built |
+| 2 | Repairs (intake, watchmaker bench screen, parts on a job) | **Part 1 built** (`src/repairs/`): iPad intake by Sales with signed receipt, jobs list, job/bench page with condition + request prompts, status gate. Next: CTR kits (Jared's lists), + Add parts, stock on status change. |
 | 3 | Documents (intake receipt, estimate, confirmation, invoice) | Not started; design here in Claude Code |
 | 4 | Service Manager Dashboard | Not started; design here in Claude Code |
 
@@ -41,7 +41,7 @@ Anyone without a role = View only. Watchmaker steps must be **minimal** (main ta
 
 ## 4. Hard rules
 
-- **No customer data in this system.** No names, phones, emails, addresses. Jobs link out via three references (below). The ROLP parts list and job breakdown exports contain customer names: **never import those columns**.
+- **No customer data as fields.** No name/phone/email/address columns anywhere. **One exception (Dylan, 2026-11-09): the signed intake receipt PDF** (client name, address, signature) is filed with its job in private bucket `job-docs`, readable by **Admin and Sales only** (`job_docs.has_client_data`). Watchmakers never see client details. Jobs link out via three references (below). The ROLP parts list and job breakdown exports contain customer names: **never import those columns**. Open: Alberta PIPA consent wording on the receipt, and a retention period for signed receipts.
 - **Job number = Edge repair number format**, e.g. `124595-001`.
 - **Job links:** `edgeNo` (Edge repair #, = the job number), `rolexServiceNo` (Rolex/WSC #), `mrwsRef` (MRWS customer reference; printed on Rolex parts invoices and links special-order parts to a job). The invoice side stores extra detail and links by Edge number.
 - **`qty` on `parts` is the only stock count**, in **units**. Never keep a second count anywhere.
@@ -120,6 +120,13 @@ Confirmed by Dylan: Day-Date 40 → 3255, GMT-Master II → 3285, Datejust → 3
 Reference: the current paper/HTML form "Rolex Service Overview Worksheet" at
 `OneDrive - J. Vair Anderson Jewellers › Rolex › 1. Service - Rolex › 1. ROLEX SERVICE DOCUMENTS › 1. SERVICE DOCUMENTS › SAV ALL - POST AUDIT NEW › SERVICE Forms (Workshop intake form) › index.html`.
 Rebuild its sections as the job screen, **dropping the Client field**. Its watch-analysis items and condition terms are the strict condition list.
+
+### Intake on iPad + confirm prompts (built 2026-11-09)
+- **Sales on iPad** (`IntakeView`): Edge job #, Rolex/WSC #, MRWS #, service type; watch ref (fills model + calibre from `models`), serial, bracelet, dial; **visible condition** (strict terms, intake components only); **client requests** (chips + other); client name/address + **finger signature** → fills JVA's editable receipt (`public/templates/receipt.pdf`, `src/receipt.js`) incl. "Condition noted at intake: …", flattens it, files it on the job, offers it to print. Job created in one step by `create_job()`.
+- **Watchmaker at estimate** (`JobView`): every intake condition is a prompt (**Confirm / Change / Not present**); every client request is a prompt (**Include in estimate / Not included + reason**). The job **can't leave Estimate** (except Cancelled) until all prompts are answered. Watchmaker can add conditions found at the bench (incl. Mov't bridges, Balance wheel). Full condition history kept (`job_conditions.state`, `replaces`).
+- Confirmed conditions feed the estimate's "Watch analysis" line and "While examining your watch, our watchmakers found…" notes (Rolex estimate guideline). Included requests go on the estimate; declined ones carry the reason.
+- Tables: `jobs`, `job_conditions`, `job_requests`, `job_status_log` (trigger), `job_docs`, `job_statuses` (editable list; seeded Estimate, Waiting on parts, On deck, Polishing, Timekeeping, Sent to Toronto, Done, Cancelled). Migrations 006–007.
+- Decided with defaults (2026-11-09, changeable): Toronto = own status; analysis keeps Mov't bridges + Balance wheel as on the worksheet; **part costs Admin only** (UI; watchmakers see retail).
 
 ### Who does what
 - **Sales at intake:** job links (Edge #, Rolex #, MRWS), service type (CTR, Partial, Warranty, Quick Service), requests, **visible condition** using the same strict terms.
@@ -243,3 +250,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Gmail drop-off: Edge Function `inbox` action `ingest` (secret `INGEST_SECRET`) + `scripts/gmail-inbox.gs`, so a Gmail account can feed the Inbox without Microsoft 365 / IT approval. |
 | 2026-11-09 | No automatic email checks: **Check email** button (Admin) → `inbox` action `check`; Gmail script runs as a web app on request (`GMAIL_SCRIPT_URL`); reading runs in the background. |
 | 2026-11-09 | Sign-in switched to email codes (no IT needed): `src/SignIn.jsx`, migration 005 restricts logins to @jvairanderson.com. Microsoft sign-in kept behind `VITE_SIGNIN=microsoft`. |
+| 2026-11-09 | Repairs part 1: iPad intake (Sales) with signed receipt filed on the job (exception to the customer-data rule, Admin + Sales only), condition + request prompts the watchmaker must answer before a job leaves Estimate, jobs list, job page, status log. Costs hidden from non-Admins. Jared's folder now has 21XX (41XX = Oyster Inventory copy); 30xx still missing. |

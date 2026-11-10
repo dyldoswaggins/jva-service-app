@@ -40,20 +40,21 @@ export default function PartMore({ p, models, modelList, can, actions, who }) {
             : 'None yet'}
         </F>
         <F k="Order class">{p.abc || '—'}{p.abc ? ` (${orderClassText(p.abc)})` : ''}</F>
-        <F k="Unit cost">
+        {can.costs && <F k="Unit cost">
           {p.price != null ? money(p.price) : 'No price'}
           {packOf(p) > 1 ? ` · pack of ${packOf(p)}${p.pack_price != null ? ' ' + money(p.pack_price) : ''}` : ''}
-        </F>
-        {p.price_src && <F k="Cost from">{p.price_src}</F>}
+        </F>}
+        {!can.costs && packOf(p) > 1 && <F k="Pack">{packOf(p)} per pack</F>}
+        {can.costs && p.price_src && <F k="Cost from">{p.price_src}</F>}
         <F k="Retail">{p.retail != null ? `${money(p.retail)} per unit${p.retail_src ? ' · ' + p.retail_src : ''}` : 'No retail price'}</F>
         {Number(p.over) > 0 && <F k="Overstock">{num(p.over)} of the count is overstock</F>}
-        <F k="Stock value">{done && p.price ? money(p.qty * p.price) : '—'}</F>
+        {can.costs && <F k="Stock value">{done && p.price ? money(p.qty * p.price) : '—'}</F>}
         <F k="Used since Jan 2025">{p.used ? `${num(p.used)}× on ${num(p.jobs)} jobs` : 'Not used'}</F>
         <F k="Last used">{fmtDate(p.last_used) || '—'}</F>
         <F k="Counted">{done ? `${num(p.qty)} by ${who(p.c_by, p.c_by_legacy)}, ${fmtTime(p.c_at)}` : 'Not counted'}</F>
         {p.edge_desc && <F k="EDGE description">{p.edge_desc}</F>}
         {p.edge_refs && <F k="Ordered as">{p.edge_refs}</F>}
-        {p.price_2022 != null && <F k="2022 list price">{money(p.price_2022)}</F>}
+        {can.costs && p.price_2022 != null && <F k="2022 list price">{money(p.price_2022)}</F>}
         <F k="Lista location">{locStr(p) || 'Not set'}</F>
         <F k="Min stock">
           {minOf(p) ? `${num(minOf(p))}${minIsSet(p) ? '' : ' (suggested)'}${isLow(p) ? ' · below' : ''}` : '—'}

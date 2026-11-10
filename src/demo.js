@@ -92,6 +92,34 @@ export function makeDemo() {
       const refs = new Set(lines.map(l => l.mrws_ref).filter(Boolean))
       return { lines: out, missing: pool.filter(p => !used.has(p.key) && refs.has(p.mrws_ref)).map(p => ({ doc_type: p.doc_type, doc_no: p.doc_no, rmc: p.rmc, mrws_ref: p.mrws_ref, units: p.units })) }
     },
+    // ---------- jobs (in memory) ----------
+    async loadStatuses() {
+      return ['Estimate', 'Waiting on parts', 'On deck', 'Polishing', 'Timekeeping', 'Sent to Toronto', 'Done', 'Cancelled']
+        .map((name, i) => ({ name, ord: i, kind: name === 'Done' ? 'done' : name === 'Cancelled' ? 'cancelled' : name === 'Sent to Toronto' ? 'away' : 'open' }))
+    },
+    async loadJobs() { const s = await load(); return (s.jobs || []).map(j => ({ ...j })) },
+    async loadJob(id) { const s = await load(); return { ...s.jobs.find(j => j.id === id) } },
+    async createJob(job, conditions, requests) {
+      const s = await load(); s.jobs = s.jobs || []
+      if (s.jobs.some(j => j.edge_no === job.edge_no)) throw new Error(`Job ${job.edge_no} already exists`)
+      const id = crypto.randomUUID(), at = new Date().toISOString()
+      s.jobs.unshift({ id, ...job, watch_ref: (job.watch_ref || '').toUpperCase(), status: 'Estimate', intake_by: me.id, intake_at: at,
+        job_conditions: conditions.map(c => ({ id: crypto.randomUUID(), job_id: id, ...c, source: 'intake', state: 'to_confirm', by_user: me.id, at })),
+        job_requests: requests.map(r => ({ id: crypto.randomUUID(), job_id: id, ...r, state: 'to_review', by_user: me.id, at })),
+        job_status_log: [{ id: crypto.randomUUID(), status: 'Estimate', by_user: me.id, at }], job_docs: [] })
+      return id
+    },
+    async updateJob(id, fields) {
+      const s = await load(), j = s.jobs.find(x => x.id === id)
+      if (fields.status && fields.status !== j.status) j.job_status_log.push({ id: crypto.randomUUID(), status: fields.status, by_user: me.id, at: new Date().toISOString() })
+      Object.assign(j, fields)
+    },
+    async addCondition(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_conditions.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },
+    async updateCondition(id, f) { const s = await load(); for (const j of s.jobs) { const c = j.job_conditions.find(x => x.id === id); if (c) Object.assign(c, f) } },
+    async addRequest(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_requests.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },
+    async updateRequest(id, f) { const s = await load(); for (const j of s.jobs) { const r = j.job_requests.find(x => x.id === id); if (r) Object.assign(r, f) } },
+    async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); s.jobs.find(j => j.id === jobId).job_docs.push({ id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, at: new Date().toISOString() }) },
+    async jobDocFile(doc) { return doc._blob },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },
     async uploadToInbox(file) {
       const s = await load()
