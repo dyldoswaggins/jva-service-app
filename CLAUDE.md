@@ -10,7 +10,7 @@ Sections:
 
 | # | Section | Status |
 |---|---|---|
-| 1 | Parts (stock count, reorder, invoices, models) | Prototype live as a claude.ai artifact; code in `prototype/parts-artifact.html`, data in `data/` |
+| 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Still to port from the prototype: invoice import, PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
 | 2 | Repairs (intake, watchmaker bench screen, parts on a job) | Designed (this file), not built |
 | 3 | Documents (intake receipt, estimate, confirmation, invoice) | Not started; design here in Claude Code |
 | 4 | Service Manager Dashboard | Not started; design here in Claude Code |
@@ -218,3 +218,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Code folder moved out of OneDrive to `C:\Users\dylan\jva-service-app` + private GitHub repo; Netlify deploys from GitHub. |
 | 2026-11-09 | Supabase project `jva-service` created in ca-central-1 (replaces US-East "Watch Service", to be deleted). App skeleton: Vite + React + supabase-js. |
 | 2026-11-09 | Database created (migrations 001–002): snake_case names (mapping in §5), profiles/roles, RLS, `stock_change()`, add-only log, no hard deletes, realtime. Prototype data imported and verified: 906 parts, 412 models, 924 log rows, 535 parts / 3,007 units in stock. Netlify team-login wall turned off (Microsoft sign-in + RLS protect the app). |
+| 2026-11-09 | Parts screens built (Count, Reorder, History, Models) with rules in `src/rules.js`, data access in `src/data.js`. Undo toast replaces confirm prompts (archive replaces delete). Excel exports are CSV for now. Demo mode for local testing: `npm run dev`, open `/?demo` (loads `data/` in memory; `src/demo.js` never ships in the build). |
