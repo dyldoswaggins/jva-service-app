@@ -59,6 +59,15 @@ Anyone without a role = View only. Watchmaker steps must be **minimal** (main ta
 
 Exported 2026-11-09 from the live artifact database. Counts: parts 906, models 412, log 924, invoices 0 (none imported yet). Stock baseline = 11.5 stock confirmation: **3,007 units across 535 parts**.
 
+**Imported into Supabase 2026-11-09 and verified** (535 parts / 3,007 units). Schema: `supabase/migrations/`. Import script: `scripts/import-prototype.mjs`.
+
+### Database names (Supabase, snake_case)
+Same fields as below, written snake_case in Postgres: `cBy`→`c_by` (uuid), `cAt`→`c_at` (timestamptz), `packPrice`→`pack_price`, `priceSrc`→`price_src`, `pricePrev`→`price_prev`, `price2022`→`price_2022`, `retailSrc`→`retail_src`, `lastUsed`→`last_used` (date), `edgeDesc/edgeRefs/edgeNote`→`edge_desc/edge_refs/edge_note`. Log: `pid`→`part_id`, `by`→`by_user` (uuid), `at` (timestamptz), plus `change` (= qty − prev). Models: `by`→`by_user`. Invoices: `invoiceNo`→`invoice_no`, `addStock`→`add_stock`, `setCost`→`set_cost`, `mrwsRef`→`mrws_ref`, `edgeNo`→`edge_no`.
+- Imported claude.ai user ids sit in `c_by_legacy` / `by_legacy`; `profiles.legacy_id` links them to a new login (Dylan = `u_5FbqzfZ79582E4oxzrqCvw`).
+- Parts gain `archived` (never delete). Summary log rows have `part_id` null (e.g. `s115_summary`, type Import).
+- **Stock changes only via `stock_change(part_id, type, qty | delta, src, ref)`** — locks the row, refuses negatives, writes `log` in the same transaction, checks role (Count/Adjust/Received = Admin; Used/Auto/Returned = Admin or Watchmaker). Direct writes to `log` are revoked; triggers block log edits and deletes of parts/models/invoices.
+- Roles live in `profiles.role` (admin/watchmaker/sales/view, default view); new sign-ins get a profile automatically. `app_role()` returns the caller's role for policies.
+
 ### parts (one per Rolex part ref)
 - `id` = `p_` + rmc, chars outside `[A-Za-z0-9_-.~:@+]` → `_` (e.g. `25/7035` → `p_25_7035`)
 - `rmc` = Rolex ref without packaging codes (`B3135-5100-G100` → `3135-5100`, `V14-601` → `14-601`)
@@ -208,3 +217,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-09 | Spec created from claude.ai chats (Setup doc, Parts handoff v29, Repairs decisions). Superseded from Setup doc: single-artifact stack → Supabase/Netlify; job # `2026-0001` → Edge format `124595-001`; customer data on jobs → none; per-part billing settings → CTR model (kit auto-consumed, only extras printed). |
 | 2026-11-09 | Code folder moved out of OneDrive to `C:\Users\dylan\jva-service-app` + private GitHub repo; Netlify deploys from GitHub. |
 | 2026-11-09 | Supabase project `jva-service` created in ca-central-1 (replaces US-East "Watch Service", to be deleted). App skeleton: Vite + React + supabase-js. |
+| 2026-11-09 | Database created (migrations 001–002): snake_case names (mapping in §5), profiles/roles, RLS, `stock_change()`, add-only log, no hard deletes, realtime. Prototype data imported and verified: 906 parts, 412 models, 924 log rows, 535 parts / 3,007 units in stock. Netlify team-login wall turned off (Microsoft sign-in + RLS protect the app). |
