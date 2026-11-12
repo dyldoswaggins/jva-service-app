@@ -76,3 +76,17 @@ Bracelet: dented, scratched, stretched, worn.
 - **Vintage**: the signed document is the **J. Vair Vintage Analysis Fee** form (`makeVintageFee` in `src/receipt.js`, kind `vintage_fee`; wording from the JVA editable form; fee + delivery weeks in Settings, default $350 / 18 weeks). Service type `Vintage analysis`, no CTR tier/polish/kit, no timeframe from the bench queue, excluded from the queue ETA. Job page: Rolex Toronto note, no Parts; the assessment panel is for the office (RCL's lines for the invoice); the fee is a necessary line on documents.
 - âš  Rolex's **Immediate Proceed** form is headed "Modern & Classic watches category", but Workflow v2.1 lists it for Vintage intake. Not generated yet â€” ask Dylan whether it belongs to Vintage, or to Modern/Classic over-the-counter CTR.
 
+
+## Template match + online signing (Dylan, 2026-11-12)
+- Layout measured from JVA's SAV templates (`Rolex Service Estimate/Confirmation/Invoice/Receipt.pdf`): margins 55/562, 9 pt, values at x 173,
+  title 14.7 pt, dates DD/MM/YYYY, page numbers bottom right, item sub-lines "-" at 86 / italic at 92, template capitalisation
+  ("Complete Overhaul", "Replace Crystal", "Clean Case and Bracelet"). Receipt has its own variant (6.8 pt, margin 81, "OUR REFERENCE N°").
+  Invoice header sits 57 pt lower, as in its template.
+- Estimate: page 1 requests / analysis / Necessary Work + totals (+ Optional Work, required by Rolex); page 2 Notes (italic paragraph) and
+  Clients Decision: each item with "☐ Accepted", "I refuse the estimate ☐", validity, Remarks, undersigned, DATE / SIGNATURE; legal notices.
+- Confirmation: page 1 Accepted Work + totals; page 2 Notes + "Delivery … Delivery mode: Counter" (Rolex) + "Optional work (DECLINED)".
+  Invoice: Services Provided + totals only. Receipt keeps "Watch condition on arrival" and the intake price (JVA practice).
+- Online signing (migration 021/022, Edge Function `sign`, `src/repairs/SignPage.jsx`): "Email for signature" (estimate PDF attached +
+  private link, 30 days) or "Sign in store" (iPad, full screen). The client's ticks, remarks, name, date and signature are filled into the
+  estimate's own spots (`job_docs.fields`, `src/docs/stamp.js`) → "Estimate-signed" PDF filed on the job, decision recorded, declined parts
+  back to stock, copy emailed to the client. Paper decisions still go through "Record paper decision".

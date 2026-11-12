@@ -124,6 +124,44 @@ export function makeDemo() {
       }
       Object.assign(j, { estimate_decision: refused ? 'refused' : 'accepted', decision_at: new Date().toISOString(), extra_lines: extra ?? j.extra_lines })
     },
+    // online signing (mirrors migration 021 + Edge Function "sign"; signed PDF built in the browser)
+    async createSignRequest(jobId, docId, lines, channel, email = null) {
+      const s = await load(); s.signs = s.signs || []
+      if (channel === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) throw new Error("Enter the client's email address")
+      s.signs.filter(r => r.job_id === jobId && !r.signed_at).forEach(r => { r.cancelled_at = new Date().toISOString() })
+      const r = { id: crypto.randomUUID(), token: [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join(''), job_id: jobId, doc_id: docId, lines, channel, email, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 864e5).toISOString() }
+      s.signs.push(r); try { localStorage.setItem('demoSign', JSON.stringify({ token: r.token })) } catch { /* */ }
+      return { id: r.id, token: r.token, expires_at: r.expires_at }
+    },
+    async loadSignRequests(jobId) { return ((await load()).signs || []).filter(r => r.job_id === jobId).reverse() },
+    async emailSignRequest() { await new Promise(r => setTimeout(r, 300)); throw new Error('Demo mode: email is sent from the live site only') },
+    async signGet(token) {
+      const s = await load(), r = (s.signs || []).find(x => x.token === token)
+      if (!r) return { status: 'invalid' }
+      const j = s.jobs.find(x => x.id === r.job_id)
+      if (r.signed_at || r.cancelled_at) return { status: r.signed_at ? 'signed' : 'cancelled', edge_no: j.edge_no }
+      const doc = j.job_docs.find(d => d.id === r.doc_id)
+      return { status: 'open', edge_no: j.edge_no, watch: [j.watch_ref && 'M' + j.watch_ref.replace(/^M/, ''), 'Rolex', j.watch_name].filter(Boolean).join(' '), serial_last4: String(j.serial || '').slice(-4),
+        client_name: j.job_clients?.name || '', lines: r.lines, pdf_url: URL.createObjectURL(doc._blob), expires_at: r.expires_at, channel: r.channel }
+    },
+    async signSubmit({ token, refused, optional, name, signature, remarks }) {
+      const s = await load(), r = (s.signs || []).find(x => x.token === token)
+      if (!r || r.signed_at || r.cancelled_at) throw new Error('This signing link is no longer valid.')
+      const j = s.jobs.find(x => x.id === r.job_id), doc = j.job_docs.find(d => d.id === r.doc_id)
+      const chosen = refused ? [] : r.lines.optional.filter(l => optional?.[l.key]).map(l => l.key)
+      const { stampEstimate } = await import('./docs/stamp.js')
+      const sigPng = new Uint8Array(await (await fetch(signature)).arrayBuffer())
+      const bytes = await stampEstimate(new Uint8Array(await doc._blob.arrayBuffer()), doc._blob.fields, { refused, chosen, name, sigPng, remarks,
+        audit: `Signed electronically by ${name} on ${new Date().toLocaleString('en-CA')} (demo)` })
+      await this.uploadJobDoc(j.id, 'signed_estimate', new Blob([bytes], { type: 'application/pdf' }), `JVA-${j.edge_no}-Estimate-signed.pdf`)
+      const ids = ls => ls.filter(l => l.source === 'part' && l.id).map(l => l.id)
+      const opt = r.lines.optional, nec = r.lines.necessary
+      await this.recordDecision(j.id, { refused, accepted: refused ? [] : [...ids(nec), ...ids(opt.filter(l => chosen.includes(l.key)))],
+        declined: [...ids(opt.filter(l => !chosen.includes(l.key))), ...(refused ? ids(nec) : [])],
+        extra: (j.extra_lines || []).map(x => ({ ...x, decision: x.kind === 'optional' ? (chosen.includes('extra:' + x.id) ? 'accepted' : 'declined') : (refused ? 'declined' : 'accepted') })) })
+      Object.assign(r, { signed_at: new Date().toISOString(), signer_name: name })
+      return { ok: true, refused, copied: false }
+    },
     async createJob(job, conditions, requests, client = null) {
       const s = await load(); s.jobs = s.jobs || []
       if (s.jobs.some(j => j.edge_no === job.edge_no)) throw new Error(`Job ${job.edge_no} already exists`)
@@ -239,7 +277,7 @@ export function makeDemo() {
     async updateCondition(id, f) { const s = await load(); for (const j of s.jobs) { const c = j.job_conditions.find(x => x.id === id); if (c) Object.assign(c, f) } },
     async addRequest(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_requests.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },
     async updateRequest(id, f) { const s = await load(); for (const j of s.jobs) { const r = j.job_requests.find(x => x.id === id); if (r) Object.assign(r, f) } },
-    async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); const d = { id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
+    async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); const d = { id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, fields: blob.fields || null, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async jobDocFile(doc) { return doc._blob },
     async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('Demo mode: email is sent from the live site only') },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },

@@ -6,11 +6,23 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { braceletLine, dialLine, money, watchLine } from '../rules.js'
 import LEGAL from './legal-notices.json'
 
-const W = 612, H = 792, L = 50, R = 505, BOTTOM = 56
-const STORE = ['J. Vair Jewellers', '409 - 3rd Street SW', 'T2P 4Z2, Calgary, AB', '(403) 266 1669']
+const W = 612, H = 792, BOTTOM = 56
+// Measured from JVA's SAV templates (Rolex Service Estimate / Confirmation / Invoice .pdf, and Rolex Service Receipt.pdf)
+const VARIANTS = {
+  standard: { L: 55, R: 562, FS: 9, titleSize: 14.7, valueX: 173, rowGap: 13.5, storeSize: 9, storeGap: 12, storeTop: 681, billX: 457, dateY: 610, titleY: 588, refTop: 557,
+    store: ['J. Vair Jewellers', '409 - 3rd Street SW', 'T2P 4Z2, Calgary, AB', '(403) 266 1669'],
+    labels: ['OUR REF #', 'WATCH', 'SERIAL #', 'BRACELET', 'DIAL'] },
+  // Invoice template: same style, header block 57 pt lower
+  get invoice() { return { ...this.standard, storeTop: 624, dateY: 553, titleY: 531, refTop: 500 } },
+  receipt: { L: 81, R: 531, FS: 6.8, titleSize: 15.4, valueX: 170, rowGap: 9.3, storeSize: 5.2, storeGap: 9.3, storeTop: 626, billX: 394, dateY: 560, titleY: 525, refTop: 504,
+    store: ['J.Vair Anderson Jewellers', '409 3rd Street SW', 'Calgary, Alberta, T2P 4Z2', '(403) 266 -1669'],
+    labels: ['OUR REFERENCE N°', 'WATCH', 'SERIAL N°', 'BRACELET', 'DIAL'] },
+}
 const black = rgb(0, 0, 0), grey = rgb(0.35, 0.35, 0.35)
 
-export async function buildDocument({ title, job, client = {}, date = new Date(), body, signaturePng, legal = true }) {
+export async function buildDocument({ title, job, client = {}, date = new Date(), body, signaturePng, legal = true, variant = 'standard' }) {
+  const V = VARIANTS[variant] || VARIANTS.standard
+  const { L, R, FS } = V
   const pdf = await PDFDocument.create()
   pdf.setTitle(`${title} ${job.edge_no}`)
   pdf.setAuthor('J. Vair Anderson')
@@ -23,7 +35,9 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
   const tpl = await PDFDocument.load(await fetch('/templates/jva-receipt.pdf').then(r => r.arrayBuffer()))
   const logo = await pdf.embedPage(tpl.getPage(0), { left: 180, bottom: 700, right: 380, top: 770 })
   const sig = signaturePng ? await pdf.embedPng(signaturePng) : null
-  const day = date.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
+  const dd = n => String(n).padStart(2, '0')
+  const day = `${dd(date.getDate())}/${dd(date.getMonth() + 1)}/${date.getFullYear()}` // template: 04/02/2025
+  const fields = {}
 
   let page, y
   const text = (s, x, yy, { font = f.reg, size = 8, color = black } = {}) => page.drawText(String(s ?? ''), { x, y: yy, size, font, color })
@@ -45,72 +59,101 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
   function header() {
     page = pdf.addPage([W, H])
     page.drawPage(logo, { x: (W - 180) / 2, y: H - 92, width: 180, height: 63 })
-    STORE.forEach((s, i) => text(s, L, H - 108 - i * 9, { font: i ? f.reg : f.bold, size: 7 }))
-    const billX = 412
-    text('Bill to/Deliver to', billX, H - 108, { font: f.bold, size: 7 })
-    ;[client.name, client.address1, client.address2, client.address3].filter(Boolean).forEach((s, i) => text(s, billX, H - 117 - i * 9, { size: 7 }))
-    right(day, R, H - 160, { size: 7.5 })
-    text(title.toUpperCase(), L, H - 182, { size: 13 })
-    const ref = [['OUR REF #', job.edge_no], ['WATCH', watchLine(job)], ['SERIAL #', job.serial], ['BRACELET', braceletLine(job)], ['DIAL', dialLine(job)]]
-    ref.forEach(([k, v], i) => { text(k, L, H - 202 - i * 10, { font: f.bold, size: 7 }); text(v, 155, H - 202 - i * 10, { size: 7.5 }) })
-    y = H - 202 - ref.length * 10 - 6
+    V.store.forEach((s, i) => text(s, L, V.storeTop - i * V.storeGap, { font: i ? f.reg : f.bold, size: V.storeSize }))
+    const billX = V.billX
+    text('Bill to/Deliver to', billX, V.storeTop, { font: f.bold, size: FS })
+    ;[client.name, client.address1, client.address2, client.address3].filter(Boolean).forEach((s, i) => text(s, billX, V.storeTop - FS - 5 - i * (FS + 3), { size: FS }))
+    text(day, billX, V.dateY, { size: FS })
+    text(title.toUpperCase(), L, V.titleY, { size: V.titleSize })
+    const vals = [job.edge_no, watchLine(job), job.serial, braceletLine(job), dialLine(job)]
+    V.labels.forEach((k, i) => { text(k, L, V.refTop - i * V.rowGap, { font: f.bold, size: FS }); text(vals[i], V.valueX, V.refTop - i * V.rowGap, { size: FS }) })
+    y = V.refTop - V.labels.length * V.rowGap - 4
   }
   const ensure = h => { if (y - h < BOTTOM) header() }
 
   // ---- building blocks ----
+  const pageNo = () => pdf.getPageCount() - 1
+  const mark = (name, x, yy, extra = {}) => { fields[name] = { page: pageNo(), x, y: yy, ...extra } }
   const api = {
+    fonts: f,
     gap(h = 8) { y -= h },
-    section(heading, { rightHeading } = {}) {
-      ensure(30)
-      rule(y, 1.1); y -= 11
-      text(heading, L, y, { font: f.bold, size: 8 })
-      if (rightHeading) right(rightHeading, R, y, { font: f.bold, size: 7.5 })
-      y -= 12
+    newPage() { header() },
+    // Heavy rule, bold heading (+ "MSRP CAD (TAX EXCL.)" on the right), as in the SAV templates
+    section(heading, { rightHeading, middle } = {}) {
+      ensure(40)
+      rule(y, 1.1); y -= 13
+      text(heading, L, y, { font: f.bold, size: FS })
+      if (middle) text(middle, V.valueX, y, { font: f.bold, size: FS })
+      if (rightHeading) right(rightHeading, R, y, { font: f.bold, size: FS })
+      y -= 19
     },
-    para(s, { size = 8, font = f.reg, indent = 0 } = {}) {
-      for (const ln of wrap(s, font, size, R - L - indent)) { ensure(size * 1.3); text(ln, L + indent, y, { size, font }); y -= size * 1.3 }
+    para(s, { size = FS, font = f.reg, indent = 0 } = {}) {
+      for (const ln of wrap(s, font, size, R - L - indent)) { ensure(size * 1.3); text(ln, L + indent, y, { size, font }); y -= size * 1.27 }
     },
     bullets(list, o) { list.forEach(s => api.para(`- ${s}`, o)) },
-    // { label, price, parts: ['24-704-0 crown with gasket 704 st'], subs: ['Clean case and bracelet'] }
+    // { label, price, parts: ['24-704-0 crown with gasket 704 st'], subs: ['Clean case and bracelet'] }: "-" at 86, italic text at 92
     item({ label, price, parts = [], subs = [] }) {
-      ensure(11 + (parts.length + subs.length) * 10)
-      const lines = wrap(label, f.reg, 8, 330)
-      lines.forEach((ln, i) => { text(ln, L, y, { size: 8 }); if (i === 0 && price != null) right(typeof price === 'string' ? price : money(price), R, y, { size: 8 }); y -= 10 })
-      ;[...subs, ...parts].forEach(s => { for (const ln of wrap(`- ${s}`, f.ital, 7.5, 310)) { ensure(10); text(ln, L + 26, y, { size: 7.5, font: f.ital }); y -= 9.5 } })
+      ensure(14 + (parts.length + subs.length) * 12)
+      const lines = wrap(label, f.reg, FS, 360)
+      lines.forEach((ln, i) => { text(ln, L, y, { size: FS }); if (i === 0 && price != null) right(typeof price === 'string' ? price : money(price), R, y, { size: FS }); y -= 12.5 })
+      ;[...subs, ...parts].forEach(s => { wrap(s, f.ital, FS, R - L - 50).forEach((ln, i) => { ensure(12); if (!i) text('-', L + 31, y, { font: f.bold, size: FS }); text(ln, L + 37, y, { size: FS, font: f.ital }); y -= 12 }) })
     },
     totals(sub, { gst = 0.05 } = {}) {
       const tax = Math.round(sub * gst * 100) / 100
-      ensure(44)
-      y -= 4; rule(y + 8, 0.6)
-      text('Services/Supplies Total', L, y, { size: 7.5 }); right(money(sub), R, y, { size: 7.5 }); y -= 4; rule(y, 0.6); y -= 9
-      text(`GST ${Math.round(gst * 100)}%`, L, y, { size: 7.5 }); right(money(tax), R, y, { size: 7.5 }); y -= 4; rule(y, 0.6); y -= 9
-      text('TOTAL CAD', L, y, { font: f.bold, size: 7.5 }); right(money(sub + tax), R, y, { font: f.bold, size: 7.5 }); y -= 4; rule(y, 1.2); rule(y - 2, 1.2); y -= 14
+      ensure(64)
+      y -= 10; rule(y, 1.1); y -= 15
+      text('Services/Supplies Total', L, y, { size: FS }); right(money(sub), R, y, { size: FS }); y -= 7; rule(y, 0.6); y -= 11
+      text(`GST ${Math.round(gst * 100)}%`, L, y, { size: FS }); right(money(tax), R, y, { size: FS }); y -= 6; rule(y, 0.6); y -= 10
+      text('TOTAL CAD', L, y, { font: f.bold, size: FS }); right(money(sub + tax), R, y, { font: f.bold, size: FS }); y -= 5; rule(y, 1.1); y -= 20
       return { sub, tax, total: sub + tax }
     },
     row(label, value) {
-      ensure(12)
-      text(label, L, y, { font: f.bold, size: 7.5 }); text(value, 155, y, { size: 8 }); y -= 11
-    },
-    checkbox(label, { checked = false, price } = {}) {
       ensure(14)
-      page.drawRectangle({ x: L, y: y - 1.5, width: 8, height: 8, borderWidth: 0.8, borderColor: black })
-      if (checked) text('X', L + 1.6, y - 0.3, { font: f.bold, size: 7.5 })
-      text(label, L + 14, y, { size: 8 })
-      if (price != null) right(money(price), R, y, { size: 8 })
-      y -= 14
+      text(label, L, y, { font: f.bold, size: FS }); text(value, 173, y, { size: FS }); y -= 13.5
     },
-    // "I, the undersigned <name>, …"  +  Date / Signature (signature image if signed)
+    // Template box: square at x 78, italic caption at 92 (e.g. "Accepted"). name → fill-in spot for online signing
+    box(caption = '', { name, checked = false } = {}) {
+      ensure(18)
+      page.drawRectangle({ x: L + 23, y: y - 1, width: 7.5, height: 7.5, borderWidth: 0.7, borderColor: black })
+      if (name) mark(name, L + 24.2, y)
+      if (checked) text('X', L + 24.2, y + 0.2, { font: f.bold, size: 7.5 })
+      if (caption) text(caption, L + 37, y, { size: FS, font: f.ital })
+      y -= 17.5
+    },
+    // Client's decision row: label + price, then "☐ Accepted" underneath (Rolex Service Estimate.pdf, page 2)
+    decision(label, price, { name, checked } = {}) {
+      ensure(36)
+      text(label, L, y, { size: FS }); if (price != null) right(money(price), R, y, { size: FS }); y -= 18
+      api.box('Accepted', { name, checked })
+    },
+    checkbox(label, { checked = false, price, name } = {}) {
+      ensure(16)
+      page.drawRectangle({ x: L, y: y - 1, width: 7.5, height: 7.5, borderWidth: 0.7, borderColor: black })
+      if (name) mark(name, L + 1.2, y)
+      if (checked) text('X', L + 1.2, y + 0.2, { font: f.bold, size: 7.5 })
+      text(label, L + 14, y, { size: FS })
+      if (price != null) right(money(price), R, y, { size: FS })
+      y -= 15
+    },
+    // "I, the undersigned ____ , certify …" then DATE: (x 55) and SIGNATURE: (x 298), as in the template
     signature(statement, { name, signed = !!sig } = {}) {
-      ensure(70)
-      api.para(statement.replace('{name}', name || '______________________________'))
-      y -= 18
-      text('Date:', L, y, { font: f.bold, size: 7.5 }); text(signed ? day : '', L + 30, y, { size: 7.5 })
-      page.drawLine({ start: { x: L + 28, y: y - 3 }, end: { x: 240, y: y - 3 }, thickness: 0.6, color: black })
-      text('Signature:', 270, y, { font: f.bold, size: 7.5 })
-      page.drawLine({ start: { x: 312, y: y - 3 }, end: { x: R, y: y - 3 }, thickness: 0.6, color: black })
-      if (sig && signed) { const w = 150, h = Math.min(36, (sig.height / sig.width) * w); page.drawImage(sig, { x: 320, y: y - 2, width: w, height: h }) }
-      y -= 20
+      ensure(80)
+      const [before, after] = statement.split('{name}')
+      const blank = '___________________________'
+      const who = name || blank
+      const first = before + who + after
+      const lines = wrap(first, f.reg, FS, R - L)
+      if (!name) mark('undersigned', L + f.reg.widthOfTextAtSize(before, FS) + 2, y + 1.5, { w: f.reg.widthOfTextAtSize(blank, FS) })
+      lines.forEach(ln => { ensure(12); text(ln, L, y, { size: FS }); y -= 11.5 })
+      y -= 27
+      text('DATE:', L, y, { size: FS }); text('SIGNATURE:', 298, y, { size: FS })
+      if (signed) text(day, L + 36, y, { size: FS }); else mark('date', L + 36, y)
+      if (sig && signed) { const w = 150, h = Math.min(36, (sig.height / sig.width) * w); page.drawImage(sig, { x: 356, y: y - 4, width: w, height: h }) }
+      else mark('signature', 356, y - 4, { w: 180, h: 36 })
+      y -= 24
     },
+    // Remarks line (blank on the estimate; filled by online signing)
+    remarks() { ensure(16); text('Remarks: _______________________________________________________________________________', L, y, { size: FS }); mark('remarks', L + 44, y + 1.5); y -= 21 },
   }
 
   header()
@@ -136,6 +179,8 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
 
   // ---- page numbers ----
   const pages = pdf.getPages()
-  pages.forEach((p, i) => { const s = `${i + 1}/${pages.length}`; p.drawText(s, { x: W / 2 - f.reg.widthOfTextAtSize(s, 6.5) / 2, y: 22, size: 6.5, font: f.reg, color: grey }) })
-  return new Blob([await pdf.save()], { type: 'application/pdf' })
+  pages.forEach((p, i) => { const s = `${i + 1}/${pages.length}`; p.drawText(s, { x: 554, y: 11, size: 6, font: f.reg, color: grey }) })
+  const blob = new Blob([await pdf.save()], { type: 'application/pdf' })
+  blob.fields = fields // fill-in spots for online signing (page, x, y)
+  return blob
 }

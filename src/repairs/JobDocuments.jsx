@@ -3,18 +3,23 @@ import { api } from '../data.js'
 import { money, openPrompts, weeksUntil } from '../rules.js'
 import { autoNotes, decidedLines, documentLines, sumLines, unbackedOptional, unpriced } from '../docs/lines.js'
 import { buildConfirmation, buildEstimate, buildInvoice, docFileName } from '../docs/serviceDocs.js'
+import SignPage from './SignPage.jsx'
 
 const one = x => (Array.isArray(x) ? x[0] : x) || null
 
 // Admin: Estimate → client's decision → Confirmation → Invoice (Rolex SAV documents), filed on the job.
 export default function JobDocuments({ job, allParts, userId, actions, onChange, printPdf }) {
   const client0 = one(job.job_clients)
-  const [client, setClient] = useState({ name: client0?.name || '', address1: client0?.address1 || '', address2: client0?.address2 || '', address3: client0?.address3 || '' })
+  const [client, setClient] = useState({ name: client0?.name || '', address1: client0?.address1 || '', address2: client0?.address2 || '', address3: client0?.address3 || '', email: client0?.email || '' })
   const [notes, setNotes] = useState(job.estimate_notes ?? autoNotes(job, allParts))
   // Until someone edits the notes, keep them in step with the findings
   useEffect(() => { if (job.estimate_notes == null) setNotes(autoNotes(job, allParts)) }, [job, allParts])
   const [dec, setDec] = useState(null) // { refused, optional: { key: true/false } }
   const [busy, setBusy] = useState('')
+  const [signs, setSigns] = useState([])
+  const [signing, setSigning] = useState(null) // token shown full screen for in-store signing
+  const loadSigns = () => api.loadSignRequests(job.id).then(setSigns).catch(() => setSigns([]))
+  useEffect(() => { loadSigns() }, [job.id, job.estimate_decision])
   const [msg, setMsg] = useState('')
 
   const { necessary, optional } = useMemo(() => documentLines(job, allParts), [job, allParts])
@@ -51,6 +56,19 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
     })
   }
 
+  // Online signing: snapshot of the lines as printed on the latest estimate
+  const latestEstimate = () => (job.job_docs || []).filter(d => d.kind === 'estimate').sort((a, b) => (a.at < b.at ? 1 : -1))[0]
+  const snap = ls => ls.map(({ key, id, source, label, price, parts }) => ({ key, id, source, label, price, parts }))
+  const openSign = channel => run(channel === 'email' ? 'Sending…' : 'Opening…', async () => {
+    const est = latestEstimate()
+    if (!est) throw new Error('Create the estimate first')
+    if (channel === 'email' && client.email !== (client0?.email || '')) await api.saveJobClient(job.id, client, !!client0)
+    const r = await api.createSignRequest(job.id, est.id, { necessary: snap(necessary), optional: snap(optional) }, channel, channel === 'email' ? client.email : null)
+    if (channel === 'email') { const m = await api.emailSignRequest(r.id); actions.say(`Estimate emailed to ${m.to} for signature`) }
+    else setSigning(r.token)
+    loadSigns()
+  })
+  const lastSign = signs.find(r => !r.cancelled_at)
   const startDecision = () => setDec({ refused: false, optional: Object.fromEntries(optional.map(l => [l.key, l.decision === 'accepted'])) })
   const saveDecision = () => run('Saving decision…', async () => {
     const acc = optional.filter(l => !dec.refused && dec.optional[l.key])
@@ -88,6 +106,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} /></label>
         <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} /></label>
         <label>Postal code / phone<input value={client.address3} onChange={e => setClient({ ...client, address3: e.target.value })} /></label>
+        <label>Email (for the estimate)<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} /></label>
       </div>
       <div className="actions"><button type="button" className="btn" onClick={saveClient}>Save client details</button><span className="msg">Visible to Admin only.</span></div>
 
@@ -122,7 +141,12 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         <div className="docstep">
           <b>2. Client's decision</b>
           <span className="msg">{job.estimate_decision ? `${job.estimate_decision === 'refused' ? 'Refused' : 'Accepted'} · ${decided.accepted.length} lines, ${decided.declined.length} declined` : 'Not recorded'}</span>
-          <button type="button" className="btn" disabled={!!busy || !docsOf('estimate').length} onClick={startDecision}>Record decision</button>
+          {!job.estimate_decision && <>
+            <button type="button" className="btn solid" disabled={!!busy || !docsOf('estimate').length || !client.email} title={client.email ? '' : 'Enter the client email above'} onClick={() => openSign('email')}>Email for signature</button>
+            <button type="button" className="btn" disabled={!!busy || !docsOf('estimate').length} onClick={() => openSign('in_store')}>Sign in store</button>
+          </>}
+          {lastSign && <span className="msg">{lastSign.signed_at ? `Signed online by ${lastSign.signer_name}` : lastSign.emailed_at ? `Emailed ${new Date(lastSign.emailed_at).toLocaleDateString('en-CA')} to ${lastSign.email}, waiting` : lastSign.channel === 'in_store' ? 'In-store signing opened' : 'Not sent'}</span>}
+          <button type="button" className="btn" disabled={!!busy || !docsOf('estimate').length} onClick={startDecision}>Record paper decision</button>
         </div>
         <div className="docstep">
           <b>3. Confirmation</b>
@@ -148,6 +172,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
           <div className="actions"><button type="button" className="btn solid" onClick={saveDecision}>Save decision</button><button type="button" className="btn" onClick={() => setDec(null)}>Cancel</button></div>
         </div>
       )}
+      {signing && <div className="signoverlay"><SignPage token={signing} onClose={() => { setSigning(null); loadSigns(); onChange() }} /></div>}
       {busy && <p className="msg">{busy}</p>}
       {msg && <p className="msg warn">{msg}</p>}
     </section>

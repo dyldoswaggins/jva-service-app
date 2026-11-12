@@ -243,3 +243,15 @@ table.imp tr.click:hover td { background: var(--hover); }
 .todo-card ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .todo-card li { display: flex; flex-direction: column; font-size: 13px; }
 .todo-card li .link { text-align: left; }
+
+/* client signing page */
+.signpage .signlist { margin: 0 0 4px 28px; padding: 0; }
+.signpage .totals-box { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; max-width: 360px; }
+.signpage .totals-box div { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.signpage .totals-box .grand { border-top: 1px solid var(--line); padding-top: 4px; font-size: 16px; }
+.signpage .center { text-align: center; }
+.signoverlay { position: fixed; inset: 0; z-index: 50; background: var(--bg); overflow: auto; padding: 16px; }
+.signpage label.tog { white-space: normal; align-items: flex-start; overflow-wrap: anywhere; }
+.signpage label.tog input { margin-top: 3px; flex: none; }
+.signoverlay, .signpage { overflow-x: hidden; }
+.signpage .welcome { flex-wrap: wrap; }

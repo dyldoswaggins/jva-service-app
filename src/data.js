@@ -121,6 +121,28 @@ const live = {
     const { error } = await supabase.rpc('set_job_part_need', { p_line: lineId, p_required: required, p_component: component, p_term: term })
     if (error) throw error
   },
+  // ---------- online signing of the estimate (migration 021, Edge Function "sign") ----------
+  async createSignRequest(jobId, docId, lines, channel, email = null) {
+    const { data, error } = await supabase.rpc('create_sign_request', { p_job: jobId, p_doc: docId, p_lines: lines, p_channel: channel, p_email: email })
+    if (error) throw error
+    return data
+  },
+  async loadSignRequests(jobId) {
+    const { data, error } = await supabase.from('sign_requests').select('id, token, channel, email, created_at, emailed_at, cancelled_at, signed_at, signer_name, expires_at, doc_id').eq('job_id', jobId).order('created_at', { ascending: false })
+    if (error) throw error
+    return data
+  },
+  async signCall(body) {
+    const { data, error } = await supabase.functions.invoke('sign', { body })
+    if (error) {
+      const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
+      throw new Error(msg || error.message)
+    }
+    return data
+  },
+  emailSignRequest(id) { return this.signCall({ action: 'email', request_id: id, origin: location.origin }) },
+  signGet(token) { return this.signCall({ action: 'get', token }) },
+  signSubmit(payload) { return this.signCall({ action: 'submit', ...payload }) },
   async recordDecision(jobId, { refused, accepted, declined, extra }) {
     const { error } = await supabase.rpc('record_decision', { p_job: jobId, p_refused: refused, p_accepted: accepted, p_declined: declined, p_extra: extra })
     if (error) throw error
@@ -224,7 +246,7 @@ const live = {
     const path = `${jobId}/${Date.now()}-${fileName}`
     const up = await supabase.storage.from('job-docs').upload(path, blob, { contentType: 'application/pdf' })
     if (up.error) throw up.error
-    const { data, error } = await supabase.from('job_docs').insert({ job_id: jobId, kind, file_path: path, file_name: fileName, by_user: userId }).select().single()
+    const { data, error } = await supabase.from('job_docs').insert({ job_id: jobId, kind, file_path: path, file_name: fileName, by_user: userId, fields: blob.fields || null }).select().single()
     if (error) throw error
     return data
   },

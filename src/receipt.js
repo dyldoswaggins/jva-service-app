@@ -6,7 +6,7 @@ import { conditionText } from './rules.js'
 // quote: { items: [{ label, price }], total, weeks }  (indicative, before the watchmakers' analysis)
 export async function makeReceipt({ job, client, requests, conditions, signaturePng, date = new Date(), quote }) {
   return buildDocument({
-    title: 'Receipt', job, client, date, signaturePng,
+    title: 'Receipt', job, client, date, signaturePng, variant: 'receipt',
     body: d => {
       d.para('Dear Sir, Madam,'); d.gap(4)
       d.para('Thank you for entrusting the above-mentioned watch to us for an estimate of the potential work required, based on the details below. ' +
@@ -23,7 +23,7 @@ export async function makeReceipt({ job, client, requests, conditions, signature
         d.section('Indicative estimate (before analysis)', { rightHeading: 'MSRP CAD (TAX EXCL.)' })
         quote.items.forEach(i => d.item(i))
         if (quote.total) d.item({ label: 'Indicative total', price: quote.total })
-        d.para(`The detailed estimate follows our watchmakers' analysis.${quote.weeks ? ` Delivery: approximately ${quote.weeks} week${quote.weeks === 1 ? '' : 's'} on approval.` : ''}`, { size: 7.5 })
+        d.para(`The detailed estimate follows our watchmakers' analysis.${quote.weeks ? ` Delivery: approximately ${quote.weeks} week${quote.weeks === 1 ? '' : 's'} on approval.` : ''}`)
         d.gap(4)
       }
       d.section('Acknowledgement and authorization')

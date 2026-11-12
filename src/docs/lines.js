@@ -3,22 +3,24 @@
 // CTR kit / In-CTR / upgrade parts are inside the CTR set price and are never printed.
 
 const lc = s => String(s || '').toLowerCase()
+// Template capitalisation: "Complete Overhaul", "Replace Crystal", "Clean Case and Bracelet"
+export const tc = s => String(s || '').replace(/\S+/g, (w, i) => (i && /^(and|or|of|the|a|an|to|in|on|with|for)$/i.test(w) ? w.toLowerCase() : /^[a-z]/.test(w) ? w[0].toUpperCase() + w.slice(1) : w))
 
 export function documentLines(job, allParts) {
   const necessary = [], optional = []
   // Vintage: the analysis fee is charged whatever the client decides on the Rolex estimate
   if (job.classification === 'Vintage') necessary.push({ key: 'vintage_fee', label: 'Rolex Vintage Analysis Fee', price: job.vintage_fee ?? null, source: 'vintage' })
   if (job.service_type === 'CTR') {
-    necessary.push({ key: 'ctr', label: 'Complete overhaul', price: job.ctr_price ?? null, subs: ['Clean case and bracelet'], source: 'ctr' })
+    necessary.push({ key: 'ctr', label: 'Complete Overhaul', price: job.ctr_price ?? null, subs: ['Clean Case and Bracelet', ...(job.polish && !(Number(job.polish_price) > 0) ? ['Refinish Case and Bracelet'] : [])], source: 'ctr' })
   }
-  if (job.polish) necessary.push({ key: 'polish', label: 'Refinish case and bracelet', price: job.polish_price ?? null, source: 'polish' })
+  if (job.polish && (Number(job.polish_price) > 0 || job.service_type !== 'CTR')) necessary.push({ key: 'polish', label: 'Refinish Case and Bracelet', price: job.polish_price ?? null, source: 'polish' })
   for (const l of job.job_parts || []) {
     if (l.kind !== 'billable') continue
     if (l.state !== 'active' && l.decision !== 'declined') continue      // removed before the client saw it
     const p = allParts?.get?.(l.part_id) || {}
     const line = {
       key: 'part:' + l.id, id: l.id, source: 'part', decision: l.decision || null, component: l.component, term: l.condition_term,
-      label: `Replace ${lc(l.component)}${l.qty > 1 ? ` (×${l.qty})` : ''}`.replace(/^Replace (.)/, (m, c) => 'Replace ' + c.toUpperCase()),
+      label: `Replace ${tc(lc(l.component))}${l.qty > 1 ? ` (×${l.qty})` : ''}`,
       parts: [`${l.rmc} ${lc(p.name)}`.trim()],
       price: l.retail != null ? Math.round(l.retail * l.qty * 100) / 100 : null,
       retailUnit: l.retail, qty: l.qty,
@@ -26,7 +28,7 @@ export function documentLines(job, allParts) {
     ;(l.required === 'optional' ? optional : necessary).push(line)
   }
   for (const x of job.extra_lines || []) {
-    const line = { key: 'extra:' + x.id, id: x.id, source: 'extra', label: x.label, price: x.price ?? null, subs: x.details ? [x.details] : [], decision: x.decision || null,
+    const line = { key: 'extra:' + x.id, id: x.id, source: 'extra', label: tc(x.label), price: x.price ?? null, subs: x.details ? [x.details] : [], decision: x.decision || null,
       component: x.component || null, term: x.term || null }
     ;(x.kind === 'optional' ? optional : necessary).push(line)
   }
