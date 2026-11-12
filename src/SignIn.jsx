@@ -4,7 +4,7 @@ import { api } from './data.js'
 export const STAFF_DOMAIN = 'jvairanderson.com'
 const USE_MICROSOFT = import.meta.env.VITE_SIGNIN === 'microsoft'
 
-// Sign in with work email + password (accounts created by Admin). Backup: a 6-digit code emailed to the address.
+// Sign in with username + password (Admin creates <username>@jvairanderson.com in Supabase). Backup: a code emailed to that address.
 export default function SignIn() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,8 +22,9 @@ export default function SignIn() {
       </div>
     )
 
-  const addr = () => email.trim().toLowerCase()
-  const checkDomain = () => (addr().endsWith('@' + STAFF_DOMAIN) ? true : (setMsg(`Use your @${STAFF_DOMAIN} email address.`), false))
+  // Username "richard" → richard@jvairanderson.com (the account behind it); a full work email also works
+  const addr = () => { const u = email.trim().toLowerCase(); return u.includes('@') ? u : `${u}@${STAFF_DOMAIN}` }
+  const checkDomain = () => (addr().endsWith('@' + STAFF_DOMAIN) ? true : (setMsg('Use your username, e.g. richard.'), false))
   const run = async fn => { setBusy(true); setMsg(''); try { await fn() } catch (err) { setMsg(err.message) } finally { setBusy(false) } }
 
   const signIn = e => { e.preventDefault(); if (checkDomain()) run(() => api.signInPassword(addr(), password)) }
@@ -35,25 +36,27 @@ export default function SignIn() {
       <h2>Sign in</h2>
       {mode === 'password' && (
         <form className="stack" onSubmit={signIn}>
-          <label className="field">Work email
-            <input type="email" autoComplete="username" autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${STAFF_DOMAIN}`} />
+          <label className="field">Username
+            <input type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoFocus value={email}
+              onChange={e => setEmail(e.target.value)} placeholder="e.g. richard" />
           </label>
           <label className="field">Password
             <input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
           </label>
           <div className="actions">
             <button className="btn solid" disabled={busy || !email.trim() || !password}>{busy ? 'Signing in…' : 'Sign in'}</button>
-            <button type="button" className="link" onClick={() => { setMode('code-send'); setMsg('') }}>Forgot password? Email me a code</button>
+            <button type="button" className="link" onClick={() => { setMode('code-send'); setMsg('') }}>Forgot password?</button>
           </div>
         </form>
       )}
       {mode === 'code-send' && (
         <form className="stack" onSubmit={send}>
-          <label className="field">Work email
-            <input type="email" autoComplete="email" autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder={`name@${STAFF_DOMAIN}`} />
+          <p className="msg">Ask Dylan or Richard to reset your password, or get a code at your work email.</p>
+          <label className="field">Username
+            <input type="text" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="e.g. richard" />
           </label>
           <div className="actions">
-            <button className="btn solid" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send code'}</button>
+            <button className="btn solid" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Email me a code'}</button>
             <button type="button" className="link" onClick={() => { setMode('password'); setMsg('') }}>Back to password</button>
           </div>
         </form>

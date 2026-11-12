@@ -20,7 +20,7 @@ const live = {
   // Email + password (accounts created by Admin in Supabase → Authentication → Users)
   async signInPassword(email, password) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw new Error(/invalid login|credentials/i.test(error.message) ? 'Email or password is wrong.' : error.message)
+    if (error) throw new Error(/invalid login|credentials/i.test(error.message) ? 'Username or password is wrong.' : error.message)
   },
   async changePassword(password) {
     const { error } = await supabase.auth.updateUser({ password })
