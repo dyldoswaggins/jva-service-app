@@ -3,6 +3,7 @@ import { api } from '../data.js'
 import { fmtDate, maskSerial, openPrompts } from '../rules.js'
 import IntakeView from './IntakeView.jsx'
 import JobView from './JobView.jsx'
+import TodoPanel from './TodoPanel.jsx'
 
 // All repair jobs. Sales start an intake here; anyone opens a job.
 export default function JobsView({ models, allParts, can, actions, userId, who }) {
@@ -51,7 +52,8 @@ export default function JobsView({ models, allParts, can, actions, userId, who }
         <button type="button" className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>All</button>
       </div>
       {err && <p className="msg warn">{err}</p>}
-      {!jobs ? <p className="msg">Loading…</p> : shown.length ? (
+      {jobs && statuses.length > 0 && <TodoPanel jobs={jobs} kindOf={kind} can={can} onOpen={id => setMode({ view: 'job', id })} />}
+      {!jobs ?<p className="msg">Loading…</p> : shown.length ? (
         <div className="imp-wrap">
           <table className="imp jobs">
             <thead><tr><th>Job #</th><th>Watch</th><th>Serial</th><th>Service</th><th>Status</th><th>To confirm</th><th>In since</th><th>ETA</th></tr></thead>

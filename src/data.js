@@ -92,7 +92,7 @@ const live = {
   },
   async loadJobs() {
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(state), job_requests(state)').order('intake_at', { ascending: false }).limit(500)
+      .select('*, job_conditions(state), job_requests(state), job_docs(kind, at), job_parts(state, short_qty)').order('intake_at', { ascending: false }).limit(500)
     if (error) throw error
     return data
   },

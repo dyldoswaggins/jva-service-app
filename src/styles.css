@@ -232,3 +232,14 @@ table.imp tr.click:hover td { background: var(--hover); }
 .job .panel h4 { margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 
 .pwform input { width: 150px; }
+
+/* to-do dashboard (Jobs page) */
+.todo { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.todo.empty { display: block; padding: 4px 0; }
+.todo-card { border: 1px solid var(--line); border-left: 3px solid var(--navy, var(--fg)); border-radius: 6px; padding: 10px 12px; background: var(--surface); }
+.todo-card.late { border-left-color: var(--warn); }
+.todo-card h3 { margin: 0; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.todo-card .count { font-size: 12px; background: var(--line2); border-radius: 10px; padding: 0 7px; }
+.todo-card ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.todo-card li { display: flex; flex-direction: column; font-size: 13px; }
+.todo-card li .link { text-align: left; }
