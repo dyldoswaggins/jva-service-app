@@ -257,3 +257,7 @@ table.imp tr.click:hover td { background: var(--hover); }
 .signpage .welcome { flex-wrap: wrap; }
 
 .rolexreview { border-top: 1px solid var(--line); padding-top: 8px; }
+
+.supply { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.supply select { padding: 2px 4px; }
+.tag { display: inline-block; margin: 2px 4px 2px 0; }

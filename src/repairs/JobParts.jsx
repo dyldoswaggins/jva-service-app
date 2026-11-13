@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { ORDER_LIMIT, fitsModel, locStr, money, num, termsFor } from '../rules.js'
 import { isBacked } from '../docs/lines.js'
+import { makePickList } from '../docs/pickList.js'
 
 const KIND = { ctr_kit: 'CTR kit', in_ctr: 'In CTR', upgrade: 'Upgrade', billable: 'Billable' }
 const STATUS_LABEL = { often_changed: 'Often changed', keep_stock: 'Keep stock', upgrade: 'Systematic upgrade' }
@@ -94,6 +95,21 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
     } catch (e) { setMsg(e.message) }
   }
 
+  // Where each part comes from (in stock / order), ordered on MRWS, picked from the cabinet (Overview parts table)
+  const setSupply = async (l, field, value) => { setMsg(''); try { await api.setJobPartSupply(l.id, field, value); onChange() } catch (e) { setMsg(e.message) } }
+  const Supply = ({ l, p }) => {
+    const auto = (p?.qty ?? 0) >= l.qty - (l.consumed_qty || 0) ? 'stock' : 'order'
+    return (
+      <span className="supply">
+        <select value={l.supply || auto} disabled={!can.bench} onChange={e => setSupply(l, 'supply', e.target.value)} aria-label={`Supply for ${l.rmc}`}>
+          <option value="stock">In stock</option><option value="order">Order</option>
+        </select>
+        {(l.supply || auto) === 'order' && <label className="tog" title="Ordered on MRWS"><input type="checkbox" checked={!!l.ordered_at} disabled={!can.bench} onChange={e => setSupply(l, 'ordered', e.target.checked ? 'on' : 'off')} /> MRWS</label>}
+        <label className="tog" title="Picked from the cabinet"><input type="checkbox" checked={!!l.picked_at} disabled={!can.bench} onChange={e => setSupply(l, 'picked', e.target.checked ? 'on' : 'off')} /> Picked</label>
+      </span>
+    )
+  }
+  const printPickList = async () => { const b = await makePickList({ job, lines, allParts }); window.open(URL.createObjectURL(b), '_blank') }
   const stockCell = p => p ? <>{p.qty ?? '–'}{locStr(p) ? <span className="loc">{locStr(p)}</span> : null}</> : ''
   const lineState = l => !taken ? <span className="msg">comes off when estimate leaves</span>
     : l.short_qty ? <b className="tag warn">{l.short_qty} short · order</b> : <span className="msg">✓ taken</span>
@@ -103,6 +119,7 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
     <section className="panel">
       <div className="actions">
         <h3 className="grow">Parts</h3>
+        {lines.length > 0 && <button type="button" className="btn" onClick={printPickList}>Print pick list</button>}
         {can.bench && <button type="button" className="btn solid" onClick={() => setTab(tab ? null : (job.service_type === 'CTR' && kit.length ? 'in_ctr' : 'search'))}>{tab ? 'Close' : '+ Add'}</button>}
       </div>
       {msg && <p className="msg warn">{msg}</p>}
@@ -116,9 +133,9 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
                 <span className="msg"> · automatic · not printed · {taken ? `taken${kitLines.some(l => l.short_qty) ? `, ${kitLines.filter(l => l.short_qty).length} short` : ''}` : 'comes off when the estimate leaves'}</span>
                 {showKit && (
                   <table className="imp">
-                    <thead><tr><th>Part #</th><th>Name</th><th className="r">Qty</th><th className="r">Stock</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Part #</th><th>Name</th><th className="r">Qty</th><th className="r">Stock</th><th>Status</th><th>Supply</th></tr></thead>
                     <tbody>{kitLines.map(l => { const p = allParts.get(l.part_id); return (
-                      <tr key={l.id}><td className="mono b">{l.rmc}</td><td className="d">{p?.name}</td><td className="r">{l.qty}</td><td className="r">{stockCell(p)}</td><td>{lineState(l)}</td></tr>
+                      <tr key={l.id}><td className="mono b">{l.rmc}</td><td className="d">{p?.name}</td><td className="r">{l.qty}</td><td className="r">{stockCell(p)}</td><td>{lineState(l)}</td><td><Supply l={l} p={p} /></td></tr>
                     ) })}</tbody>
                   </table>
                 )}
@@ -128,14 +145,14 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
 
       {extra.length > 0 && (
         <table className="imp">
-          <thead><tr><th>Part #</th><th>Name</th><th>Type</th><th>Condition</th><th className="r">Qty</th><th className="r">Retail</th><th className="r">Stock</th><th>Status</th><th /></tr></thead>
+          <thead><tr><th>Part #</th><th>Name</th><th>Type</th><th>Condition</th><th className="r">Qty</th><th className="r">Retail</th><th className="r">Stock</th><th>Status</th><th>Supply</th><th /></tr></thead>
           <tbody>
             {extra.map(l => { const p = allParts.get(l.part_id); return (
               <tr key={l.id}>
                 <td className="mono b">{l.rmc}</td><td className="d" title={p?.name}>{p?.name}</td><td>{KIND[l.kind]}</td>
                 <td>{l.kind === 'billable' ? `${l.component} · ${l.condition_term} · ${l.required === 'optional' ? 'Optional' : 'Necessary'}` : ''}</td>
                 <td className="r">{l.qty}</td><td className="r">{l.retail != null ? money(l.retail * l.qty) : '–'}</td>
-                <td className="r">{stockCell(p)}</td><td>{lineState(l)}</td>
+                <td className="r">{stockCell(p)}</td><td>{lineState(l)}</td><td><Supply l={l} p={p} /></td>
                 <td>{can.bench && <button type="button" className="btn" onClick={() => remove(l)}>Remove</button>}</td>
               </tr>
             ) })}

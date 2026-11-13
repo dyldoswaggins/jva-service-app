@@ -117,6 +117,10 @@ const live = {
     const { error } = await supabase.rpc('set_job_part_price', { p_line: lineId, p_retail: retail })
     if (error) throw error
   },
+  async setJobPartSupply(lineId, field, value) {
+    const { error } = await supabase.rpc('set_job_part_supply', { p_line: lineId, p_field: field, p_value: value })
+    if (error) throw error
+  },
   async setJobPartNeed(lineId, required, component = null, term = null) {
     const { error } = await supabase.rpc('set_job_part_need', { p_line: lineId, p_required: required, p_component: component, p_term: term })
     if (error) throw error

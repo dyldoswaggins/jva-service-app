@@ -41,6 +41,7 @@ export const CONDITIONS = [
   { c: 'Springbars', t: ['Damaged', 'Missing', 'Worn', 'Broken', 'Cracked'] },
   { c: "Mov't bridges", t: ['No issues', 'Barrel', 'Train', 'Winding', 'Auto upper'], intake: false },
   { c: 'Balance wheel', t: ['Within spec', 'Requires replacement'], intake: false, single: true },
+  { c: 'Oscillating weight', t: ['Within spec', 'Worn', 'Damaged', 'Requires replacement'], intake: false },
 ]
 export const termsFor = component => CONDITIONS.find(x => x.c === component)?.t || []
 export const SERVICE_TYPES = ['CTR', 'Partial', 'Warranty', 'Quick Service']

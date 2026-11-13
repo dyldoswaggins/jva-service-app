@@ -114,3 +114,15 @@ Bracelet: dented, scratched, stretched, worn.
   estimate. Rolex's $50 shipping is not charged to the client unless ticked. Revised Rolex estimates (_002…): upload, "Convert to JVA estimate".
 - Client answers 2026-11-12: approved format = the issued 2026 estimates (post-audit workbook); polishing is a separate charge (new price list);
   Rolex Pre-Approval not used (receipt + estimate). Engraving requests: not answered yet.
+
+## Phase 2: Service Overview, parts sourcing, timing (2026-11-12)
+- **Service overview** panel on the job (`JobOverview.jsx`): client requests always in front of the watchmaker (declined ones marked), special
+  handling chips (return old parts/crown, keep original parts/crown, do not refinish case/bracelet/case back, do not open dial side, change
+  gaskets only), guarantee exclusions (water resistance, bracelet, movement, dial and hands, case), pre-cleaning done by / when, remarks &
+  observations. Migration 025. Exclusions are stored now; printing them as estimate footnotes waits for the approved document format.
+- **Parts sourcing** (`JobParts.jsx`): per part In stock / Order (defaults from stock), "MRWS" ordered tick, "Picked" tick
+  (`set_job_part_supply`), **Print pick list** (`src/docs/pickList.js`, internal).
+- **Timing analysis** (`JobTiming.jsx`, `src/docs/timingSheet.js`): Rolex E6220-11 fields; 1st criterion (max − min), 2nd (average at 0 hr)
+  and actual daily rate calculated; 4-day observation, power reserve, passed / not passed; several tests kept; printable. Position labels
+  (Crown left / down / up, Dial up / down) to confirm with the watchmakers. Hidden for Vintage (Rolex Toronto).
+- Watch analysis vocabulary: + Oscillating weight (bench only).

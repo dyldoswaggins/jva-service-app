@@ -259,6 +259,13 @@ export function makeDemo() {
       if (j.stock_taken_at) { const take = Math.min(qty, p.qty ?? 0); s.parts.set(partId, { ...p, qty: (p.qty ?? 0) - take }); l.consumed_qty = take; l.short_qty = qty - take }
       return l.id
     },
+    async setJobPartSupply(lineId, field, value) {
+      const s = await load(), now = new Date().toISOString()
+      for (const j of s.jobs) { const l = (j.job_parts || []).find(x => x.id === lineId); if (!l) continue
+        if (field === 'supply') l.supply = value
+        if (field === 'ordered') Object.assign(l, value === 'on' ? { ordered_at: now, ordered_by: me.id, supply: 'order' } : { ordered_at: null, ordered_by: null })
+        if (field === 'picked') Object.assign(l, value === 'on' ? { picked_at: now, picked_by: me.id } : { picked_at: null, picked_by: null }) }
+    },
     async setJobPartNeed(lineId, required, component = null, term = null) {
       const s = await load()
       for (const j of s.jobs) {

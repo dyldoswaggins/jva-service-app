@@ -8,6 +8,8 @@ import JobTimer from './JobTimer.jsx'
 import JobAssessment from './JobAssessment.jsx'
 import { makeBagLabel } from '../docs/label.js'
 import JobUploads from './JobUploads.jsx'
+import JobOverview from './JobOverview.jsx'
+import JobTiming from './JobTiming.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -193,6 +195,9 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </section>
       )}
 
+      {/* ---- Service Overview: client requests in front of the watchmaker, handling, exclusions, pre-cleaning, remarks ---- */}
+      <JobOverview job={job} can={can} userId={userId} who={who} actions={actions} onChange={load} />
+
       {/* ---- the watchmaker's assessment: necessary vs optional ---- */}
       {/* Vintage: Rolex Toronto assesses, estimates and supplies parts; the office enters RCL's lines for the invoice */}
       {(job.classification !== 'Vintage' || can.edit) &&
@@ -203,6 +208,9 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}
           onChange={async () => { await load(); await actions.reload() }} />
       )}
+
+      {/* ---- Rolex Timing Analysis (in-house services) ---- */}
+      {job.classification !== 'Vintage' && <JobTiming job={job} can={can} userId={userId} who={who} actions={actions} onChange={load} />}
 
       {can.edit && (
         <JobDocuments job={job} allParts={allParts} userId={userId} actions={actions}
