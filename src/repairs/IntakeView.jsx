@@ -29,6 +29,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [eta, setEta] = useState(null)
   const [cls, setCls] = useState('')          // Modern | Classic | Vintage
   const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted
+  const [proceedNow, setProceedNow] = useState(false) // client wants to proceed immediately (Rolex Immediate Proceed form)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const camRef = useRef(null)
@@ -122,9 +123,10 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     }
     try {
       const args = { job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig }
-      // Rolex Immediate Proceed (Rolex's own form) for every complete service and for Vintage (Workflow v2.1, 1.1)
+      // Rolex Immediate Proceed (Rolex's own form): Vintage (Workflow v2.1, 1.1), or a complete service the client wants done without waiting
+      // for the estimate. Not used routinely in store: the receipt shows the estimated price and the estimate follows within 24 h (Dylan, 2026-11-12).
       const feePdf = vintage ? await makeVintageFee({ ...args, fee: vfee, weeks: vweeks }) : null
-      const ipPdf = vintage || isCTR ? await makeImmediateProceedRolex({ ...args, staffName, offer: isCTR ? tier : null, offerPrice: ctrPrice,
+      const ipPdf = vintage || (isCTR && proceedNow) ? await makeImmediateProceedRolex({ ...args, staffName, offer: isCTR ? tier : null, offerPrice: ctrPrice,
         polish, polishPrice: polishPrice ?? 210, includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null }) : null
       const mainPdf = vintage ? feePdf : await makeReceipt({ ...args, quote })
       const id = await api.createJob(clean, conds, allReqs, client)
@@ -133,7 +135,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       const pdf = ipPdf ? await mergePdfs([mainPdf, ipPdf]) : mainPdf // printed together, filed separately
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
       actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''} saved.`)
-      onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client)
+      onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client, !!ipPdf)
     } catch (e) { setMsg(e.message) } finally { setBusy(false) }
   }
 
@@ -248,6 +250,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             </div>
           )}
         </div>}
+        {isCTR && (
+          <label className="tog big"><input type="checkbox" checked={proceedNow} onChange={e => setProceedNow(e.target.checked)} /> Proceed immediately, without waiting for the estimate (Rolex Immediate Proceed form)</label>
+        )}
         <h3>Anything else you'd like?</h3>
         <div className="chips">
           {[...REQUEST_OPTIONS, ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (

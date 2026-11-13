@@ -95,7 +95,8 @@ Bracelet: dented, scratched, stretched, worn.
 - Approved formats: client documents follow JVA's post-audit set (`Rolex › 1. Service - Rolex › 1. ROLEX SERVICE DOCUMENTS › 1. SERVICE DOCUMENTS ›
   SAV ALL - POST AUDIT NEW` and the workbook `SAV ALL- post audit.xlsx`, which generates the issued Estimates). Rolex forms are filled on Rolex's own PDF.
 - **Immediate Proceed** (`src/docs/immediateProceed.js`): Rolex's fillable PDF (`public/templates/rolex-immediate-proceed.pdf`) filled and flattened
-  at every complete-service intake (and Vintage): offer from Rolex's list, polish $210 Yes/No, other requests, conditions, total (15 % allowance
+  for Vintage, and for a complete service only when the client ticks "Proceed immediately" at intake (not routine in store: the receipt shows
+  the estimated price and the estimate follows within 24 h; the Rolex Pre-Approval is not used in store — Dylan, 2026-11-12): offer from Rolex's list, polish $210 Yes/No, other requests, conditions, total (15 % allowance
   optional in Settings), dates, client signature, associate. Printed with the receipt, filed separately (kind `immediate_proceed`).
 - CTR prices = Rolex's offers CO - MODERN $840/$980/$1,190, CO - CLASSIC $1,250/$1,530/$1,810 (migration 023); polish with CTR $210.
 - New identifiers: movement serial, bracelet links, clasp/bracelet code, Rolex service # (Toronto); "Rolex / WSC #" relabelled "WSC #".

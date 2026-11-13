@@ -45,9 +45,9 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
           <section className="step">
             {done.job.classification === 'Vintage'
               ? <p>Your signed Vintage Analysis Fee and Immediate Proceed forms are ready. Please keep it and bring it with photo ID when you collect your watch. Your watch will be analysed by Rolex; we'll contact you with the estimate.</p>
-              : <p>Your signed receipt{done.job.service_type === 'CTR' ? ' and Rolex Immediate Proceed are' : ' is'} ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
+              : <p>Your signed receipt{done.ip ? ' and Rolex Immediate Proceed are' : ' is'} ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
             <div className="actions">
-              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' || done.job.service_type === 'CTR' ? 'Print documents' : 'Print receipt'}</button>
+              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' || done.ip ? 'Print documents' : 'Print receipt'}</button>
               <button type="button" className="btn big" onClick={async () => openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name }))}>Print bag label</button>
               <button type="button" className="btn big" onClick={email}>Email to service manager</button>
               <span className="grow" />
@@ -58,7 +58,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
         </div>
       ) : (
         <IntakeView key={key} standalone models={models} actions={actions} userId={userId} staffName={me.name || me.email}
-          onDone={(id, pdf, doc, job, client) => id && setDone({ pdf, doc, job, client })} />
+          onDone={(id, pdf, doc, job, client, ip) => id && setDone({ pdf, doc, job, client, ip })} />
       )}
     </div>
   )
