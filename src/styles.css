@@ -273,3 +273,15 @@ table.imp tr.click:hover td { background: var(--hover); }
 .rolepicker { max-width: 820px; margin: 30px auto; }
 .rolepicker .card { min-height: 120px; }
 .center { text-align: center; }
+
+/* Build checklist (Admin) */
+.cl-group { margin-top: 14px; }
+.cl-group h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.cl-group .count { font-size: 12px; background: var(--line2); border-radius: 10px; padding: 0 8px; font-weight: 500; }
+.cl-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 2px; border-bottom: 1px solid var(--line2); }
+.cl-item input[type=checkbox] { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.cl-item .tag { margin-left: 8px; background: var(--line2); }
+.cl-item.done b { text-decoration: line-through; color: var(--muted, #777); }
+.cl-note { display: block; width: 100%; max-width: 640px; margin-top: 4px; font-size: 13px; padding: 3px 6px; }
+.offer.autoclass { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-wrap: wrap; text-align: left; }
+.autoclass .link { margin-left: auto; }

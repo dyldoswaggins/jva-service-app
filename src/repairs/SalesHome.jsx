@@ -54,6 +54,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
               : done.job.service_type === 'Engraving'
               ? <p>Your signed receipt is ready. Please keep it and bring it with photo ID when you collect your watch. Your watch goes to Rolex in Toronto for engraving; we'll call you when it's back.</p>
               : <p>Your signed receipt{done.ip ? ' and Rolex Immediate Proceed are' : ' is'} ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
+            {done.emailed && <p className={`msg${/^not/.test(done.emailed) ? ' warn' : ''}`}>Client copy {done.emailed}.</p>}
             <div className="actions">
               <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' || done.ip ? 'Print documents' : 'Print receipt'}</button>
               <button type="button" className="btn big" onClick={async () => openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name }))}>Print bag label</button>
@@ -66,7 +67,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
         </div>
       ) : (
         <IntakeView key={key} standalone models={models} actions={actions} userId={userId} staffName={me.name || me.email}
-          onDone={(id, pdf, doc, job, client, ip) => id && setDone({ pdf, doc, job, client, ip })} />
+          onDone={(id, pdf, doc, job, client, ip, emailed) => id && setDone({ pdf, doc, job, client, ip, emailed })} />
       )}
     </div>
   )

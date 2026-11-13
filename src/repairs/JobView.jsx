@@ -13,6 +13,7 @@ import JobOverview from './JobOverview.jsx'
 import JobTiming from './JobTiming.jsx'
 import JobCompletion from './JobCompletion.jsx'
 import JobContacts from './JobContacts.jsx'
+import JobValidation from './JobValidation.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -110,11 +111,12 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       )}
       {msg && <p className="msg warn">{msg}</p>}
       {(() => { // documents made before the serial / model / bracelet / dial were changed
-        const latest = Object.values((job.job_docs || []).filter(d => d.kind !== 'signed_estimate').reduce((m, d) => (!m[d.kind] || m[d.kind].at < d.at ? { ...m, [d.kind]: d } : m), {}))
+        const latest = Object.values((job.job_docs || []).filter(d => !['signed_estimate', 'receipt', 'vintage_fee', 'immediate_proceed', 'engraving_request', 'upload'].includes(d.kind)) /* signed at intake or uploaded: can't be remade */.reduce((m, d) => (!m[d.kind] || m[d.kind].at < d.at ? { ...m, [d.kind]: d } : m), {}))
         const stale = job.ident_changed_at ? latest.filter(d => d.at < job.ident_changed_at) : []
         return stale.length > 0 && <p className="flagline">Watch details changed on {fmtTime(job.ident_changed_at)}, after {stale.map(d => d.file_name).join(', ')}. Create {stale.length === 1 ? 'that document' : 'those documents'} again so the client's copy shows the corrected details.</p>
       })()}
 
+      {can.edit && <JobValidation key={`${job.edge_no}|${job.rolex_service_no}|${job.bracelet_ref}`} job={job} actions={actions} onChange={load} />}
       <JobServiceInfo job={job} can={can} userId={userId} actions={actions} onChange={load} />
 
       {/* ---- prompts for the watchmaker ---- */}

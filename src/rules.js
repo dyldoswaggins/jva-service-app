@@ -70,6 +70,9 @@ export const CTR_INCLUDED = ['Adjust bracelet', 'Timekeeping check', 'Water resi
 export const timeframeAtIntake = ({ isCTR, polish, requests }) =>
   !!isCTR && !polish && (requests || []).every(r => CTR_INCLUDED.includes(r.request || r))
 export const JOB_NO =/^\d{4,7}-\d{3}$/
+// Provisional job # given at intake until the Service Manager enters the Edge job # (watch validation): P<yymmdd>-<nn>
+export const isProvisional = j => /^P\d{6}-\d{2,3}$/.test(j?.edge_no || '')
+export const needsValidation = j => isProvisional(j) || !j?.rolex_service_no || !j?.bracelet_ref
 
 // ---------- Rolex watch description (mandatory on Receipt, Estimate, Confirmation, Invoice) ----------
 // 1. Model number + description: "M126710BLNR Rolex GMT-Master II"

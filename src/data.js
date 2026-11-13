@@ -281,8 +281,8 @@ const live = {
     return data
   },
   // Email a job document to the watch service manager (Edge Function send-doc, parts Gmail)
-  async emailJobDoc(docId) {
-    const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_id: docId } })
+  async emailJobDoc(docId, to = 'manager') { // to: 'manager' (service manager) | 'client' (the job's client email)
+    const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_id: docId, to } })
     if (error) {
       const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
       throw new Error(msg || error.message)

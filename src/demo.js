@@ -173,8 +173,9 @@ export function makeDemo() {
     },
     async createJob(job, conditions, requests, client = null) {
       const s = await load(); s.jobs = s.jobs || []
-      if (s.jobs.some(j => j.edge_no === job.edge_no)) throw new Error(`Job ${job.edge_no} already exists`)
+      if (job.edge_no && s.jobs.some(j => j.edge_no === job.edge_no)) throw new Error(`Job ${job.edge_no} already exists`)
       const id = crypto.randomUUID(), at = new Date().toISOString()
+      if (!job.edge_no) { const d = new Date().toLocaleDateString('en-CA').slice(2).replace(/-/g, ''); job = { ...job, edge_no: `P${d}-${String(s.jobs.filter(j => j.edge_no.startsWith('P' + d)).length + 1).padStart(2, '0')}` } }
       s.jobs.unshift({ id, ...job, watch_ref: (job.watch_ref || '').toUpperCase(), status: 'Estimate', intake_by: me.id, intake_at: at, extra_lines: [],
         job_clients: client ? { job_id: id, ...client } : null, job_photos: [],
         job_conditions: conditions.map(c => ({ id: crypto.randomUUID(), job_id: id, ...c, source: 'intake', state: 'to_confirm', by_user: me.id, at })),
@@ -184,11 +185,12 @@ export function makeDemo() {
     },
     async updateJob(id, fields) {
       const s = await load(), j = s.jobs.find(x => x.id === id)
+      if (fields.edge_no && s.jobs.some(x => x.id !== id && x.edge_no === fields.edge_no)) throw new Error('duplicate key value violates unique constraint')
       for (const x of fields.extra_lines || []) { // mirrors trigger jobs_extra_lines_backed (016)
         const o = (j.extra_lines || []).find(y => y.id === x.id && y.kind === 'optional' && y.component === x.component && y.term === x.term)
         if (x.kind === 'optional' && x.source !== 'rolex' && !o && !demoBacked(j, x.component, x.term)) throw new Error(`Optional work must be backed by the watch analysis ("${x.label}")`)
       }
-      if (['serial', 'watch_ref', 'watch_name', 'bracelet_ref', 'bracelet', 'dial', 'dial_ref'].some(k => k in fields && (fields[k] ?? null) !== (j[k] ?? null))) j.ident_changed_at = new Date().toISOString()
+      if (['serial', 'watch_ref', 'watch_name', 'bracelet_ref', 'bracelet', 'dial', 'dial_ref'].some(k => k in fields && j[k] && (fields[k] ?? null) !== j[k])) j.ident_changed_at = new Date().toISOString()
       if (fields.status && fields.status !== j.status) j.job_status_log.push({ id: crypto.randomUUID(), status: fields.status, by_user: me.id, at: new Date().toISOString() })
       // stock comes off when the job leaves Estimate (mirrors take_job_stock)
       if (j.status === 'Estimate' && fields.status && !['Estimate', 'Cancelled'].includes(fields.status) && !j.stock_taken_at) {
@@ -299,7 +301,7 @@ export function makeDemo() {
     async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); const d = { id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, fields: blob.fields || null, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async uploadJobFile(jobId, file, label, note) { const s = await load(); const d = { id: crypto.randomUUID(), kind: 'upload', label, note, file_name: file.name, content_type: file.type, _blob: file, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async jobDocFile(doc) { return doc._blob },
-    async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('Demo mode: email is sent from the live site only') },
+    async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('demo mode, email is sent from the live site only') },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },
     async uploadToInbox(file) {
       const s = await load()

@@ -1,4 +1,4 @@
-import { ROLEX_DIRECT, fmtDate, openPrompts, watchLine } from '../rules.js'
+import { ROLEX_DIRECT, fmtDate, isProvisional, needsValidation, openPrompts, watchLine } from '../rules.js'
 
 // Rolex / Workflow v2.1 targets: estimate within 24 h of intake, confirmation within 24 h of the signed estimate —
 // 3 days when it falls on a weekend (store closures / holidays: judge by eye).
@@ -22,6 +22,8 @@ export function todoBuckets(jobs, kindOf, can, now = new Date()) {
   const toronto = j => vintage(j) || ROLEX_DIRECT(j) // Rolex Toronto handles it (Vintage; engraving goes straight there)
   const b = []
   if (can.edit) {
+    b.push({ key: 'validate', title: 'Watch validation', hint: 'Edge job #, WSC #, bracelet reference (not asked at the counter)',
+      rows: open.filter(needsValidation).map(j => ({ j, note: [isProvisional(j) && 'Edge #', !j.rolex_service_no && 'WSC #', !j.bracelet_ref && 'bracelet ref'].filter(Boolean).join(', ') + ' needed' })) })
     b.push({ key: 'estimate', title: 'Estimates to send', hint: 'Within 24 h of intake (3 days on weekends)',
       rows: open.filter(j => j.status === 'Estimate' && !toronto(j) && !docs(j, 'estimate'))
         .map(j => { const l = left(dueFrom(j.intake_at), now); const p = openPrompts(j); return { j, note: l.text + (p ? ` · watchmaker: ${p} to confirm` : ''), late: l.late } })

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
-import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
+import { classifyWatch, offerFor } from '../serviceCatalog.js'
+import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
 import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
 import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
 import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm } from '../docs/engravingForm.js'
@@ -20,7 +21,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [openComp, setOpenComp] = useState(null)
   const [reqs, setReqs] = useState([])
   const [otherReq, setOtherReq] = useState('')
-  const [client, setClient] = useState({ name: '', address1: '', address2: '', address3: '' })
+  const [client, setClient] = useState({ name: '', address1: '', address2: '', address3: '', email: '' })
   const [sig, setSig] = useState(null)
   const [photos, setPhotos] = useState([])        // [{ blob, url }]
   const [settings, setSettings] = useState(null)
@@ -32,6 +33,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted
   const [proceedNow, setProceedNow] = useState(false) // client wants to proceed immediately (Rolex Immediate Proceed form)
   const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
+  const [allClasses, setAllClasses] = useState(false) // Sales overrides the class worked out from the model
+  const [allTiers, setAllTiers] = useState(false)     // … or the suggested complete-service offer
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const camRef = useRef(null)
@@ -68,14 +71,19 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
 
   const vintage = cls === 'Vintage'
   const vfee = Number(settings?.vintage?.fee ?? 350), vweeks = settings?.vintage?.weeks ?? 18
-  const chooseClass = c => {
+  const chooseClass = (c, offer = null) => {
     setCls(c)
     if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier('') }
     else {
       setJob(j => ({ ...j, service_type: j.service_type === 'Vintage analysis' ? 'CTR' : j.service_type }))
-      setTier(t => (t && t.toUpperCase().includes(c.toUpperCase()) ? t : ''))
+      setTier(t => (offer && offer in allOffers ? offer : t && t.toUpperCase().includes(c.toUpperCase()) ? t : ''))
     }
   }
+  // Class and offer from the model (calibre + collection, Rolex's 2025-2026 service price list). Sales can change both.
+  const auto = useMemo(() => classifyWatch(job), [job.calibre, job.watch_name, job.watch_ref])
+  const suggested = auto ? offerFor(auto.cls, auto.collection) : null
+  useEffect(() => { if (auto && !allClasses) chooseClass(auto.cls, suggested) }, [auto?.cls, auto?.collection, settings])
+  useEffect(() => { if (job.service_type === 'CTR' && !tier && suggested && suggested in allOffers && cls === auto?.cls) setTier(suggested) }, [job.service_type])
   const isCTR = job.service_type === 'CTR'
   const engraving = job.service_type === 'Engraving' // straight to Rolex Toronto with Rolex's Engraving Request Form
   const ctrPrice = isCTR && tier ? allOffers[tier] : null
@@ -92,13 +100,11 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
 
   const showEta = !vintage && !engraving && timeframeAtIntake({ isCTR, polish, requests: reqs })
   const missing = [
-    !JOB_NO.test(job.edge_no.trim()) && 'Edge job # (like 124595-001)',
     !cls && 'Modern, Classic or Vintage',
     vintage && !feeOk && 'acceptance of the analysis fee',
     !job.watch_ref.trim() && 'model number',
     !job.watch_name.trim() && 'model name',
     !job.serial.trim() && 'serial #',
-    !job.bracelet_ref.trim() && 'bracelet reference',
     !job.bracelet.trim() && 'bracelet description',
     !job.dial.trim() && 'dial description',
     isCTR && !tier && 'complete service offer',
@@ -109,6 +115,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     engraving && !engr.case && 'engraving letter case',
     !allReqs.length && 'at least one request',
     !client.name.trim() && 'client name',
+    client.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(client.email.trim()) && 'a valid email (or leave it blank)',
     !sig && 'client signature',
   ].filter(Boolean)
 
@@ -130,7 +137,12 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       total: total || null,
       weeks: showEta ? weeksUntil(eta?.eta) : null,
     }
+    let id = null
     try {
+      // The Edge job # is added later by the Service Manager (watch validation); the job gets a provisional number now (P<yymmdd>-<nn>)
+      const cl = { ...client, email: client.email.trim() || null }
+      id = await api.createJob(clean, conds, allReqs, cl)
+      clean.edge_no = (await api.loadJob(id)).edge_no
       const args = { job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig }
       // Rolex Immediate Proceed (Rolex's own form): Vintage (Workflow v2.1, 1.1), or a complete service the client wants done without waiting
       // for the estimate. Not used routinely in store: the receipt shows the estimated price and the estimate follows within 24 h (Dylan, 2026-11-12).
@@ -139,16 +151,18 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         polish, polishPrice: polishPrice ?? 210, includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null }) : null
       const mainPdf = vintage ? feePdf : await makeReceipt({ ...args, quote })
       const engrPdf = engraving ? await makeEngravingForm({ job: clean, client, engraving: clean.engraving, staffName }) : null
-      const id = await api.createJob(clean, conds, allReqs, client)
       const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', mainPdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
       if (ipPdf) await api.uploadJobDoc(id, 'immediate_proceed', ipPdf, immediateProceedFileName(clean), userId)
       if (engrPdf) await api.uploadJobDoc(id, 'engraving_request', engrPdf, engravingFileName(clean), userId)
       const extra = [ipPdf, engrPdf].filter(Boolean)
       const pdf = extra.length ? await mergePdfs([mainPdf, ...extra]) : mainPdf // printed together, filed separately
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
-      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''}${engrPdf ? ' and Rolex Engraving Request' : ''} saved.`)
-      onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client, !!ipPdf)
-    } catch (e) { setMsg(e.message) } finally { setBusy(false) }
+      // The client's copy by email, when they gave an address (sent from the live site once email is connected)
+      let emailed = null
+      if (cl.email) emailed = await api.emailJobDoc(doc.id, 'client').then(r => `emailed to ${r.to}`, e => `not emailed: ${e.message}`)
+      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''}${engrPdf ? ' and Rolex Engraving Request' : ''} saved${emailed ? `, ${emailed}` : ''}.`)
+      onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client, !!ipPdf, emailed)
+    } catch (e) { setMsg(id ? `The job was saved (${clean.edge_no || 'see Jobs'}) but a document failed: ${e.message}. Open the job to print it; don't take the watch in again.` : e.message) } finally { setBusy(false) }
   }
 
   return (
@@ -169,7 +183,6 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <label>Model number<input value={job.watch_ref} onChange={set('watch_ref')} placeholder="126710BLNR" autoCapitalize="characters" /></label>
           <label>Model name<input value={job.watch_name} onChange={set('watch_name')} placeholder="GMT-Master II / Oyster Perpetual" /></label>
           <label>Serial number<input value={job.serial} onChange={set('serial')} autoCapitalize="characters" /></label>
-          <label>Bracelet reference<input value={job.bracelet_ref} onChange={set('bracelet_ref')} placeholder="20-93150-20" autoCapitalize="characters" /></label>
           <label>Bracelet description<input value={job.bracelet} onChange={set('bracelet')} placeholder="Rolex Oyster Fliplock Steel" /></label>
           <label>Dial description<input value={job.dial} onChange={set('dial')} placeholder="126610 black markers w lgn" /></label>
         </div>
@@ -223,13 +236,22 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
 
       <section className="step">
         <h2><span>4</span>Your service</h2>
-        <div className="cards">
-          {CLASSES.map(c => (
-            <button key={c.name} type="button" className="card small" aria-pressed={cls === c.name} onClick={() => chooseClass(c.name)}>
-              <span className="card-title">{c.name}</span><span className="msg">{c.hint}</span>
-            </button>
-          ))}
-        </div>
+        {auto && !allClasses ? (
+          <div className="offer autoclass" data-on="true">
+            <b>{auto.cls}{auto.collection && auto.collection !== auto.cls ? ` · ${auto.collection}` : ''}</b>
+            <span className="msg"> · {CLASSES.find(c => c.name === auto.cls)?.hint} · from the {auto.why}</span>
+            <button type="button" className="link" onClick={() => setAllClasses(true)}>Change</button>
+          </div>
+        ) : (
+          <div className="cards">
+            {CLASSES.map(c => (
+              <button key={c.name} type="button" className="card small" aria-pressed={cls === c.name} onClick={() => { setAllClasses(true); chooseClass(c.name, c.name === auto?.cls ? suggested : null) }}>
+                <span className="card-title">{c.name}</span><span className="msg">{c.hint}</span>
+              </button>
+            ))}
+            {!auto && <p className="msg">{job.watch_ref ? "This model isn't in our list yet: choose the class." : 'Enter the model number above and the class is chosen for you.'}</p>}
+          </div>
+        )}
         {vintage && (
           <div className="offer" data-on="true">
             <b>Rolex Vintage Analysis Fee · {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</b>
@@ -260,11 +282,13 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         )}
         {isCTR && (
           <div className="cards">
-            {Object.entries(ctrPrices).map(([t, p]) => (
+            {Object.entries(ctrPrices).filter(([t]) => allTiers || !suggested || tier !== suggested || t === tier).map(([t, p]) => (
               <button key={t} type="button" className="card" aria-pressed={tier === t} onClick={() => setTier(t)}>
                 <span className="card-title">{t.replace(/^CO - /, '').replace(/ \$.*/, '').toLowerCase().replace(/^./, c => c.toUpperCase())} complete service</span><span className="card-price">{p != null ? money(p) : 'Price on estimate'}</span>
+                {t === suggested && auto?.collection && <span className="msg">For the {auto.collection} collection</span>}
               </button>
             ))}
+            {!allTiers && suggested && tier === suggested && <button type="button" className="link" onClick={() => setAllTiers(true)}>Other offers</button>}
             {!cls && <p className="msg">Choose Modern or Classic above to see the Rolex offers.</p>}
           </div>
         )}
@@ -324,21 +348,13 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} autoComplete="off" /></label>
           <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" /></label>
           <label>Phone or postal code<input value={client.address3} onChange={e => setClient({ ...client, address3: e.target.value })} autoComplete="off" /></label>
+          <label>Email (we'll send you a copy)<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="Optional" /></label>
         </div>
         {vintage && (
           <label className="tog big"><input type="checkbox" checked={feeOk} onChange={e => setFeeOk(e.target.checked)} /> I accept the Rolex Vintage Analysis Fee of {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</label>
         )}
         <p className="msg">By signing, you confirm the details above and accept the {vintage ? 'analysis fee and the' : ''} terms (provided on the printed document). Your details are kept only on your signed {vintage ? 'form' : 'receipt'}.</p>
         <SignaturePad onChange={setSig} />
-      </section>
-
-      <section className="step boutique">
-        <h2><span>·</span>For the boutique</h2>
-        <div className="grid">
-          <label>Edge job #<input value={job.edge_no} onChange={set('edge_no')} inputMode="numeric" placeholder="124595-001" /></label>
-          <label>Rolex / WSC #<input value={job.rolex_service_no} onChange={set('rolex_service_no')} /></label>
-          <label>MRWS #<input value={job.mrws_ref} onChange={set('mrws_ref')} inputMode="numeric" /></label>
-        </div>
       </section>
 
       <div className="savebar">

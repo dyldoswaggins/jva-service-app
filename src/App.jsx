@@ -10,11 +10,12 @@ import SignIn, { ChangePassword } from './SignIn.jsx'
 import JobsView from './repairs/JobsView.jsx'
 import SalesHome from './repairs/SalesHome.jsx'
 import SettingsView from './SettingsView.jsx'
+import ChecklistView from './ChecklistView.jsx'
 import RolePicker, { roleTitle } from './RolePicker.jsx'
 import { OPEN_ACCESS, chosenRole, chooseRole } from './supabase.js'
 
-const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings']
-const ADMIN_ONLY = ['Inbox', 'Settings']
+const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings', 'Checklist']
+const ADMIN_ONLY = ['Inbox', 'Settings', 'Checklist']
 
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = checking
@@ -206,6 +207,7 @@ function Workshop({ session, openRole }) {
           {view === 'Models' && <ModelsView models={models} parts={list} can={can} actions={actions} />}
           {view === 'Inbox' && can.edit && <InboxView allParts={parts} actions={actions} userId={session.user.id} />}
           {view === 'Settings' && can.edit && <SettingsView actions={actions} />}
+          {view === 'Checklist' && can.edit && <ChecklistView actions={actions} />}
         </>
       )}
       {toast && (
