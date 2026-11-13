@@ -8,6 +8,7 @@ import JobTimer from './JobTimer.jsx'
 import JobAssessment from './JobAssessment.jsx'
 import { makeBagLabel } from '../docs/label.js'
 import JobUploads from './JobUploads.jsx'
+import { partReasons } from '../docs/lines.js'
 import JobOverview from './JobOverview.jsx'
 import JobTiming from './JobTiming.jsx'
 
@@ -156,6 +157,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       <section className="panel">
         <h3>Watch analysis</h3>
         <p>{current.length ? conditionText(current) : <span className="msg">Nothing confirmed yet.</span>}</p>
+        {partReasons(job, conditionText(current)).length > 0 && <p className="msg">Printed with it (reasons for added parts): {partReasons(job, conditionText(current)).join('. ')}.</p>}
         {canBench && (
           <>
             <div className="chips small">

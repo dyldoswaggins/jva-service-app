@@ -294,3 +294,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-12 | Phase 4a: per-job uploads (migration 024: job_docs label/note/content_type, kind upload; jobs.estimate_source, rolex_estimate) and Rolex estimate PDF → JVA estimate (local reader tested on 193 Rolex documents, review screen with job/serial/model checks). |
 | 2026-11-12 | Phase 2: migration 025 (jobs remarks/precleaned/handling/exclusions/timing; job_parts supply/ordered/picked + set_job_part_supply), Service overview panel, parts sourcing + pick list, Rolex Timing Analysis entry/print. |
 | 2026-11-12 | Removed the pick list and part sourcing ticks (Dylan): parts process stays automatic — calibre CTR kit, stock off when the job leaves Estimate, shortages flagged. |
+| 2026-11-12 | Migration 026: reason required for every part added beyond the CTR kit; printed under Watch analysis on client documents. |

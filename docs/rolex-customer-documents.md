@@ -126,3 +126,6 @@ Bracelet: dented, scratched, stretched, worn.
   and actual daily rate calculated; 4-day observation, power reserve, passed / not passed; several tests kept; printable. Position labels
   (Crown left / down / up, Dial up / down) to confirm with the watchmakers. Hidden for Vintage (Rolex Toronto).
 - Watch analysis vocabulary: + Oscillating weight (bench only).
+- **Reason for added parts** (Dylan, 2026-11-12; migration 026): any part added beyond the automatic CTR kit (In CTR, upgrade, billable,
+  search) needs a reason, enforced in `add_job_part`. Reasons show on the parts list and the Watch analysis panel, and print on the
+  Estimate / Confirmation under "Watch analysis" after the confirmed conditions (`analysisText` in `src/docs/lines.js`; duplicates skipped).

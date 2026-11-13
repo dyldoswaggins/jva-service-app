@@ -40,6 +40,20 @@ export function documentLines(job, allParts) {
   return { necessary, optional }
 }
 
+// Reasons given for parts added beyond the CTR kit (Dylan, 2026-11-12): printed under "Watch analysis" after the conditions
+export function partReasons(job, conditionsText = '') {
+  const seen = new Set(), have = String(conditionsText).toLowerCase()
+  return (job.job_parts || []).filter(l => l.kind !== 'ctr_kit' && l.reason && (l.state === 'active' || l.decision === 'accepted'))
+    .map(l => l.reason.trim().replace(/[.\s]+$/, '')).filter(r => { const k = r.toLowerCase(); if (seen.has(k) || have.includes(k)) return false; seen.add(k); return true })
+    .map(r => r[0].toUpperCase() + r.slice(1))
+}
+// Watch analysis as printed: confirmed conditions, then the reasons for added parts
+export function analysisText(job, conditionText) {
+  const cond = conditionText((job.job_conditions || []).filter(c => c.state === 'confirmed'))
+  const reasons = partReasons(job, cond)
+  return [cond, ...reasons].filter(Boolean).join('. ') + ((cond || reasons.length) ? '.' : '')
+}
+
 // Optional work must be backed by a confirmed finding in the watch analysis (Dylan, 2026-11-09)
 export const findings = job => (job.job_conditions || []).filter(c => c.state === 'confirmed')
 export const isBacked = (job, component, term) =>

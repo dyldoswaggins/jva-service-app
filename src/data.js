@@ -213,10 +213,10 @@ const live = {
     if (error) throw error
     return data
   },
-  async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null }) {
+  async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null, reason = null }) {
     const { data, error } = await supabase.rpc('add_job_part', {
       p_job: jobId, p_part: partId, p_qty: qty, p_kind: kind, p_source: source,
-      p_component: component, p_condition: condition, p_required: required,
+      p_component: component, p_condition: condition, p_required: required, p_reason: reason,
     })
     if (error) throw error
     return data

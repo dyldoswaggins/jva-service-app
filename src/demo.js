@@ -249,12 +249,13 @@ export function makeDemo() {
       }
       return n
     },
-    async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null }) {
+    async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null, reason = null }) {
       const s = await load(), j = s.jobs.find(x => x.id === jobId), p = s.parts.get(partId)
+      if (kind !== 'ctr_kit' && String(reason || '').trim().length < 3) throw new Error('Give the reason this part is needed (shown on the client documents)')
       if (kind === 'billable' && (!component || !condition || !required)) throw new Error('Billable parts need a component, a condition and Necessary / Optional')
       if (kind === 'billable' && required === 'optional' && !demoBacked(j, component, condition)) throw new Error(`Optional work must be backed by the watch analysis: confirm or add "${component} ${condition.toLowerCase()}" first`)
       j.job_parts = j.job_parts || []
-      const l = { id: crypto.randomUUID(), job_id: jobId, part_id: partId, rmc: p.rmc, qty, kind, source, component, condition_term: condition, required, retail: p.retail, consumed_qty: 0, short_qty: 0, state: 'active', at: new Date().toISOString() }
+      const l = { id: crypto.randomUUID(), job_id: jobId, part_id: partId, rmc: p.rmc, qty, kind, source, component, condition_term: condition, required, reason: reason ? String(reason).trim() : null, retail: p.retail, consumed_qty: 0, short_qty: 0, state: 'active', at: new Date().toISOString() }
       j.job_parts.push(l)
       if (j.stock_taken_at) { const take = Math.min(qty, p.qty ?? 0); s.parts.set(partId, { ...p, qty: (p.qty ?? 0) - take }); l.consumed_qty = take; l.short_qty = qty - take }
       return l.id
