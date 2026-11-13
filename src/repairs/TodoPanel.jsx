@@ -1,4 +1,4 @@
-import { ROLEX_DIRECT, fmtDate, isProvisional, needsValidation, openPrompts, watchLine } from '../rules.js'
+import { ROLEX_DIRECT, finishBlockers, inStoreService, timingPassed, fmtDate, isProvisional, needsValidation, openPrompts, watchLine } from '../rules.js'
 
 // Rolex / Workflow v2.1 targets: estimate within 24 h of intake, confirmation within 24 h of the signed estimate —
 // 3 days when it falls on a weekend (store closures / holidays: judge by eye).
@@ -41,7 +41,7 @@ export function todoBuckets(jobs, kindOf, can, now = new Date()) {
     b.push({ key: 'pickup', title: 'Waiting for pickup', hint: 'In the pickup cabinet',
       rows: jobs.filter(j => j.status === 'Ready for pickup').map(j => { const n = daysSince(j.cabinet_at || j.completed_at, now); return { j, note: `${n} day${n === 1 ? '' : 's'}`, late: n > 30 } }) })
     b.push({ key: 'invoice', title: 'Ready to invoice', hint: 'Done, no invoice yet',
-      rows: jobs.filter(j => j.status === 'Done' && j.estimate_decision === 'accepted' && !docs(j, 'invoice')).map(j => ({ j, note: 'service complete' })) })
+      rows: jobs.filter(j => j.status === 'Done' && j.estimate_decision === 'accepted' && !docs(j, 'invoice') && !finishBlockers(j).length).map(j => ({ j, note: 'service complete' })) })
   }
   b.push({ key: 'parts', title: 'Parts short', hint: 'Order in MRWS (Service Manager approves)',
     rows: open.filter(j => (j.job_parts || []).some(l => l.state === 'active' && l.short_qty > 0))
@@ -50,6 +50,8 @@ export function todoBuckets(jobs, kindOf, can, now = new Date()) {
     b.push({ key: 'prompts', title: 'To assess', hint: 'WSR check, conditions and client requests before the estimate',
       rows: open.filter(j => j.status === 'Estimate' && !ROLEX_DIRECT(j) && openPrompts(j)).map(j => { const l = left(dueFrom(j.intake_at), now); return { j, note: `${openPrompts(j)} to confirm · estimate ${l.text}`, late: l.late } })
         .sort((a, b) => dueFrom(a.j.intake_at) - dueFrom(b.j.intake_at)) })
+    b.push({ key: 'qc', title: 'Final QC', hint: 'Timing passed: a second watchmaker checks and signs off',
+      rows: open.filter(j => inStoreService(j) && timingPassed(j) && !j.qc_at).map(j => ({ j, note: 'timing passed · QC sign-off needed' })) })
     const eta = j => j.eta_override || j.eta_quoted || '9999'
     b.push({ key: 'bench', title: 'Bench queue', hint: 'Approved work, by ETA',
       rows: open.filter(j => j.estimate_decision === 'accepted' && !toronto(j)).sort((a, b) => (eta(a) < eta(b) ? -1 : eta(a) > eta(b) ? 1 : a.intake_at < b.intake_at ? -1 : 1))

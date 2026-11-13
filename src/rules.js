@@ -47,6 +47,11 @@ export const termsFor = component => CONDITIONS.find(x => x.c === component)?.t 
 export const SERVICE_TYPES = ['CTR', 'Partial', 'Warranty', 'Quick Service', 'Engraving']
 // Engraving requests go straight to Rolex Toronto: no watchmaker assessment, estimate or bench queue (Dylan, 2026-11-12)
 export const ROLEX_DIRECT = j => j?.service_type === 'Engraving'
+// Serviced in our workshop (not Vintage / engraving / sent to Toronto / Rolex's own estimate)
+export const inStoreService = j => !(j?.classification === 'Vintage' || ROLEX_DIRECT(j) || j?.status === 'Sent to Toronto' || j?.estimate_source === 'rolex')
+export const timingPassed = j => (j?.timing || []).slice(-1)[0]?.result === 'pass'
+// Invoice, Done and Ready for pickup wait for a passed timing analysis and the final QC sign-off (Dylan, 2026-11-12)
+export const finishBlockers = j => inStoreService(j) ? [!timingPassed(j) && 'timing analysis passed', !j?.qc_at && 'final QC signed off'].filter(Boolean) : []
 export const ENGRAVING_REQUEST = 'Engraving by Rolex'
 // Customer requests in Rolex wording (Rolex Harmonized documents)
 export const REQ = {

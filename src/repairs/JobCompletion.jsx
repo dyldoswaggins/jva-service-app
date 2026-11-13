@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api } from '../data.js'
-import { fmtDate, fmtTime } from '../rules.js'
+import { finishBlockers, fmtDate, fmtTime } from '../rules.js'
 import { Handover } from './PickupView.jsx'
 
 // Workflow v2.1 steps 9–11 + the Overview's "SERVICE CHECKLIST (Service Advisor)" and "… OUT (AFTER SERVICE)" lines.
@@ -36,15 +36,16 @@ export default function JobCompletion({ job, can, userId, who, actions, onChange
     ['Confirmation', has('confirmation') || warranty],
     ['Invoice', has('invoice') || warranty],
     ...(!toronto ? [['Timing analysis', lastTiming?.result === 'pass', lastTiming ? (lastTiming.result === 'pass' ? '' : '(not passed)') : null],
+      ['Final QC (second watchmaker)', !!job.qc_at, job.qc_checker ? `(${job.qc_checker})` : null],
       ['Chronoscope service analysis', upload('Chronoscope printout') || docs.some(d => /chronoscope|witschi/i.test(d.note || d.file_name))]] : []),
     ['Complete paperwork, digital copy', true, 'automatic: every document is filed on the job'],
   ]
   const done = {
     end: !!job.completed_at, invoice: has('invoice') || warranty, notified: !!(job.client_called_at || job.client_emailed_at), cabinet: !!job.cabinet_at,
-    wsc: toronto || !!job.wsc_completed_at, card: toronto || !!job.warranty_card_at,
+    wsc: toronto || !!job.wsc_completed_at, card: toronto || !!job.warranty_card_at, qc: !finishBlockers(job).length,
   }
   const ready = Object.values(done).every(Boolean)
-  const missing = [!done.end && 'service end date', !done.invoice && 'invoice', !done.wsc && 'WSC completed', !done.card && 'warranty card',
+  const missing = [...finishBlockers(job), !done.end && 'service end date', !done.invoice && 'invoice', !done.wsc && 'WSC completed', !done.card && 'warranty card',
     !done.notified && 'client called or emailed', !done.cabinet && 'pickup cabinet'].filter(Boolean)
   const T = ({ k, label, on, onClick }) => (
     <label className="tog big"><input type="checkbox" checked={!!on} disabled={!edit} onChange={onClick || (() => tick(k, label))} /> {label}
@@ -61,6 +62,7 @@ export default function JobCompletion({ job, can, userId, who, actions, onChange
   return (
     <section className="panel">
       <h3>Completion</h3>
+      {finishBlockers(job).length > 0 && <p className="flagline">The service is completed and invoiced after: {finishBlockers(job).join(' and ')} (Timing analysis panel).</p>}
       <div className="cols2">
         <div>
           <b>Service Advisor checklist</b>

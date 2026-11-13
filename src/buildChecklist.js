@@ -50,6 +50,7 @@ export const CHECKLIST = [
 
   // ---- Done (recent) ----
   { id: 'auto-class', group: 'Done', who: 'Claude', done: true, title: 'Intake picks Modern / Classic / Vintage (reference digits), the offer and the polishing line from the model' },
+  { id: 'final-qc', group: 'Done', who: 'Claude', done: true, title: 'Final QC sign-off by a second watchmaker; invoice and completion wait for timing + QC' },
   { id: 'validation', group: 'Done', who: 'Claude', done: true, title: 'Watch validation: Edge #, WSC #, MRWS #, bracelet ref entered by the Service Manager' },
   { id: 'client-email', group: 'Done', who: 'Claude', done: true, title: 'Client email at intake (copy sent once email is connected)' },
   { id: 'engraving', group: 'Done', who: 'Claude', done: true, title: 'Engraving: straight to Rolex with the Engraving Request Form' },

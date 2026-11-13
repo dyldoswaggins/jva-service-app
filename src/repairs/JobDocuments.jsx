@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
-import { money, openPrompts, weeksUntil } from '../rules.js'
+import { finishBlockers, money, openPrompts, weeksUntil } from '../rules.js'
 import { autoNotes, decidedLines, documentLines, sumLines, unbackedOptional, unpriced } from '../docs/lines.js'
 import { buildConfirmation, buildEstimate, buildInvoice, docFileName } from '../docs/serviceDocs.js'
 import SignPage from './SignPage.jsx'
@@ -155,8 +155,8 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         </div>
         <div className="docstep">
           <b>4. Invoice</b>
-          <span className="msg">{docsOf('invoice').length ? `Created ${docsOf('invoice').length}×` : 'When the watch is ready'}</span>
-          <button type="button" className="btn solid" disabled={!!busy || job.estimate_decision !== 'accepted'} onClick={() => makeDoc('invoice')}>Create invoice</button>
+          <span className="msg">{docsOf('invoice').length ? `Created ${docsOf('invoice').length}×` : finishBlockers(job).length ? `After: ${finishBlockers(job).join(', ')}` : 'When the watch is ready'}</span>
+          <button type="button" className="btn solid" disabled={!!busy || job.estimate_decision !== 'accepted' || finishBlockers(job).length > 0} onClick={() => makeDoc('invoice')}>Create invoice</button>
         </div>
       </div>
 

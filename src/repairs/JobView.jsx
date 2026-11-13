@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, ROLEX_DIRECT, braceletLine, conditionText, dialLine, fmtTime, openPrompts, termsFor, watchLine } from '../rules.js'
+import { CONDITIONS, ROLEX_DIRECT, finishBlockers, braceletLine, conditionText, dialLine, fmtTime, openPrompts, termsFor, watchLine } from '../rules.js'
 import JobParts from './JobParts.jsx'
 import JobServiceInfo from './JobServiceInfo.jsx'
 import JobDocuments from './JobDocuments.jsx'
@@ -70,6 +70,8 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
   `${component} ${term.toLowerCase()} added`)
 
   const setStatus = async s => {
+    if (['Done', 'Ready for pickup', 'Picked up'].includes(s) && finishBlockers(job).length)
+      return setMsg(`Not yet: ${finishBlockers(job).join(' and ')} first (Timing analysis panel).`)
     if (!direct && job.status === 'Estimate' && s !== 'Estimate' && s !== 'Cancelled' && pending)
       return setMsg(`Answer the ${pending} prompt${pending === 1 ? '' : 's'} first (WSR check, condition and client requests).`)
     const prev = job.status

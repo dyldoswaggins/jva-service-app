@@ -24,6 +24,37 @@ const blank = (job, name) => ({ watchmaker: name || '', calibre: job.calibre || 
   case_serial: job.serial || '', case_ref: job.watch_ref || '', pos: POSITIONS.map(() => ({ r24: '', a24: '', r0: '', a0: '' })),
   obs: OBS.map(() => ({ date: '', time: '', state: '', diff: '' })), pr: { date: '', time: '', hours: '' }, result: '' })
 
+// Final QC (Dylan, 2026-11-12): after the timing passes, a second watchmaker checks the watch; the watchmaker presses the button to record
+// their sign-off. Invoice, Done and Ready for pickup wait for it.
+function FinalQc({ job, can, userId, who, actions, onChange, passed }) {
+  const [checker, setChecker] = useState('')
+  const [msg, setMsg] = useState('')
+  const run = async (fields, done) => { setMsg(''); try { await api.updateJob(job.id, fields); actions.say(done); onChange() } catch (e) { setMsg(e.message) } }
+  if (job.qc_at) return (
+    <div className="flagline good">✓ Final QC signed off by <b>{job.qc_checker || 'second watchmaker'}</b> · {fmtTime(job.qc_at)}{job.qc_by ? ` · recorded by ${who(job.qc_by)}` : ''}
+      {can.bench && <button type="button" className="btn" onClick={() => run({ qc_at: null, qc_by: null, qc_checker: null }, 'Final QC sign-off removed')}>Undo</button>}
+    </div>
+  )
+  return (
+    <div className="subpanel qc">
+      <b>Final QC</b>
+      {!passed ? <p className="msg">After the timing analysis passes: a second watchmaker checks the watch, then sign it off here. The invoice and completion wait for it.</p> : (
+        <>
+          <p className="msg">A second watchmaker checks the finished watch. Press the button once they have signed it off.</p>
+          {can.bench && (
+            <div className="actions">
+              <input value={checker} onChange={e => setChecker(e.target.value)} placeholder="Checked by (second watchmaker)" style={{ minWidth: 240 }} />
+              <button type="button" className="btn solid" disabled={checker.trim().length < 2}
+                onClick={() => run({ qc_at: new Date().toISOString(), qc_by: userId || null, qc_checker: checker.trim() }, 'Final QC signed off')}>✓ Final QC signed off</button>
+            </div>
+          )}
+        </>
+      )}
+      {msg && <p className="msg warn">{msg}</p>}
+    </div>
+  )
+}
+
 export default function JobTiming({ job, can, userId, who, actions, onChange }) {
   const sheets = job.timing || []
   const last = sheets[sheets.length - 1]
@@ -56,6 +87,7 @@ export default function JobTiming({ job, can, userId, who, actions, onChange }) 
       {!s && (last
         ? <p className="msg">{last.result === 'pass' ? '✓ Passed' : '✗ Not passed'} · 1st criterion {last.c1 ?? '—'} · 2nd {last.c2 ?? '—'} · daily rate {last.daily ?? '—'} s/d · power reserve {last.pr?.hours || '—'} h · {last.watchmaker} · {fmtTime(last.at)}{sheets.length > 1 ? ` · ${sheets.length} tests` : ''}</p>
         : <p className="msg">No timing entered yet (Rolex requires one per watch serviced).</p>)}
+      {!s && <FinalQc job={job} can={can} userId={userId} who={who} actions={actions} onChange={onChange} passed={last?.result === 'pass'} />}
       {s && (
         <div className="stack timing">
           <div className="grid">
