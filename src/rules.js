@@ -44,7 +44,10 @@ export const CONDITIONS = [
   { c: 'Oscillating weight', t: ['Within spec', 'Worn', 'Damaged', 'Requires replacement'], intake: false },
 ]
 export const termsFor = component => CONDITIONS.find(x => x.c === component)?.t || []
-export const SERVICE_TYPES = ['CTR', 'Partial', 'Warranty', 'Quick Service']
+export const SERVICE_TYPES = ['CTR', 'Partial', 'Warranty', 'Quick Service', 'Engraving']
+// Engraving requests go straight to Rolex Toronto: no watchmaker assessment, estimate or bench queue (Dylan, 2026-11-12)
+export const ROLEX_DIRECT = j => j?.service_type === 'Engraving'
+export const ENGRAVING_REQUEST = 'Engraving by Rolex'
 // Customer requests in Rolex wording (Rolex Harmonized documents)
 export const REQ = {
   overhaul: 'Perform complete overhaul',

@@ -99,7 +99,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
   return (
     <section className="panel">
       <h3>Estimate, confirmation and invoice</h3>
-      {prompts > 0 && <p className="flagline">The watchmaker still has {prompts} prompt{prompts === 1 ? '' : 's'} to answer (WSR, condition, requests). The estimate should follow the full analysis.</p>}
+      {prompts > 0 && job.service_type !== 'Engraving' && <p className="flagline">The watchmaker still has {prompts} prompt{prompts === 1 ? '' : 's'} to answer (WSR, condition, requests). The estimate should follow the full analysis.</p>}
 
       <div className="grid">
         <label>Client name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} /></label>

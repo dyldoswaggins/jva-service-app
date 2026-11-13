@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
-import { CLASSES, CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
+import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
 import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
 import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
+import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm } from '../docs/engravingForm.js'
 import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
 
@@ -30,6 +31,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [cls, setCls] = useState('')          // Modern | Classic | Vintage
   const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted
   const [proceedNow, setProceedNow] = useState(false) // client wants to proceed immediately (Rolex Immediate Proceed form)
+  const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
   const camRef = useRef(null)
@@ -75,6 +77,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     }
   }
   const isCTR = job.service_type === 'CTR'
+  const engraving = job.service_type === 'Engraving' // straight to Rolex Toronto with Rolex's Engraving Request Form
   const ctrPrice = isCTR && tier ? allOffers[tier] : null
   const polishPrice = polish && family ? polishPrices[family] : null
   const total = vintage ? vfee : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
@@ -82,11 +85,12 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const allReqs = [
     ...(vintage ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
     ...(isCTR ? [{ request: REQ.overhaul, note: tier || '' }] : []),
+    ...(engraving ? [{ request: ENGRAVING_REQUEST, note: [engr.text.trim() && `"${engr.text.trim()}"`, engr.font, engr.case, engr.position].filter(Boolean).join(' · ') }] : []),
     ...(polish ? [{ request: REQ.refinish, note: family }] : isCTR ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
     ...reqs,
   ]
 
-  const showEta = !vintage && timeframeAtIntake({ isCTR, polish, requests: reqs })
+  const showEta = !vintage && !engraving && timeframeAtIntake({ isCTR, polish, requests: reqs })
   const missing = [
     !JOB_NO.test(job.edge_no.trim()) && 'Edge job # (like 124595-001)',
     !cls && 'Modern, Classic or Vintage',
@@ -100,6 +104,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     isCTR && !tier && 'complete service offer',
     job.service_type === 'Warranty' && !job.purchase_date && 'date of purchase (warranty card)',
     polish && !family && 'polishing line',
+    engraving && !engr.text.trim() && 'engraving text',
+    engraving && !engr.font && 'engraving font',
+    engraving && !engr.case && 'engraving letter case',
     !allReqs.length && 'at least one request',
     !client.name.trim() && 'client name',
     !sig && 'client signature',
@@ -113,6 +120,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
       polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
       classification: cls, vintage_fee: vintage ? vfee : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
+      engraving: engraving ? { ...engr, text: engr.text.trim() } : null,
     }
     const quote = {
       items: [
@@ -130,12 +138,15 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       const ipPdf = vintage || (isCTR && proceedNow) ? await makeImmediateProceedRolex({ ...args, staffName, offer: isCTR ? tier : null, offerPrice: ctrPrice,
         polish, polishPrice: polishPrice ?? 210, includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null }) : null
       const mainPdf = vintage ? feePdf : await makeReceipt({ ...args, quote })
+      const engrPdf = engraving ? await makeEngravingForm({ job: clean, client, engraving: clean.engraving, staffName }) : null
       const id = await api.createJob(clean, conds, allReqs, client)
       const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', mainPdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
       if (ipPdf) await api.uploadJobDoc(id, 'immediate_proceed', ipPdf, immediateProceedFileName(clean), userId)
-      const pdf = ipPdf ? await mergePdfs([mainPdf, ipPdf]) : mainPdf // printed together, filed separately
+      if (engrPdf) await api.uploadJobDoc(id, 'engraving_request', engrPdf, engravingFileName(clean), userId)
+      const extra = [ipPdf, engrPdf].filter(Boolean)
+      const pdf = extra.length ? await mergePdfs([mainPdf, ...extra]) : mainPdf // printed together, filed separately
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
-      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''} saved.`)
+      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''}${engrPdf ? ' and Rolex Engraving Request' : ''} saved.`)
       onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client, !!ipPdf)
     } catch (e) { setMsg(e.message) } finally { setBusy(false) }
   }
@@ -226,10 +237,26 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           </div>
         )}
         {!vintage && <div className="chips">
-          {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => setJob({ ...job, service_type: t })}>{t === 'CTR' ? 'Complete service' : t}</button>)}
+          {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => { setJob({ ...job, service_type: t }); if (t === 'Engraving') setPolish(false) }}>{t === 'CTR' ? 'Complete service' : t}</button>)}
         </div>}
         {job.service_type === 'Warranty' && (
           <label className="field">Date of purchase (on the Rolex warranty card)<input type="date" value={job.purchase_date || ''} onChange={e => setJob({ ...job, purchase_date: e.target.value })} style={{ maxWidth: 220 }} /></label>
+        )}
+        {engraving && (
+          <div className="offer" data-on="true">
+            <b>Rolex engraving · sent to Rolex Toronto</b>
+            <p className="msg">Engraved by Rolex: usually $100–150 and 5–7 business days at Rolex, plus shipping. Centred on the case back unless you tell us otherwise. Rolex intends this for new or stock watches.</p>
+            <label className="field">Engraving text (as it should appear; new line for each line)
+              <textarea rows={3} value={engr.text} onChange={e => setEngr({ ...engr, text: e.target.value })} placeholder="Happy 40th · J.A. · 2026" /></label>
+            <div className="msg">Font</div>
+            <div className="chips">{ENGRAVING_FONTS.map(f => <button key={f} type="button" className="chip" aria-pressed={engr.font === f} onClick={() => setEngr({ ...engr, font: f })}>{f}</button>)}</div>
+            <div className="msg">Letters</div>
+            <div className="chips">{ENGRAVING_CASES.map(c => <button key={c} type="button" className="chip" aria-pressed={engr.case === c} onClick={() => setEngr({ ...engr, case: c })}>{c}</button>)}</div>
+            <div className="grid">
+              <label>Position<input value={engr.position} onChange={e => setEngr({ ...engr, position: e.target.value })} /></label>
+              <label>Note for Rolex<input value={engr.note} onChange={e => setEngr({ ...engr, note: e.target.value })} placeholder="Optional" /></label>
+            </div>
+          </div>
         )}
         {isCTR && (
           <div className="cards">
@@ -241,7 +268,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             {!cls && <p className="msg">Choose Modern or Classic above to see the Rolex offers.</p>}
           </div>
         )}
-        {!vintage && <div className="offer" data-on={polish}>
+        {!vintage && !engraving && <div className="offer" data-on={polish}>
           <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Refinish (polish and satin-finish) case and bracelet</label>
           {!polish && isCTR && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
           {polish && (
@@ -273,8 +300,11 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <h2><span>5</span>Estimate and timing</h2>
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
-            <div className="msg">{vintage ? 'Rolex Vintage Analysis Fee. The estimate for the work follows the analysis.' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
-          {vintage ? (
+            <div className="msg">{vintage ? 'Rolex Vintage Analysis Fee. The estimate for the work follows the analysis.' : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
+          {engraving ? (
+            <div><div className="msg">Timing</div><div className="big-num">About 2 weeks</div>
+              <div className="msg">Rolex engraves in 5–7 business days, plus shipping to and from Toronto. We'll call you when it's back.</div></div>
+          ) : vintage ? (
             <div><div className="msg">Timing</div><div className="big-num">Estimate in about 3 weeks</div>
               <div className="msg">Restoration estimates within 3 months. We'll contact you as soon as Rolex has analysed your watch.</div></div>
           ) : showEta ? (

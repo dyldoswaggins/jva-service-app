@@ -42,7 +42,7 @@ export default function JobServiceInfo({ job, can, userId, actions, onChange }) 
         {job.classification === 'Vintage' && <div><dt>Analysis fee</dt><dd>{job.vintage_fee != null ? money(job.vintage_fee) : '—'} + GST · accepted at intake</dd></div>}
         <div><dt>Polishing</dt><dd>{job.polish ? `Yes · ${job.polish_family || ''}${job.polish_price != null ? ` · ${money(job.polish_price)}` : ''}` : 'No'}</dd></div>
         <div><dt>Quoted at intake</dt><dd>{total ? money(total) : '—'}{job.eta_quoted ? ` · ready ~${fmtDate(job.eta_quoted)}` : ''}</dd></div>
-        {job.classification !== 'Vintage' && <div><dt>ETA now</dt><dd><b>{eta ? fmtDate(eta) : '—'}</b> {job.eta_override ? '(set by watchmaker)' : queue ? `(queue: ${queue.ahead} ahead)` : ''}</dd></div>}
+        {job.classification !== 'Vintage' && job.service_type !== 'Engraving' && <div><dt>ETA now</dt><dd><b>{eta ? fmtDate(eta) : '—'}</b> {job.eta_override ? '(set by watchmaker)' : queue ? `(queue: ${queue.ahead} ahead)` : ''}</dd></div>}
       </div>
       {can.bench && (
         <div className="actions">

@@ -10,6 +10,8 @@ import SignIn, { ChangePassword } from './SignIn.jsx'
 import JobsView from './repairs/JobsView.jsx'
 import SalesHome from './repairs/SalesHome.jsx'
 import SettingsView from './SettingsView.jsx'
+import RolePicker, { roleTitle } from './RolePicker.jsx'
+import { OPEN_ACCESS, chosenRole, chooseRole } from './supabase.js'
 
 const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings']
 const ADMIN_ONLY = ['Inbox', 'Settings']
@@ -24,8 +26,20 @@ export default function App() {
 
   if (!api.configured) return <Shell><p className="msg">Not connected to the database yet.</p></Shell>
   if (session === undefined) return <Shell><p className="msg">Loading…</p></Shell>
-  if (!session) return <Shell><SignIn /></Shell>
+  if (!session) {
+    // Open access: no sign-in, a role picker instead (staff with an account can still sign in)
+    if (OPEN_ACCESS && api.mode !== 'demo') {
+      if (chosenRole()) return <Workshop session={{ user: { id: null, email: '' } }} openRole={chosenRole()} />
+      return <Shell><OpenStart /></Shell>
+    }
+    return <Shell><SignIn /></Shell>
+  }
   return <Workshop session={session} />
+}
+
+function OpenStart() {
+  const [signIn, setSignIn] = useState(false)
+  return signIn ? <SignIn /> : <RolePicker onSignIn={() => setSignIn(true)} />
 }
 
 function Shell({ children, right }) {
@@ -42,7 +56,7 @@ function Shell({ children, right }) {
   )
 }
 
-function Workshop({ session }) {
+function Workshop({ session, openRole }) {
   const [parts, setParts] = useState(null) // Map id → part
   const [models, setModels] = useState(new Map())
   const [profiles, setProfiles] = useState([])
@@ -66,7 +80,8 @@ function Workshop({ session }) {
     })
   }, [])
 
-  const me = profiles.find(p => p.id === session.user.id) || { role: 'view' }
+  const me = openRole ? { id: null, name: roleTitle(openRole), role: openRole } : profiles.find(p => p.id === session.user.id) || { role: 'view' }
+  const signOut = openRole ? () => chooseRole('') : api.signOut
   const role = me.role || 'view'
   const can = {
     count: role === 'admin', edit: role === 'admin', models: role === 'admin' || role === 'watchmaker',
@@ -146,8 +161,8 @@ function Workshop({ session }) {
       <span className="me">
         {me.name || me.email || session.user.email} · {role === 'view' ? 'View only' : role[0].toUpperCase() + role.slice(1)}
         {api.mode === 'demo' && <b className="tag warn">Demo</b>}
-        {api.mode !== 'demo' && <ChangePassword actions={actions} />}
-        <button className="btn" onClick={api.signOut}>Sign out</button>
+        {api.mode !== 'demo' && !openRole && <ChangePassword actions={actions} />}
+        <button className="btn" onClick={signOut}>{openRole ? 'Switch role' : 'Sign out'}</button>
       </span>
     </div>
   )
@@ -162,7 +177,7 @@ function Workshop({ session }) {
   if (role === 'sales')
     return (
       <main className="wrap page">
-        <SalesHome models={models} actions={actions} userId={session.user.id} me={me} onSignOut={api.signOut} />
+        <SalesHome models={models} actions={actions} userId={session.user.id} me={me} onSignOut={signOut} />
         {toastEl}
       </main>
     )

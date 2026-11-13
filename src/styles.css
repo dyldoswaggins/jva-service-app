@@ -269,3 +269,7 @@ table.imp tr.click:hover td { background: var(--hover); }
 .contactlog li { border-left: 3px solid var(--line); padding-left: 8px; }
 
 .sales-bar .views { margin-right: auto; display: flex; gap: 6px; }
+
+.rolepicker { max-width: 820px; margin: 30px auto; }
+.rolepicker .card { min-height: 120px; }
+.center { text-align: center; }

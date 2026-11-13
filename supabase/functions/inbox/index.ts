@@ -21,7 +21,7 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret, x-ingest-secret",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-role, x-cron-secret, x-ingest-secret",
 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
     }
     if ((body.action === "read" && body.id) || body.action === "check") {
       const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, {
-        global: { headers: { Authorization: req.headers.get("Authorization") || "" } },
+        global: { headers: { ...(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/.test((req.headers.get("Authorization") || "")) ? { Authorization: (req.headers.get("Authorization") || "") } : {}), "x-app-role": req.headers.get("x-app-role") || "" } },
       });
       const { data: role } = await user.rpc("app_role");
       if (role !== "admin") return json({ error: "Only Admin can use the inbox" }, 403);

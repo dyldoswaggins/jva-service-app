@@ -16,7 +16,7 @@ export async function makeBagLabel({ job, clientName }) {
   page.drawText(fit(watchLine(job), reg, 9, W - 24), { x: 12, y: H - 90, size: 9, font: reg })
   page.drawText(fit(`Serial ${job.serial || '—'}`, reg, 9, W - 24), { x: 12, y: H - 103, size: 9, font: reg })
   page.drawText(`In ${day}`, { x: 12, y: 14, size: 9, font: bold })
-  const tags = [job.classification, job.service_type === 'Vintage analysis' ? 'Rolex Toronto' : job.service_type].filter(Boolean).join(' · ')
+  const tags = [job.classification, job.service_type === 'Vintage analysis' ? 'Rolex Toronto' : job.service_type === 'Engraving' ? 'Engraving · Rolex Toronto' : job.service_type].filter(Boolean).join(' · ')
   page.drawText(tags, { x: W - 12 - reg.widthOfTextAtSize(tags, 9), y: 14, size: 9, font: reg })
   page.drawRectangle({ x: 4, y: 4, width: W - 8, height: H - 8, borderWidth: 0.6, borderColor: rgb(0.6, 0.6, 0.6) })
   return new Blob([await pdf.save()], { type: 'application/pdf' })

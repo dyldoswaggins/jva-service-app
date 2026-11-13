@@ -1,4 +1,4 @@
-import { fmtDate, openPrompts, watchLine } from '../rules.js'
+import { ROLEX_DIRECT, fmtDate, openPrompts, watchLine } from '../rules.js'
 
 // Rolex / Workflow v2.1 targets: estimate within 24 h of intake, confirmation within 24 h of the signed estimate —
 // 3 days when it falls on a weekend (store closures / holidays: judge by eye).
@@ -19,10 +19,11 @@ const docs = (j, k) => (j.job_docs || []).some(d => d.kind === k)
 export function todoBuckets(jobs, kindOf, can, now = new Date()) {
   const open = jobs.filter(j => kindOf(j.status) === 'open')
   const vintage = j => j.classification === 'Vintage'
+  const toronto = j => vintage(j) || ROLEX_DIRECT(j) // Rolex Toronto handles it (Vintage; engraving goes straight there)
   const b = []
   if (can.edit) {
     b.push({ key: 'estimate', title: 'Estimates to send', hint: 'Within 24 h of intake (3 days on weekends)',
-      rows: open.filter(j => j.status === 'Estimate' && !vintage(j) && !docs(j, 'estimate'))
+      rows: open.filter(j => j.status === 'Estimate' && !toronto(j) && !docs(j, 'estimate'))
         .map(j => { const l = left(dueFrom(j.intake_at), now); const p = openPrompts(j); return { j, note: l.text + (p ? ` · watchmaker: ${p} to confirm` : ''), late: l.late } })
         .sort((a, b) => dueFrom(a.j.intake_at) - dueFrom(b.j.intake_at)) })
     b.push({ key: 'decision', title: 'Waiting for the client', hint: 'Estimate sent, no decision yet',
@@ -31,8 +32,8 @@ export function todoBuckets(jobs, kindOf, can, now = new Date()) {
     b.push({ key: 'confirm', title: 'Confirmations to send', hint: 'Within 24 h of the signed estimate',
       rows: open.filter(j => j.estimate_decision && !docs(j, 'confirmation'))
         .map(j => { const l = left(dueFrom(j.decision_at), now); return { j, note: j.estimate_decision === 'refused' ? 'refused: acknowledge and arrange return' : l.text, late: l.late } }) })
-    b.push({ key: 'ship', title: 'Vintage to send to Rolex Toronto', hint: 'WSC Declaration and photos before shipping',
-      rows: open.filter(j => vintage(j) && j.status !== 'Sent to Toronto').map(j => ({ j, note: (n => `in ${n} day${n === 1 ? "" : "s"}`)(daysSince(j.intake_at, now)) })) })
+    b.push({ key: 'ship', title: 'Send to Rolex Toronto', hint: 'Vintage: WSC Declaration and photos · Engraving: Rolex Engraving Request Form',
+      rows: open.filter(j => toronto(j) && j.status !== 'Sent to Toronto').map(j => ({ j, note: `${ROLEX_DIRECT(j) ? 'engraving · ' : ''}in ${daysSince(j.intake_at, now)} day${daysSince(j.intake_at, now) === 1 ? '' : 's'}` })) })
     b.push({ key: 'notify', title: 'Call the client: ready', hint: 'Service complete, client not yet called or emailed',
       rows: jobs.filter(j => j.completed_at && !j.client_called_at && !j.client_emailed_at && !['Picked up', 'Cancelled'].includes(j.status)).map(j => ({ j, note: `completed ${fmtDate(j.completed_at)}` })) })
     b.push({ key: 'pickup', title: 'Waiting for pickup', hint: 'In the pickup cabinet',
@@ -45,11 +46,11 @@ export function todoBuckets(jobs, kindOf, can, now = new Date()) {
       .map(j => { const n = (j.job_parts || []).filter(l => l.state === 'active' && l.short_qty > 0).length; return { j, note: `${n} part${n === 1 ? '' : 's'} short` } }) })
   if (can.bench) {
     b.push({ key: 'prompts', title: 'To assess', hint: 'WSR check, conditions and client requests before the estimate',
-      rows: open.filter(j => j.status === 'Estimate' && openPrompts(j)).map(j => { const l = left(dueFrom(j.intake_at), now); return { j, note: `${openPrompts(j)} to confirm · estimate ${l.text}`, late: l.late } })
+      rows: open.filter(j => j.status === 'Estimate' && !ROLEX_DIRECT(j) && openPrompts(j)).map(j => { const l = left(dueFrom(j.intake_at), now); return { j, note: `${openPrompts(j)} to confirm · estimate ${l.text}`, late: l.late } })
         .sort((a, b) => dueFrom(a.j.intake_at) - dueFrom(b.j.intake_at)) })
     const eta = j => j.eta_override || j.eta_quoted || '9999'
     b.push({ key: 'bench', title: 'Bench queue', hint: 'Approved work, by ETA',
-      rows: open.filter(j => j.estimate_decision === 'accepted' && !vintage(j)).sort((a, b) => (eta(a) < eta(b) ? -1 : eta(a) > eta(b) ? 1 : a.intake_at < b.intake_at ? -1 : 1))
+      rows: open.filter(j => j.estimate_decision === 'accepted' && !toronto(j)).sort((a, b) => (eta(a) < eta(b) ? -1 : eta(a) > eta(b) ? 1 : a.intake_at < b.intake_at ? -1 : 1))
         .map(j => ({ j, note: `${j.status}${j.eta_override || j.eta_quoted ? ` · ETA ${fmtDate(j.eta_override || j.eta_quoted)}` : ''}` })) })
   }
   return b

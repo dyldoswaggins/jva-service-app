@@ -113,7 +113,7 @@ Bracelet: dented, scratched, stretched, worn.
   `extra_lines` (source `rolex`, client price = Rolex max. public price, `invoiced` kept), Rolex requests/analysis/notes printed on JVA's
   estimate. Rolex's $50 shipping is not charged to the client unless ticked. Revised Rolex estimates (_002…): upload, "Convert to JVA estimate".
 - Client answers 2026-11-12: approved format = the issued 2026 estimates (post-audit workbook); polishing is a separate charge (new price list);
-  Rolex Pre-Approval not used (receipt + estimate). Engraving requests: not answered yet.
+  Rolex Pre-Approval not used (receipt + estimate). Engraving requests: in the app (2026-11-12) — the watch goes straight to Rolex Toronto with Rolex Canada's Engraving Request Form, filled in at intake (migration 031).
 
 ## Phase 2: Service Overview, parts sourcing, timing (2026-11-12)
 - **Service overview** panel on the job (`JobOverview.jsx`): client requests always in front of the watchmaker (declined ones marked), special

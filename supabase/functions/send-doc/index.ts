@@ -7,7 +7,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-role" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 const KIND = { receipt: "Receipt", estimate: "Estimate", confirmation: "Confirmation", invoice: "Invoice", other: "Document" } as Record<string, string>;
 
@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     // Act as the signed-in person: RLS decides whether they may see this document
     const auth = req.headers.get("Authorization") || "";
-    const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
+    const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { ...(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/.test(auth) ? { Authorization: auth } : {}), "x-app-role": req.headers.get("x-app-role") || "" } } });
     const { data: role } = await user.rpc("app_role");
     if (!["admin", "sales"].includes(role)) return json({ error: "Only Admin or Sales can email documents" }, 403);
     const { data: doc, error } = await user.from("job_docs").select("*, jobs(edge_no, watch_ref, watch_name)").eq("id", doc_id).single();

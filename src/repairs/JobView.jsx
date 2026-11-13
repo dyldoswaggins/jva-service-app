@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../data.js'
-import { CONDITIONS, braceletLine, conditionText, dialLine, fmtTime, openPrompts, termsFor, watchLine } from '../rules.js'
+import { CONDITIONS, ROLEX_DIRECT, braceletLine, conditionText, dialLine, fmtTime, openPrompts, termsFor, watchLine } from '../rules.js'
 import JobParts from './JobParts.jsx'
 import JobServiceInfo from './JobServiceInfo.jsx'
 import JobDocuments from './JobDocuments.jsx'
@@ -49,6 +49,8 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
   const toReview = reqs.filter(r => r.state === 'to_review')
   const current = conds.filter(c => c.state === 'confirmed')
   const canBench = can.bench
+  const direct = ROLEX_DIRECT(job) // engraving: straight to Rolex Toronto, no assessment / estimate / bench
+  const engrDoc = (job.job_docs || []).filter(d => d.kind === 'engraving_request').sort((a, b) => (a.at < b.at ? 1 : -1))[0]
 
   const confirm = c => run(() => api.updateCondition(c.id, { state: 'confirmed', confirmed_by: userId, confirmed_at: now() }), `${c.component} ${c.term.toLowerCase()} confirmed`)
   const notPresent = c => run(() => api.updateCondition(c.id, { state: 'not_present', confirmed_by: userId, confirmed_at: now() }), `${c.component}: not present`)
@@ -67,7 +69,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
   `${component} ${term.toLowerCase()} added`)
 
   const setStatus = async s => {
-    if (job.status === 'Estimate' && s !== 'Estimate' && s !== 'Cancelled' && pending)
+    if (!direct && job.status === 'Estimate' && s !== 'Estimate' && s !== 'Cancelled' && pending)
       return setMsg(`Answer the ${pending} prompt${pending === 1 ? '' : 's'} first (WSR check, condition and client requests).`)
     const prev = job.status
     await run(() => api.updateJob(id, { status: s }))
@@ -98,6 +100,14 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
           <button type="button" className="btn" onClick={() => window.open(URL.createObjectURL(receipt), '_blank')}>Open</button>
         </div>
       )}
+      {direct && (
+        <div className="flagline"><b>Engraving: goes straight to Rolex Toronto.</b>{' '}
+          {job.engraving?.text ? <>“{job.engraving.text}” · {[job.engraving.font, job.engraving.case, job.engraving.position].filter(Boolean).join(' · ')}. </> : ''}
+          Ship with the Rolex Engraving Request Form, then set the status to Sent to Toronto. No watchmaker assessment or estimate.
+          {engrDoc && <><button type="button" className="btn solid" onClick={() => printDoc(engrDoc)}>Print engraving form</button>
+            <button type="button" className="btn" onClick={() => openDoc(engrDoc)}>Open</button></>}
+        </div>
+      )}
       {msg && <p className="msg warn">{msg}</p>}
       {(() => { // documents made before the serial / model / bracelet / dial were changed
         const latest = Object.values((job.job_docs || []).filter(d => d.kind !== 'signed_estimate').reduce((m, d) => (!m[d.kind] || m[d.kind].at < d.at ? { ...m, [d.kind]: d } : m), {}))
@@ -108,7 +118,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
       <JobServiceInfo job={job} can={can} userId={userId} actions={actions} onChange={load} />
 
       {/* ---- prompts for the watchmaker ---- */}
-      {pending > 0 && (
+      {pending > 0 && !direct && (
         <section className="panel prompts">
           <h3>To confirm before the estimate ({pending})</h3>
           {!canBench && <p className="msg">The watchmaker confirms these.</p>}
@@ -204,17 +214,17 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
 
       {/* ---- the watchmaker's assessment: necessary vs optional ---- */}
       {/* Vintage: Rolex Toronto assesses, estimates and supplies parts; the office enters RCL's lines for the invoice */}
-      {(job.classification !== 'Vintage' || can.edit) &&
+      {!direct && (job.classification !== 'Vintage' || can.edit) &&
         <JobAssessment job={job} allParts={allParts} can={can} actions={actions} onChange={load} />}
 
       {/* ---- parts: CTR kit + added ---- */}
-      {job.classification !== 'Vintage' && (
+      {job.classification !== 'Vintage' && !direct && (
         <JobParts job={job} allParts={allParts} models={models} can={can} userId={userId} actions={actions}
           onChange={async () => { await load(); await actions.reload() }} />
       )}
 
       {/* ---- Rolex Timing Analysis (in-house services) ---- */}
-      {job.classification !== 'Vintage' && <JobTiming job={job} can={can} userId={userId} who={who} actions={actions} onChange={load} />}
+      {job.classification !== 'Vintage' && !direct && <JobTiming job={job} can={can} userId={userId} who={who} actions={actions} onChange={load} />}
 
       {can.edit && (
         <JobDocuments job={job} allParts={allParts} userId={userId} actions={actions}

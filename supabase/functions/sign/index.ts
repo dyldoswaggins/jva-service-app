@@ -11,7 +11,7 @@ import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-role" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
 const STORE = "J. Vair Anderson · 409 – 3rd Street SW, Calgary AB T2P 4Z2 · (403) 266-1669";
 
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
     // ---------- Admin: email the estimate + signing link ----------
     if (body.action === "email") {
       const auth = req.headers.get("Authorization") || "";
-      const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
+      const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { ...(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/.test(auth) ? { Authorization: auth } : {}), "x-app-role": req.headers.get("x-app-role") || "" } } });
       const { data: role } = await user.rpc("app_role");
       if (role !== "admin") return json({ error: "Only Admin sends estimates for signature" }, 403);
       const { data: r } = await user.from("sign_requests").select("*").eq("id", body.request_id).maybeSingle();
