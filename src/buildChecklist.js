@@ -8,8 +8,8 @@ export const CHECKLIST = [
     detail: "Intake now picks the class and offer from the model, using Rolex's 2025-2026 Service Prices by collection (Modern: Oyster $800, Date $850, Datejust $950, Professional $1,000, Day-Date / Daytona $1,100, Specialty $1,350; Classic $1,000–$1,750). The offers shown are the Immediate Proceed ones (Modern $840 / $980 / $1,190, Classic $1,250 / $1,530 / $1,810). Confirm which list applies, and the collection → offer match: Oyster, Date, Cellini → $840; Datejust, Professional → $980; Day-Date, Daytona, Specialty → $1,190 (Classic: Oyster, Date, Datejust → $1,250; Day-Date, Professional → $1,530; Daytona → $1,810)." },
   { id: 'air-king', group: 'Information needed', who: 'Dylan', title: 'Air-King: Oyster or Professional collection?',
     detail: 'The price list has Air-King under both. The app uses Oyster for now.' },
-  { id: 'older-models', group: 'Information needed', who: 'Dylan / Jared', title: 'Older references for the models list',
-    detail: "Intake can only choose the class when the model's calibre is known. Older references (most pre-2000 watches) aren't in the models list yet, so Sales picks the class by hand. Add them in Models, or send a list." },
+  { id: 'reference-list', group: 'Information needed', who: 'Dylan', title: 'Full reference list → class (Modern / Classic / Vintage) and collection',
+    detail: 'For now the class comes from the reference: 6 digits = Modern, 5 = Classic, 4 = Vintage (most watches). The full list will cover the exceptions and give the collection (and so the offer and polishing line) for every reference.' },
   { id: 'doc-formats', group: 'Information needed', who: 'Dylan', title: 'Approved document formats (estimate, confirmation, invoice)',
     detail: 'The current client documents need to match the approved format exactly. Send the correct-format samples (Phase 3).' },
   { id: 'kits-21-30', group: 'Information needed', who: 'Jared', title: '21xx and 30xx calibre CTR kit lists',
@@ -49,7 +49,7 @@ export const CHECKLIST = [
   { id: 'delete-scans', group: 'Setup', who: 'Claude', title: 'Delete the local copies of scanned service files used for testing' },
 
   // ---- Done (recent) ----
-  { id: 'auto-class', group: 'Done', who: 'Claude', done: true, title: 'Intake picks Modern / Classic / Vintage and the offer from the model' },
+  { id: 'auto-class', group: 'Done', who: 'Claude', done: true, title: 'Intake picks Modern / Classic / Vintage (reference digits), the offer and the polishing line from the model' },
   { id: 'validation', group: 'Done', who: 'Claude', done: true, title: 'Watch validation: Edge #, WSC #, MRWS #, bracelet ref entered by the Service Manager' },
   { id: 'client-email', group: 'Done', who: 'Claude', done: true, title: 'Client email at intake (copy sent once email is connected)' },
   { id: 'engraving', group: 'Done', who: 'Claude', done: true, title: 'Engraving: straight to Rolex with the Engraving Request Form' },

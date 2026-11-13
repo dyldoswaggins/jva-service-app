@@ -31,22 +31,26 @@ const NAME_ORDER = ['Deepsea Challenge', 'Sky-Dweller', 'Yacht-Master II', 'Dayt
 const norm = s => String(s || '').toLowerCase().replace(/[\s-]+/g, '')
 
 // → { cls, collection, price, why } or null when it can't tell (Sales chooses)
+// Class: the reference's digits first (Dylan, 2026-11-12: "most 6 digit references are modern, 5 digit are classic and 4 digits vintage";
+// a full reference list is coming — Build checklist), then the calibre when there's no usable reference.
 export function classifyWatch({ calibre, watch_name, watch_ref }) {
   const cal = String(calibre || '').match(/\d{3,4}/)?.[0]
   const refDigits = String(watch_ref || '').replace(/^M/i, '').match(/^\d+/)?.[0] || ''
   const name = norm(watch_name)
-  // Restoration (sheet column "Calibres", but these are 4-digit model references)
-  if (refDigits.length === 4 && RESTORATION.includes(Number(refDigits)))
-    return { cls: 'Vintage', collection: 'Restoration', price: null, why: `reference ${refDigits} (restoration)` }
   const byCal = cal ? COLLECTIONS.filter(c => c.cals.includes(Number(cal))) : []
-  if (cal && !byCal.length && VINTAGE.some(r => r.test(cal))) return { cls: 'Vintage', collection: 'Vintage', price: null, why: `calibre ${cal}` }
-  const key = NAME_ORDER.find(k => name.includes(norm(k)))
-  let cls = byCal[0]?.cls || null
-  if (!cls && cal && Number(cal) >= 2100) cls = 'Modern' // current calibres not listed by number (e.g. 3285, 3186, 3230 in a Submariner)
+  let cls = null, why = ''
+  if ([4, 5, 6].includes(refDigits.length)) { cls = { 6: 'Modern', 5: 'Classic', 4: 'Vintage' }[refDigits.length]; why = `${refDigits.length}-digit reference` }
+  else if (cal && !byCal.length && VINTAGE.some(r => r.test(cal))) { cls = 'Vintage'; why = `calibre ${cal}` }
+  else if (byCal.length) { cls = byCal[0].cls; why = `calibre ${cal}` }
+  else if (cal && Number(cal) >= 2100) { cls = 'Modern'; why = `calibre ${cal}` } // current calibres not listed by number (e.g. 3285)
   if (!cls) return null
+  // Vintage (incl. restoration references, sheet column "Calibres" but these are 4-digit refs): Rolex Toronto
+  if (cls === 'Vintage') return { cls, collection: RESTORATION.includes(Number(refDigits)) ? 'Restoration' : 'Vintage', price: null, why }
+  const key = NAME_ORDER.find(k => name.includes(norm(k)))
   const pool = COLLECTIONS.filter(c => c.cls === cls)
-  const col = (key && pool.find(c => c.models.some(m => norm(m) === norm(key)))) || (byCal.length === 1 ? byCal[0] : null)
-  return { cls, collection: col?.name || null, price: col?.price ?? null, why: `calibre ${cal}` }
+  const inClass = byCal.filter(c => c.cls === cls)
+  const col = (key && pool.find(c => c.models.some(m => norm(m) === norm(key)))) || (inClass.length === 1 ? inClass[0] : null)
+  return { cls, collection: col?.name || null, price: col?.price ?? null, why }
 }
 
 // The Rolex complete-service offers on the Immediate Proceed form, matched to the collection's band.

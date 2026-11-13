@@ -53,7 +53,10 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const allOffers = Object.keys(settings?.ctr_prices || {}).some(k => k.startsWith('CO - ')) ? settings.ctr_prices : ROLEX_CO_OFFERS
   const ctrPrices = Object.fromEntries(Object.entries(allOffers).filter(([k]) => !cls || cls === 'Vintage' || k.toUpperCase().includes(cls.toUpperCase())))
   const polishPrices = settings?.polish_prices || {}
-  useEffect(() => { if (!family && job.watch_name) setFamily(suggestFamily(Object.keys(polishPrices), job.watch_name)) }, [job.watch_name, settings])
+  // Polishing line from the model (Dylan: only show the line that applies; "Other lines" to change)
+  const suggestedLine = job.watch_name ? suggestFamily(Object.keys(polishPrices), job.watch_name) : ''
+  const [allLines, setAllLines] = useState(false)
+  useEffect(() => { if (suggestedLine && !allLines) setFamily(suggestedLine) }, [suggestedLine])
 
   const hasCond = (c, t) => conds.some(x => x.component === c && x.term === t)
   const toggleCond = (c, t) => setConds(cs => (hasCond(c, t) ? cs.filter(x => !(x.component === c && x.term === t)) : [...cs, { component: c, term: t, note: '' }]))
@@ -297,11 +300,13 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           {!polish && isCTR && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
           {polish && (
             <div className="cards">
-              {Object.entries(polishPrices).map(([f, p]) => (
+              {Object.entries(polishPrices).filter(([f]) => allLines || !suggestedLine || family !== suggestedLine || f === family).map(([f, p]) => (
                 <button key={f} type="button" className="card small" aria-pressed={family === f} onClick={() => setFamily(f)}>
                   <span className="card-title">{f}</span><span className="card-price">{p != null ? money(p) : 'On estimate'}</span>
+                  {f === suggestedLine && <span className="msg">For the {job.watch_name || 'model'}</span>}
                 </button>
               ))}
+              {!allLines && suggestedLine && family === suggestedLine && <button type="button" className="link" onClick={() => setAllLines(true)}>Other lines</button>}
             </div>
           )}
         </div>}
