@@ -81,7 +81,7 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
     try {
       await api.addJobPart({ jobId: job.id, partId: pick.part.id, qty: Number(pick.qty), kind: pick.kind, source: pick.source,
         component: pick.kind === 'billable' ? pick.component : null, condition: pick.kind === 'billable' ? pick.condition : null,
-        required: pick.kind === 'billable' ? pick.required : null, reason: pick.reason.trim() })
+        required: pick.kind === 'billable' ? pick.required : null, reason: pick.kind === 'billable' ? pick.reason.trim() : null })
       actions.say(`${pick.part.rmc} added`)
       setPick(null); onChange()
     } catch (e) { setMsg(e.message) }
@@ -191,12 +191,12 @@ export default function JobParts({ job, allParts, models, can, userId, actions, 
                   ) : <p className="msg warn">Optional work must be backed by a finding: confirm or add it in Watch analysis first.</p>)}
                 </>
               )}
-              <label className="stackfield">Why is this part needed? <span className="msg">(required, printed on the client documents under Watch analysis)</span>
-                <input value={pick.reason} onChange={e => setPick({ ...pick, reason: e.target.value })} placeholder={pick.kind === 'billable' && pick.condition ? `e.g. ${pick.component} ${pick.condition.toLowerCase()}` : 'e.g. Mainspring worn, power reserve 36 h'} />
-              </label>
+              {pick.kind === 'billable' && <label className="stackfield">Why is this part needed? <span className="msg">(charged separately: required, printed on the client documents under Watch analysis)</span>
+                <input value={pick.reason} onChange={e => setPick({ ...pick, reason: e.target.value })} placeholder={pick.kind === 'billable' && pick.condition ? `e.g. ${pick.component} ${pick.condition.toLowerCase()}` : 'e.g. Crystal chipped at 2'} />
+              </label>}
               {over && <p className="msg warn">Over the Rolex limit for class {pick.part.abc} ({ORDER_LIMIT[pick.part.abc]} per job).</p>}
               <div className="actions">
-                <button type="button" className="btn solid" disabled={pick.reason.trim().length < 3 || (pick.kind === 'billable' && (!pick.condition || (pick.required === 'optional' && !isBacked(job, pick.component, pick.condition))))} onClick={add}>Add to job</button>
+                <button type="button" className="btn solid" disabled={(pick.kind === 'billable' && pick.reason.trim().length < 3) || (pick.kind === 'billable' && (!pick.condition || (pick.required === 'optional' && !isBacked(job, pick.component, pick.condition))))} onClick={add}>Add to job</button>
                 <button type="button" className="btn" onClick={() => setPick(null)}>Back</button>
               </div>
             </div>

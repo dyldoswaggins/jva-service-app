@@ -3,12 +3,14 @@ import { api } from '../data.js'
 import IntakeView from './IntakeView.jsx'
 import { ChangePassword } from '../SignIn.jsx'
 import { makeBagLabel } from '../docs/label.js'
+import PickupView from './PickupView.jsx'
 
 // What a Sales associate sees: the client-facing intake, then the receipt — nothing else in the app.
 export default function SalesHome({ models, actions, userId, me, onSignOut }) {
   const [done, setDone] = useState(null) // { pdf, doc, job }
   const [key, setKey] = useState(0)
   const [msg, setMsg] = useState('')
+  const [view, setView] = useState('intake') // intake | pickup
 
   const openPdf = blob => window.open(URL.createObjectURL(blob), '_blank')
   const print = () => {
@@ -29,10 +31,14 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
     <div className="sales-home">
       <div className="sales-bar">
         <span className="msg">{me.name || me.email} · Sales</span>
+        <span className="views">
+          <button type="button" aria-pressed={view === 'intake'} onClick={() => setView('intake')}>Take in a watch</button>
+          <button type="button" aria-pressed={view === 'pickup'} onClick={() => setView('pickup')}>Pickup</button>
+        </span>
         {api.mode !== 'demo' && <ChangePassword actions={actions} />}
         <button type="button" className="btn" onClick={onSignOut}>Sign out</button>
       </div>
-      {done ? (
+      {view === 'pickup' ? <PickupView actions={actions} /> : done ? (
         <div className="intake client">
           <header className="welcome">
             <img src="/jva-emblem.svg" alt="" className="emblem" />

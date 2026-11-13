@@ -1,0 +1,3 @@
+-- 028: the reason is required only for billable parts, i.e. charged separately from the complete service (Dylan, 2026-11-12).
+-- In-CTR and upgrade parts are inside the CTR price: no reason, nothing printed. (Same add_job_part as 026, condition narrowed.)
+-- See 026_part_reasons.sql for the full function; only the reason check changed: `if p_kind = 'billable' and length(trim(coalesce(p_reason,''))) < 3`.

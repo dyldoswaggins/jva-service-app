@@ -295,3 +295,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-12 | Phase 2: migration 025 (jobs remarks/precleaned/handling/exclusions/timing; job_parts supply/ordered/picked + set_job_part_supply), Service overview panel, parts sourcing + pick list, Rolex Timing Analysis entry/print. |
 | 2026-11-12 | Removed the pick list and part sourcing ticks (Dylan): parts process stays automatic — calibre CTR kit, stock off when the job leaves Estimate, shortages flagged. |
 | 2026-11-12 | Migration 026: reason required for every part added beyond the CTR kit; printed under Watch analysis on client documents. |
+| 2026-11-12 | Phase 5: migrations 027–029 (completion fields, Ready for pickup / Picked up, mark_picked_up, job_contacts, Sales pickup RLS, purchase_date; reason only for billable parts). Completion panel + Service Advisor checklist, Sales Pickup screen + handover, contact log, warranty purchase date, dashboard buckets. |

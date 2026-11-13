@@ -85,6 +85,21 @@ const live = {
     return data
   },
   // ---------- jobs ----------
+  // ---------- completion, pickup, contact log (migration 027) ----------
+  async addContact(jobId, method, direction, summary) {
+    const { error } = await supabase.from('job_contacts').insert({ job_id: jobId, method, direction, summary })
+    if (error) throw error
+  },
+  async loadPickupJobs() {
+    const { data, error } = await supabase.from('jobs').select('id, edge_no, watch_ref, watch_name, serial, classification, service_type, intake_at, completed_at, job_clients(name)')
+      .eq('status', 'Ready for pickup').order('completed_at', { ascending: true })
+    if (error) throw error
+    return data
+  },
+  async markPickedUp(jobId, checklist) {
+    const { error } = await supabase.rpc('mark_picked_up', { p_job: jobId, p_checklist: checklist })
+    if (error) throw error
+  },
   async loadStatuses() {
     const { data, error } = await supabase.from('job_statuses').select('*').order('ord')
     if (error) throw error
@@ -98,7 +113,7 @@ const live = {
   },
   async loadJob(id) {
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*), job_photos(*), job_clients(*)').eq('id', id).single()
+      .select('*, job_conditions(*), job_requests(*), job_status_log(*), job_docs(*), job_parts(*), job_photos(*), job_clients(*), job_contacts(*)').eq('id', id).single()
     if (error) throw error
     return data
   },

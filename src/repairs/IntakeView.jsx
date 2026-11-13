@@ -98,6 +98,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !job.bracelet.trim() && 'bracelet description',
     !job.dial.trim() && 'dial description',
     isCTR && !tier && 'complete service offer',
+    job.service_type === 'Warranty' && !job.purchase_date && 'date of purchase (warranty card)',
     polish && !family && 'polishing line',
     !allReqs.length && 'at least one request',
     !client.name.trim() && 'client name',
@@ -111,7 +112,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
       polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
-      classification: cls, vintage_fee: vintage ? vfee : null,
+      classification: cls, vintage_fee: vintage ? vfee : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
     }
     const quote = {
       items: [
@@ -227,6 +228,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         {!vintage && <div className="chips">
           {SERVICE_TYPES.map(t => <button key={t} type="button" className="chip" aria-pressed={job.service_type === t} onClick={() => setJob({ ...job, service_type: t })}>{t === 'CTR' ? 'Complete service' : t}</button>)}
         </div>}
+        {job.service_type === 'Warranty' && (
+          <label className="field">Date of purchase (on the Rolex warranty card)<input type="date" value={job.purchase_date || ''} onChange={e => setJob({ ...job, purchase_date: e.target.value })} style={{ maxWidth: 220 }} /></label>
+        )}
         {isCTR && (
           <div className="cards">
             {Object.entries(ctrPrices).map(([t, p]) => (

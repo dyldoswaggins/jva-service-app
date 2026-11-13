@@ -4,7 +4,7 @@ import { money } from '../rules.js'
 import { tc } from '../docs/lines.js'
 
 export const UPLOAD_LABELS = ['Rolex estimate', 'Rolex confirmation', 'Rolex invoice', 'Rolex delivery note / shipping label', 'Email / correspondence',
-  'Signed estimate (scan)', 'Warranty card', 'Photo', 'Other']
+  'Signed estimate (scan)', 'Chronoscope printout', 'Warranty card', 'Photo', 'Other']
 const digits = s => String(s || '').replace(/\D/g, '')
 
 // Office: upload any document to the job. A Rolex estimate (PDF from Rolex Toronto) is read and, after a check, becomes the

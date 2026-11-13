@@ -259,3 +259,13 @@ table.imp tr.click:hover td { background: var(--hover); }
 .rolexreview { border-top: 1px solid var(--line); padding-top: 8px; }
 
 .tag { display: inline-block; margin: 2px 4px 2px 0; }
+
+/* completion */
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.checklist { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.checklist li { color: var(--muted); }
+.checklist li.ok { color: var(--fg); }
+.contactlog { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.contactlog li { border-left: 3px solid var(--line); padding-left: 8px; }
+
+.sales-bar .views { margin-right: auto; display: flex; gap: 6px; }

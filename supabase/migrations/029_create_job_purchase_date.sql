@@ -1,0 +1,2 @@
+-- 029: create_job also saves purchase_date (warranty jobs: date of purchase on the Rolex warranty card). Same as 017 plus that column.
+-- (Function body applied to the database as in 017_classification_vintage.sql with ', purchase_date' / nullif(p_job->>'purchase_date','')::date added.)

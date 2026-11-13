@@ -40,10 +40,10 @@ export function documentLines(job, allParts) {
   return { necessary, optional }
 }
 
-// Reasons given for parts added beyond the CTR kit (Dylan, 2026-11-12): printed under "Watch analysis" after the conditions
+// Reasons given for separately charged (billable) parts (Dylan, 2026-11-12): printed under "Watch analysis" after the conditions
 export function partReasons(job, conditionsText = '') {
   const seen = new Set(), have = String(conditionsText).toLowerCase()
-  return (job.job_parts || []).filter(l => l.kind !== 'ctr_kit' && l.reason && (l.state === 'active' || l.decision === 'accepted'))
+  return (job.job_parts || []).filter(l => l.kind === 'billable' && l.reason && (l.state === 'active' || l.decision === 'accepted'))
     .map(l => l.reason.trim().replace(/[.\s]+$/, '')).filter(r => { const k = r.toLowerCase(); if (seen.has(k) || have.includes(k)) return false; seen.add(k); return true })
     .map(r => r[0].toUpperCase() + r.slice(1))
 }

@@ -95,9 +95,18 @@ export function makeDemo() {
       return { lines: out, missing: pool.filter(p => !used.has(p.key) && refs.has(p.mrws_ref)).map(p => ({ doc_type: p.doc_type, doc_no: p.doc_no, rmc: p.rmc, mrws_ref: p.mrws_ref, units: p.units })) }
     },
     // ---------- jobs (in memory) ----------
+    async addContact(jobId, method, direction, summary) { const s = await load(); const j = s.jobs.find(x => x.id === jobId); j.job_contacts = [...(j.job_contacts || []), { id: crypto.randomUUID(), job_id: jobId, at: new Date().toISOString(), by_user: me.id, method, direction, summary }] },
+    async loadPickupJobs() { const s = await load(); return (s.jobs || []).filter(j => j.status === 'Ready for pickup').map(j => ({ ...j })) },
+    async markPickedUp(jobId, checklist) {
+      if (!checklist?.id_checked) throw new Error("Check the client's government photo ID first")
+      const s = await load(), j = s.jobs.find(x => x.id === jobId)
+      if (j.status !== 'Ready for pickup') throw new Error('This watch is not ready for pickup')
+      j.job_status_log.push({ id: crypto.randomUUID(), status: 'Picked up', by_user: me.id, at: new Date().toISOString() })
+      Object.assign(j, { status: 'Picked up', picked_up_at: new Date().toISOString(), picked_up_by: me.id, pickup_checklist: checklist })
+    },
     async loadStatuses() {
-      return ['Estimate', 'Waiting on parts', 'On deck', 'Polishing', 'Timekeeping', 'Sent to Toronto', 'Done', 'Cancelled']
-        .map((name, i) => ({ name, ord: i, kind: name === 'Done' ? 'done' : name === 'Cancelled' ? 'cancelled' : name === 'Sent to Toronto' ? 'away' : 'open' }))
+      return ['Estimate', 'Waiting on parts', 'On deck', 'Polishing', 'Timekeeping', 'Sent to Toronto', 'Done', 'Ready for pickup', 'Picked up', 'Cancelled']
+        .map((name, i) => ({ name, ord: i, kind: ['Done', 'Ready for pickup', 'Picked up'].includes(name) ? 'done' : name === 'Cancelled' ? 'cancelled' : name === 'Sent to Toronto' ? 'away' : 'open' }))
     },
     async loadJobs() {
       const s = await load()
@@ -251,7 +260,7 @@ export function makeDemo() {
     },
     async addJobPart({ jobId, partId, qty, kind, source, component = null, condition = null, required = null, reason = null }) {
       const s = await load(), j = s.jobs.find(x => x.id === jobId), p = s.parts.get(partId)
-      if (kind !== 'ctr_kit' && String(reason || '').trim().length < 3) throw new Error('Give the reason this part is needed (shown on the client documents)')
+      if (kind === 'billable' && String(reason || '').trim().length < 3) throw new Error('Give the reason this part is needed (shown on the client documents)')
       if (kind === 'billable' && (!component || !condition || !required)) throw new Error('Billable parts need a component, a condition and Necessary / Optional')
       if (kind === 'billable' && required === 'optional' && !demoBacked(j, component, condition)) throw new Error(`Optional work must be backed by the watch analysis: confirm or add "${component} ${condition.toLowerCase()}" first`)
       j.job_parts = j.job_parts || []

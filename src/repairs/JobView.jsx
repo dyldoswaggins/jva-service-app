@@ -11,6 +11,8 @@ import JobUploads from './JobUploads.jsx'
 import { partReasons } from '../docs/lines.js'
 import JobOverview from './JobOverview.jsx'
 import JobTiming from './JobTiming.jsx'
+import JobCompletion from './JobCompletion.jsx'
+import JobContacts from './JobContacts.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -218,6 +220,10 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         <JobDocuments job={job} allParts={allParts} userId={userId} actions={actions}
           onChange={async () => { await load(); await actions.reload() }} printPdf={printPdf} />
       )}
+
+      {/* ---- completion → ready for pickup (Workflow 9–11), contact log ---- */}
+      {job.status !== 'Estimate' && <JobCompletion job={job} can={can} userId={userId} who={who} actions={actions} onChange={load} />}
+      {can.edit && <JobContacts job={job} who={who} actions={actions} onChange={load} />}
 
       {/* ---- watch details (declaration) ---- */}
       <section className="panel">

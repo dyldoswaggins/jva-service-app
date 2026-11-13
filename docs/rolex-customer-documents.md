@@ -126,6 +126,21 @@ Bracelet: dented, scratched, stretched, worn.
   and actual daily rate calculated; 4-day observation, power reserve, passed / not passed; several tests kept; printable. Position labels
   (Crown left / down / up, Dial up / down) to confirm with the watchmakers. Hidden for Vintage (Rolex Toronto).
 - Watch analysis vocabulary: + Oscillating weight (bench only).
-- **Reason for added parts** (Dylan, 2026-11-12; migration 026): any part added beyond the automatic CTR kit (In CTR, upgrade, billable,
-  search) needs a reason, enforced in `add_job_part`. Reasons show on the parts list and the Watch analysis panel, and print on the
+- **Reason for added parts** (Dylan, 2026-11-12; migration 026): billable parts (charged separately from the complete service) need a reason,
+  enforced in `add_job_part` (migration 028: In-CTR and upgrade parts need none). Reasons show on the parts list and the Watch analysis panel, and print on the
   Estimate / Confirmation under "Watch analysis" after the confirmed conditions (`analysisText` in `src/docs/lines.js`; duplicates skipped).
+
+## Phase 5: completion, pickup, contact log, warranty (2026-11-12)
+- Statuses + "Ready for pickup", "Picked up" (migration 027).
+- **Completion** panel (`JobCompletion.jsx`, after Estimate): Service Advisor checklist ticking itself from the job (receipt, Immediate Proceed,
+  estimate, signed, confirmation, invoice, timing passed, chronoscope printout upload, digital copy = automatic) + WSC declaration started
+  (tick). After service: service end date, case / dial / movement serial out, bracelet code out, WSC completed, warranty card activated
+  (in-house only), leather pouch, client called / emailed (each logged in the contact log), pickup cabinet → "Mark ready for pickup".
+- **Pickup** (Sales: "Pickup" tab; Admin/Sales: "Hand over now" on the job): photo ID + Workflow step 12 checklist (wound/set, cleaned,
+  pouch, gloves/tray, explained, job bag hidden), all required → `mark_picked_up` → Picked up. Sales can read jobs Ready for pickup and
+  their client name (RLS).
+- **Contact log** (`JobContacts.jsx`, office only, `job_contacts`).
+- **Warranty** jobs: date of purchase (warranty card) asked at intake (`jobs.purchase_date`, create_job migration 029); no estimate /
+  confirmation / invoice required to complete.
+- Dashboard: "Call the client: ready", "Waiting for pickup" (late after 30 days).
+- Reason only for billable parts (migration 028).

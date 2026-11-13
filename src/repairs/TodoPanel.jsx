@@ -33,6 +33,10 @@ export function todoBuckets(jobs, kindOf, can, now = new Date()) {
         .map(j => { const l = left(dueFrom(j.decision_at), now); return { j, note: j.estimate_decision === 'refused' ? 'refused: acknowledge and arrange return' : l.text, late: l.late } }) })
     b.push({ key: 'ship', title: 'Vintage to send to Rolex Toronto', hint: 'WSC Declaration and photos before shipping',
       rows: open.filter(j => vintage(j) && j.status !== 'Sent to Toronto').map(j => ({ j, note: (n => `in ${n} day${n === 1 ? "" : "s"}`)(daysSince(j.intake_at, now)) })) })
+    b.push({ key: 'notify', title: 'Call the client: ready', hint: 'Service complete, client not yet called or emailed',
+      rows: jobs.filter(j => j.completed_at && !j.client_called_at && !j.client_emailed_at && !['Picked up', 'Cancelled'].includes(j.status)).map(j => ({ j, note: `completed ${fmtDate(j.completed_at)}` })) })
+    b.push({ key: 'pickup', title: 'Waiting for pickup', hint: 'In the pickup cabinet',
+      rows: jobs.filter(j => j.status === 'Ready for pickup').map(j => { const n = daysSince(j.cabinet_at || j.completed_at, now); return { j, note: `${n} day${n === 1 ? '' : 's'}`, late: n > 30 } }) })
     b.push({ key: 'invoice', title: 'Ready to invoice', hint: 'Done, no invoice yet',
       rows: jobs.filter(j => j.status === 'Done' && j.estimate_decision === 'accepted' && !docs(j, 'invoice')).map(j => ({ j, note: 'service complete' })) })
   }
