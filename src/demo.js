@@ -177,7 +177,7 @@ export function makeDemo() {
       const s = await load(), j = s.jobs.find(x => x.id === id)
       for (const x of fields.extra_lines || []) { // mirrors trigger jobs_extra_lines_backed (016)
         const o = (j.extra_lines || []).find(y => y.id === x.id && y.kind === 'optional' && y.component === x.component && y.term === x.term)
-        if (x.kind === 'optional' && !o && !demoBacked(j, x.component, x.term)) throw new Error(`Optional work must be backed by the watch analysis ("${x.label}")`)
+        if (x.kind === 'optional' && x.source !== 'rolex' && !o && !demoBacked(j, x.component, x.term)) throw new Error(`Optional work must be backed by the watch analysis ("${x.label}")`)
       }
       if (['serial', 'watch_ref', 'watch_name', 'bracelet_ref', 'bracelet', 'dial', 'dial_ref'].some(k => k in fields && (fields[k] ?? null) !== (j[k] ?? null))) j.ident_changed_at = new Date().toISOString()
       if (fields.status && fields.status !== j.status) j.job_status_log.push({ id: crypto.randomUUID(), status: fields.status, by_user: me.id, at: new Date().toISOString() })
@@ -280,6 +280,7 @@ export function makeDemo() {
     async addRequest(row) { const s = await load(); s.jobs.find(j => j.id === row.job_id).job_requests.push({ id: crypto.randomUUID(), at: new Date().toISOString(), ...row }) },
     async updateRequest(id, f) { const s = await load(); for (const j of s.jobs) { const r = j.job_requests.find(x => x.id === id); if (r) Object.assign(r, f) } },
     async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); const d = { id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, fields: blob.fields || null, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
+    async uploadJobFile(jobId, file, label, note) { const s = await load(); const d = { id: crypto.randomUUID(), kind: 'upload', label, note, file_name: file.name, content_type: file.type, _blob: file, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async jobDocFile(doc) { return doc._blob },
     async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('Demo mode: email is sent from the live site only') },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },

@@ -26,7 +26,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
   const missingPrice = unpriced([...necessary, ...optional])
   const notBacked = unbackedOptional(job, allParts)
   const prompts = openPrompts(job)
-  const weeks = weeksUntil(job.eta_override || job.eta_quoted)
+  const weeks = (job.estimate_source === 'rolex' && job.rolex_estimate?.weeks) || weeksUntil(job.eta_override || job.eta_quoted)
   const run = async (label, fn) => { setBusy(label); setMsg(''); try { await fn() } catch (e) { setMsg(e.message) } finally { setBusy('') } }
 
   const saveClient = () => run('Saving…', async () => { await api.saveJobClient(job.id, client, !!client0); actions.say('Client details saved'); onChange() })

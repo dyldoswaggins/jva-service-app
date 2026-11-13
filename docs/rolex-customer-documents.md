@@ -102,3 +102,15 @@ Bracelet: dented, scratched, stretched, worn.
 - New identifiers: movement serial, bracelet links, clasp/bracelet code, Rolex service # (Toronto); "Rolex / WSC #" relabelled "WSC #".
 - Changing serial / model / bracelet / dial after a document was made flags that document on the job ("create it again").
 - Job-bag label (`src/docs/label.js`, 4×2 in): job #, client name, watch, serial, intake date. Internal only.
+
+## Phase 4a: uploads + Rolex estimate conversion (2026-11-12)
+- Any file can be uploaded on the job (Documents → Add a document) with a type: Rolex estimate / confirmation / invoice / delivery note,
+  email, signed estimate scan, warranty card, photo, other (+ note). Kind `upload`, label in `job_docs.label` (migration 024). Office only.
+- **Rolex estimate → JVA estimate**: Rolex's PDFs have text, read locally by `src/docs/rolexImport.js` (no AI service; the client name on
+  "Your reference" is dropped). Tested on 193 Rolex documents (`scripts/test-rolex-import.mjs`): all 63 estimates read; necessary + options,
+  part sub-lines, "included" lines (Test Water Resistance), "(1)" refusal footnote, notes, delivery weeks, shipping, max public vs invoiced.
+  Review screen checks job #, serial and model against the job, then "Use for the JVA estimate": `estimate_source = 'rolex'`, lines in
+  `extra_lines` (source `rolex`, client price = Rolex max. public price, `invoiced` kept), Rolex requests/analysis/notes printed on JVA's
+  estimate. Rolex's $50 shipping is not charged to the client unless ticked. Revised Rolex estimates (_002…): upload, "Convert to JVA estimate".
+- Client answers 2026-11-12: approved format = the issued 2026 estimates (post-audit workbook); polishing is a separate charge (new price list);
+  Rolex Pre-Approval not used (receipt + estimate). Engraving requests: not answered yet.

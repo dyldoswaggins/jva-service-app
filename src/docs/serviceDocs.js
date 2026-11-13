@@ -4,8 +4,11 @@ import { buildDocument } from './rolexDoc.js'
 import { EXCHANGE_NOTE, decidedLines, documentLines, sumLines } from './lines.js'
 import { conditionText } from '../rules.js'
 
-const requestsOf = job => (job.job_requests || []).map(r => r.request)
-const analysisOf = job => conditionText((job.job_conditions || []).filter(c => c.state === 'confirmed')) || 'No marks found.'
+// Client requests always print (Dylan, 2026-11-12). Converted Rolex estimates use Rolex's own wording for requests and analysis.
+const cap = s => String(s || '').replace(/^./, c => c.toUpperCase())
+const requestsOf = job => (job.estimate_source === 'rolex' && job.rolex_estimate?.requests
+  ? job.rolex_estimate.requests.split(/,\s*/).map(cap) : (job.job_requests || []).map(r => r.request))
+const analysisOf = job => (job.estimate_source === 'rolex' && job.rolex_estimate?.analysis) || conditionText((job.job_conditions || []).filter(c => c.state === 'confirmed')) || 'No marks found.'
 const delivery = weeks => (weeks ? `approximately ${weeks} week${weeks === 1 ? '' : 's'}` : 'to be confirmed')
 
 // Layout = JVA "Rolex Service Estimate.pdf": page 1 requests, analysis, necessary work + totals; page 2 notes (one italic

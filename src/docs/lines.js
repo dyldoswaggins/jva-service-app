@@ -8,6 +8,8 @@ export const tc = s => String(s || '').replace(/\S+/g, (w, i) => (i && /^(and|or
 
 export function documentLines(job, allParts) {
   const necessary = [], optional = []
+  const rolex = job.estimate_source === 'rolex' // converted from Rolex Toronto's estimate: only those lines
+  if (!rolex) {
   // Vintage: the analysis fee is charged whatever the client decides on the Rolex estimate
   if (job.classification === 'Vintage') necessary.push({ key: 'vintage_fee', label: 'Rolex Vintage Analysis Fee', price: job.vintage_fee ?? null, source: 'vintage' })
   if (job.service_type === 'CTR') {
@@ -27,8 +29,11 @@ export function documentLines(job, allParts) {
     }
     ;(l.required === 'optional' ? optional : necessary).push(line)
   }
+  }
   for (const x of job.extra_lines || []) {
-    const line = { key: 'extra:' + x.id, id: x.id, source: 'extra', label: tc(x.label), price: x.price ?? null, subs: x.details ? [x.details] : [], decision: x.decision || null,
+    if (rolex !== (x.source === 'rolex')) continue
+    const line = { key: 'extra:' + x.id, id: x.id, source: 'extra', label: tc(x.label) + (x.footnote ? ' (1)' : ''), price: x.price ?? null,
+      subs: x.subs || (x.details ? [x.details] : []), parts: x.parts || [], decision: x.decision || null, included: !!x.included, rolex: x.source === 'rolex',
       component: x.component || null, term: x.term || null }
     ;(x.kind === 'optional' ? optional : necessary).push(line)
   }
@@ -39,10 +44,10 @@ export function documentLines(job, allParts) {
 export const findings = job => (job.job_conditions || []).filter(c => c.state === 'confirmed')
 export const isBacked = (job, component, term) =>
   !!component && !!term && findings(job).some(c => lc(c.component) === lc(component) && lc(c.term) === lc(term))
-export const unbackedOptional = (job, allParts) => documentLines(job, allParts).optional.filter(l => !l.decision && !isBacked(job, l.component, l.term))
+export const unbackedOptional = (job, allParts) => documentLines(job, allParts).optional.filter(l => !l.decision && !l.rolex && !isBacked(job, l.component, l.term))
 
 export const sumLines = lines => Math.round(lines.reduce((s, l) => s + (Number(l.price) || 0), 0) * 100) / 100
-export const unpriced = lines => lines.filter(l => l.price == null)
+export const unpriced = lines => lines.filter(l => l.price == null && !l.included)
 
 // Accepted / declined after the client's decision
 export function decidedLines(job, allParts) {
@@ -61,6 +66,7 @@ export const EXCHANGE_NOTE = 'This estimate is intended to inform the Client on 
 
 // "While examining your watch, our watchmakers found that the crystal is chipped. …" — one per priced finding
 export function autoNotes(job, allParts) {
+  if (job.estimate_source === 'rolex') return (job.rolex_estimate?.notes || []).filter(n => !/^This estimate is intended to inform/i.test(n)).join('\n')
   const { necessary, optional } = documentLines(job, allParts)
   const out = []
   for (const l of [...necessary, ...optional].filter(x => (x.source === 'part' || x.source === 'extra') && x.component && x.term)) {

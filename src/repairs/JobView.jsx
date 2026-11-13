@@ -7,6 +7,7 @@ import JobDocuments from './JobDocuments.jsx'
 import JobTimer from './JobTimer.jsx'
 import JobAssessment from './JobAssessment.jsx'
 import { makeBagLabel } from '../docs/label.js'
+import JobUploads from './JobUploads.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -238,12 +239,14 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </div>
         {(job.job_docs || []).length ? (job.job_docs || []).map(d => (
           <div key={d.id} className="actions">
-            <span className="grow">{d.file_name} · {fmtTime(d.at)}{d.emailed_at ? <span className="msg"> · emailed {fmtTime(d.emailed_at)}</span> : ''}</span>
+            <span className="grow">{d.label ? <b>{d.label}: </b> : ''}{d.file_name} · {fmtTime(d.at)}{d.note ? <span className="msg"> · {d.note}</span> : ''}{d.emailed_at ? <span className="msg"> · emailed {fmtTime(d.emailed_at)}</span> : ''}</span>
+            {can.edit && d.label === 'Rolex estimate' && /pdf/i.test(d.content_type || d.file_name) && <button type="button" className="btn" onClick={() => JobUploads.convert?.(d)}>Convert to JVA estimate</button>}
             <button type="button" className="btn" onClick={() => printDoc(d)}>Print</button>
             <button type="button" className="btn" onClick={() => openDoc(d)}>Open</button>
             <button type="button" className="btn" onClick={() => emailDoc(d)}>Email to service manager</button>
           </div>
         )) : <p className="msg">{can.intake ? 'No documents yet.' : 'Signed documents are visible to the office only.'}</p>}
+        {can.edit && <JobUploads job={job} userId={userId} actions={actions} onChange={load} />}
         <details>
           <summary className="msg">Status history</summary>
           <ul className="msg">{(job.job_status_log || []).sort((a, b) => (a.at < b.at ? -1 : 1)).map(s => <li key={s.id}>{fmtTime(s.at)} · {s.status} · {who(s.by_user)}</li>)}</ul>

@@ -68,7 +68,8 @@ export default function JobAssessment({ job, allParts, can, actions, onChange })
           {(l.subs || []).concat(l.parts || []).map(s => <span key={s} className="msg"> · {s}</span>)}
           {l.component && l.term && <div className={`msg${opt && !backed && !l.decision ? ' warn' : ''}`}>
             {opt ? (backed || l.decision ? 'Backed by ' : 'Not backed: no confirmed ') : 'Finding: '}{findingLabel(l.component, l.term)}</div>}
-          {opt && !l.component && !l.decision && <div className="msg warn">Not backed by the watch analysis</div>}
+          {opt && !l.component && !l.decision && !l.rolex && <div className="msg warn">Not backed by the watch analysis</div>}
+          {l.rolex && <div className="msg">From Rolex's estimate</div>}
           {moving === l.key && <FindingChips value={null} onPick={v => toOptional(l, v)} />}
         </div>
         <span className="msg r">{l.price != null ? money(l.price) : 'price: office'}</span>

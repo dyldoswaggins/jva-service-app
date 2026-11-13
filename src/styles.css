@@ -255,3 +255,5 @@ table.imp tr.click:hover td { background: var(--hover); }
 .signpage label.tog input { margin-top: 3px; flex: none; }
 .signoverlay, .signpage { overflow-x: hidden; }
 .signpage .welcome { flex-wrap: wrap; }
+
+.rolexreview { border-top: 1px solid var(--line); padding-top: 8px; }

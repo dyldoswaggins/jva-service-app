@@ -250,6 +250,17 @@ const live = {
     if (error) throw error
     return data
   },
+  // Any file on a job (Rolex paperwork, emails, scans, photos): kind 'upload' with a label
+  async uploadJobFile(jobId, file, label, note, userId) {
+    const safe = file.name.replace(/[^\w.\- ]+/g, '_')
+    const path = `${jobId}/${Date.now()}-${safe}`
+    const up = await supabase.storage.from('job-docs').upload(path, file, { contentType: file.type || 'application/octet-stream' })
+    if (up.error) throw up.error
+    const { data, error } = await supabase.from('job_docs').insert({ job_id: jobId, kind: 'upload', label, note: note || null, content_type: file.type || null,
+      file_path: path, file_name: file.name, by_user: userId }).select().single()
+    if (error) throw error
+    return data
+  },
   // Email a job document to the watch service manager (Edge Function send-doc, parts Gmail)
   async emailJobDoc(docId) {
     const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_id: docId } })
