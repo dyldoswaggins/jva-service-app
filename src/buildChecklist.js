@@ -30,7 +30,7 @@ export const CHECKLIST = [
   // ---- To build ----
   { id: 'dash-manager', group: 'To build', who: 'Claude', done: true, title: 'Service Manager dashboard (built: Dashboard tab, the Service Manager home)',
     detail: 'Own home screen: estimates due / overdue, waiting on the client, watch validation, Toronto, pickup, invoices, plus turnaround times and weekly counts. Today: the to-do panel on the Jobs page.' },
-  { id: 'dash-watchmaker', group: 'To build', who: 'Claude', title: 'Watchmaker dashboard',
+  { id: 'dash-watchmaker', group: 'To build', who: 'Claude', done: true, title: 'Watchmaker dashboard (built: Bench tab, the watchmaker home)',
     detail: 'My bench: jobs to assess, bench queue by ETA, time on each job, parts short, timing tests due.' },
   { id: 'phase3', group: 'To build', who: 'Claude', title: 'Client documents in the approved format', detail: 'Waits for the samples (see Information needed).' },
   { id: 'toronto-record', group: 'To build', who: 'Claude', title: 'Toronto send-out record, confirmation / invoice uploads' },

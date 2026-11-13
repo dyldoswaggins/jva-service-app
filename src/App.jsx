@@ -12,10 +12,11 @@ import SalesHome from './repairs/SalesHome.jsx'
 import SettingsView from './SettingsView.jsx'
 import ChecklistView from './ChecklistView.jsx'
 import ManagerDashboard from './ManagerDashboard.jsx'
+import WatchmakerDashboard from './WatchmakerDashboard.jsx'
 import RolePicker, { roleTitle } from './RolePicker.jsx'
 import { OPEN_ACCESS, chosenRole, chooseRole } from './supabase.js'
 
-const VIEWS = ['Dashboard', 'Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings', 'Checklist']
+const VIEWS = ['Dashboard', 'Bench', 'Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings', 'Checklist']
 const ADMIN_ONLY = ['Dashboard', 'Inbox', 'Settings', 'Checklist']
 
 export default function App() {
@@ -86,7 +87,7 @@ function Workshop({ session, openRole }) {
   const me = openRole ? { id: null, name: roleTitle(openRole), role: openRole } : profiles.find(p => p.id === session.user.id) || { role: 'view' }
   const signOut = openRole ? () => chooseRole('') : api.signOut
   const role = me.role || 'view'
-  const view = viewPick || (role === 'admin' ? 'Dashboard' : 'Jobs')
+  const view = viewPick || (role === 'admin' ? 'Dashboard' : role === 'watchmaker' ? 'Bench' : 'Jobs')
   const goJobs = j => { setJump({ ...j, n: Date.now() }); setView('Jobs') }
   const can = {
     count: role === 'admin', edit: role === 'admin', models: role === 'admin' || role === 'watchmaker',
@@ -194,7 +195,7 @@ function Workshop({ session, openRole }) {
       {parts && (
         <>
           <div className="views" role="group" aria-label="View">
-            {VIEWS.filter(v => !ADMIN_ONLY.includes(v) || can.edit).map(v => (
+            {VIEWS.filter(v => (!ADMIN_ONLY.includes(v) || can.edit) && (v !== 'Bench' || can.bench)).map(v => (
               <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>
                 {v}{v === 'Reorder' && reorderN ? ` (${reorderN})` : ''}
               </button>
@@ -202,6 +203,7 @@ function Workshop({ session, openRole }) {
           </div>
           {role === 'view' && <p className="msg">You can view everything. Ask Dylan for a role to make changes.</p>}
           {view === 'Dashboard' && can.edit && <ManagerDashboard can={can} actions={actions} onOpenJob={id => goJobs({ id })} onFilter={filter => goJobs({ filter })} />}
+          {view === 'Bench' && can.bench && <WatchmakerDashboard onOpenJob={id => goJobs({ id })} />}
           {view === 'Jobs' && <JobsView models={models} allParts={parts} can={can} actions={actions} userId={session.user.id} who={who} jump={jump} />}
           {view === 'Parts' && (
             <PartsView parts={list} allParts={parts} models={models} can={can} actions={actions} who={who}
