@@ -15,7 +15,7 @@ export default function SettingsView({ actions }) {
   const bench = s.bench || {}
   return (
     <>
-      <PriceTable value={s.ctr_prices} title="CTR prices (complete service)" hint="Shown at intake by tier. Prices in CAD, before tax."
+      <PriceTable value={s.ctr_prices} title="Complete service (Rolex offers)" hint="Rolex's official offers, named exactly as on the Immediate Proceed form (CO - MODERN / CO - CLASSIC). Shown at intake for the watch's class. CAD, before tax."
         onSave={v => save('ctr_prices', v, 'CTR prices')} />
       <PriceTable value={s.polish_prices} title="Polishing prices" hint="Offered at intake by watch family / size."
         onSave={v => save('polish_prices', v, 'Polishing prices')} />
@@ -27,6 +27,11 @@ export default function SettingsView({ actions }) {
           <label className="tog">Extra days for parts <input name="wait" type="number" min="0" step="1" defaultValue={bench.parts_wait_days ?? 0} style={{ width: 80 }} /></label>
           <button className="btn solid">Save</button>
         </form>
+      </div>
+      <div className="panel">
+        <h2>Immediate Proceed</h2>
+        <p className="msg">Rolex's form allows extra necessary work up to 15% of the set service price without a new estimate. Some past forms showed the total with that 15% added.</p>
+        <label className="tog"><input type="checkbox" checked={!!s.immediate_proceed?.include_allowance} onChange={e => save('immediate_proceed', { include_allowance: e.target.checked }, 'Immediate Proceed')} /> Show the total with the 15% allowance included</label>
       </div>
       <div className="panel">
         <h2>Vintage Analysis Fee</h2>

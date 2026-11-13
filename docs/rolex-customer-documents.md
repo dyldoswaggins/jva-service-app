@@ -90,3 +90,14 @@ Bracelet: dented, scratched, stretched, worn.
   private link, 30 days) or "Sign in store" (iPad, full screen). The client's ticks, remarks, name, date and signature are filled into the
   estimate's own spots (`job_docs.fields`, `src/docs/stamp.js`) → "Estimate-signed" PDF filed on the job, decision recorded, declined parts
   back to stock, copy emailed to the client. Paper decisions still go through "Record paper decision".
+
+## Phase 1 of the scanned-files plan (2026-11-12)
+- Approved formats: client documents follow JVA's post-audit set (`Rolex › 1. Service - Rolex › 1. ROLEX SERVICE DOCUMENTS › 1. SERVICE DOCUMENTS ›
+  SAV ALL - POST AUDIT NEW` and the workbook `SAV ALL- post audit.xlsx`, which generates the issued Estimates). Rolex forms are filled on Rolex's own PDF.
+- **Immediate Proceed** (`src/docs/immediateProceed.js`): Rolex's fillable PDF (`public/templates/rolex-immediate-proceed.pdf`) filled and flattened
+  at every complete-service intake (and Vintage): offer from Rolex's list, polish $210 Yes/No, other requests, conditions, total (15 % allowance
+  optional in Settings), dates, client signature, associate. Printed with the receipt, filed separately (kind `immediate_proceed`).
+- CTR prices = Rolex's offers CO - MODERN $840/$980/$1,190, CO - CLASSIC $1,250/$1,530/$1,810 (migration 023); polish with CTR $210.
+- New identifiers: movement serial, bracelet links, clasp/bracelet code, Rolex service # (Toronto); "Rolex / WSC #" relabelled "WSC #".
+- Changing serial / model / bracelet / dial after a document was made flags that document on the job ("create it again").
+- Job-bag label (`src/docs/label.js`, 4×2 in): job #, client name, watch, serial, intake date. Internal only.

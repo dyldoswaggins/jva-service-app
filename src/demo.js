@@ -105,8 +105,8 @@ export function makeDemo() {
       if (!s.jobs && new URLSearchParams(location.search).has('sample')) {
         s.jobs = []
         await this.createJob({ edge_no: '125100-001', service_type: 'CTR', classification: 'Modern', watch_ref: '126610LN', watch_name: 'Submariner Date', serial: '9X8Y7Z66', calibre: '3235',
-          bracelet_ref: '20-72610', bracelet: 'Rolex Oyster Oystersteel', dial: '126610 black markers w lgn', ctr_tier: 'Modern', ctr_price: 1250,
-          polish: true, polish_family: 'Submariner / GMT-Master / Explorer / Sea-Dweller', polish_price: 350, eta_quoted: '2026-11-24' },
+          bracelet_ref: '20-72610', bracelet: 'Rolex Oyster Oystersteel', dial: '126610 black markers w lgn', ctr_tier: 'CO - MODERN $980', ctr_price: 980,
+          polish: true, polish_family: 'Submariner / GMT-Master / Explorer / Sea-Dweller', polish_price: 210, eta_quoted: '2026-11-24' },
         [{ component: 'Crystal', term: 'Chipped', note: "at 2 o'clock" }, { component: 'Bezel', term: 'Scratched', note: '' }, { component: 'Bracelet', term: 'Stretched', note: '' }],
         [{ request: 'Perform complete overhaul', note: 'Modern CTR' }, { request: 'Refinish case and bracelet', note: '' }, { request: 'Replace crystal', note: '' }],
         { name: 'Sample Client' })
@@ -179,6 +179,7 @@ export function makeDemo() {
         const o = (j.extra_lines || []).find(y => y.id === x.id && y.kind === 'optional' && y.component === x.component && y.term === x.term)
         if (x.kind === 'optional' && !o && !demoBacked(j, x.component, x.term)) throw new Error(`Optional work must be backed by the watch analysis ("${x.label}")`)
       }
+      if (['serial', 'watch_ref', 'watch_name', 'bracelet_ref', 'bracelet', 'dial', 'dial_ref'].some(k => k in fields && (fields[k] ?? null) !== (j[k] ?? null))) j.ident_changed_at = new Date().toISOString()
       if (fields.status && fields.status !== j.status) j.job_status_log.push({ id: crypto.randomUUID(), status: fields.status, by_user: me.id, at: new Date().toISOString() })
       // stock comes off when the job leaves Estimate (mirrors take_job_stock)
       if (j.status === 'Estimate' && fields.status && !['Estimate', 'Cancelled'].includes(fields.status) && !j.stock_taken_at) {
@@ -193,8 +194,9 @@ export function makeDemo() {
     async loadSettings() {
       const s = await load()
       s.settings = s.settings || {
-        ctr_prices: { Modern: 1250, Classic: 1450, Professional: 1650 },
-        polish_prices: { 'Oyster Perpetual / Datejust / Air-King': 300, 'Submariner / GMT-Master / Explorer / Sea-Dweller': 350, 'Daytona / Yacht-Master / Sky-Dweller': 450, 'Day-Date / gold': 550 },
+        ctr_prices: { 'CO - MODERN $840': 840, 'CO - MODERN $980': 980, 'CO - MODERN $1,190': 1190, 'CO - CLASSIC $1,250': 1250, 'CO - CLASSIC $1,530': 1530, 'CO - CLASSIC $1,810': 1810 },
+        polish_prices: { 'Oyster Perpetual / Datejust / Air-King': 210, 'Submariner / GMT-Master / Explorer / Sea-Dweller': 210, 'Daytona / Yacht-Master / Sky-Dweller': 210, 'Day-Date / gold': 210 },
+        immediate_proceed: { include_allowance: false },
         bench: { watches_per_week: 6, parts_wait_days: 0 },
         vintage: { fee: 350, weeks: 18 },
       }

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
 import { CLASSES, CONDITIONS, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
-import { immediateProceedFileName, makeImmediateProceed, makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
+import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
+import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
 import { compressPhoto } from '../photos.js'
 import SignaturePad from './SignaturePad.jsx'
 
@@ -42,7 +43,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   useEffect(() => {
     if (model) setJob(j => ({ ...j, watch_name: j.watch_name || model.name, calibre: j.calibre || String(model.cal || '').split(/[,\s]+/)[0] }))
   }, [model])
-  const ctrPrices = settings?.ctr_prices || {}
+  // Rolex's official complete-service offers (Settings can adjust the prices); shown for the chosen class
+  const allOffers = Object.keys(settings?.ctr_prices || {}).some(k => k.startsWith('CO - ')) ? settings.ctr_prices : ROLEX_CO_OFFERS
+  const ctrPrices = Object.fromEntries(Object.entries(allOffers).filter(([k]) => !cls || cls === 'Vintage' || k.toUpperCase().includes(cls.toUpperCase())))
   const polishPrices = settings?.polish_prices || {}
   useEffect(() => { if (!family && job.watch_name) setFamily(suggestFamily(Object.keys(polishPrices), job.watch_name)) }, [job.watch_name, settings])
 
@@ -67,17 +70,17 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier('') }
     else {
       setJob(j => ({ ...j, service_type: j.service_type === 'Vintage analysis' ? 'CTR' : j.service_type }))
-      if (c in ctrPrices) setTier(c)
+      setTier(t => (t && t.toUpperCase().includes(c.toUpperCase()) ? t : ''))
     }
   }
   const isCTR = job.service_type === 'CTR'
-  const ctrPrice = isCTR && tier ? ctrPrices[tier] : null
+  const ctrPrice = isCTR && tier ? allOffers[tier] : null
   const polishPrice = polish && family ? polishPrices[family] : null
   const total = vintage ? vfee : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
   // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
     ...(vintage ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
-    ...(isCTR ? [{ request: REQ.overhaul, note: tier ? `${tier} CTR` : '' }] : []),
+    ...(isCTR ? [{ request: REQ.overhaul, note: tier || '' }] : []),
     ...(polish ? [{ request: REQ.refinish, note: family }] : isCTR ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
     ...reqs,
   ]
@@ -93,7 +96,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !job.bracelet_ref.trim() && 'bracelet reference',
     !job.bracelet.trim() && 'bracelet description',
     !job.dial.trim() && 'dial description',
-    isCTR && !tier && 'CTR tier',
+    isCTR && !tier && 'complete service offer',
     polish && !family && 'polishing line',
     !allReqs.length && 'at least one request',
     !client.name.trim() && 'client name',
@@ -111,7 +114,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     }
     const quote = {
       items: [
-        isCTR ? { label: `Complete overhaul (${tier})`, price: ctrPrice ?? 'On estimate' } : { label: job.service_type, price: 'On estimate' },
+        isCTR ? { label: `Complete overhaul (${tier.replace(/^CO - /, '').replace(/ \$.*/, '').toLowerCase().replace(/^./, c => c.toUpperCase())})`, price: ctrPrice ?? 'On estimate' } : { label: job.service_type, price: 'On estimate' },
         ...(polish ? [{ label: 'Refinish case and bracelet', price: polishPrice ?? 'On estimate' }] : []),
       ],
       total: total || null,
@@ -119,17 +122,18 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     }
     try {
       const args = { job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig }
-      // Vintage (Workflow v2.1, 1.1): Vintage Analysis Fee form + Rolex Immediate Proceed form, both signed
+      // Rolex Immediate Proceed (Rolex's own form) for every complete service and for Vintage (Workflow v2.1, 1.1)
       const feePdf = vintage ? await makeVintageFee({ ...args, fee: vfee, weeks: vweeks }) : null
-      const ipPdf = vintage ? await makeImmediateProceed({ ...args, amount: vfee, staffName }) : null
+      const ipPdf = vintage || isCTR ? await makeImmediateProceedRolex({ ...args, staffName, offer: isCTR ? tier : null, offerPrice: ctrPrice,
+        polish, polishPrice: polishPrice ?? 210, includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null }) : null
       const mainPdf = vintage ? feePdf : await makeReceipt({ ...args, quote })
       const id = await api.createJob(clean, conds, allReqs, client)
       const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', mainPdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
       if (ipPdf) await api.uploadJobDoc(id, 'immediate_proceed', ipPdf, immediateProceedFileName(clean), userId)
-      const pdf = vintage ? await mergePdfs([feePdf, ipPdf]) : mainPdf // printed together
+      const pdf = ipPdf ? await mergePdfs([mainPdf, ipPdf]) : mainPdf // printed together, filed separately
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
-      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee and Immediate Proceed forms' : 'Receipt'} saved.`)
-      onDone(id, pdf, doc, clean)
+      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''} saved.`)
+      onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client)
     } catch (e) { setMsg(e.message) } finally { setBusy(false) }
   }
 
@@ -225,10 +229,10 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <div className="cards">
             {Object.entries(ctrPrices).map(([t, p]) => (
               <button key={t} type="button" className="card" aria-pressed={tier === t} onClick={() => setTier(t)}>
-                <span className="card-title">{t}</span><span className="card-price">{p != null ? money(p) : 'Price on estimate'}</span>
+                <span className="card-title">{t.replace(/^CO - /, '').replace(/ \$.*/, '').toLowerCase().replace(/^./, c => c.toUpperCase())} complete service</span><span className="card-price">{p != null ? money(p) : 'Price on estimate'}</span>
               </button>
             ))}
-            {!Object.keys(ctrPrices).length && <p className="msg">CTR prices aren't set yet (Admin → Settings).</p>}
+            {!cls && <p className="msg">Choose Modern or Classic above to see the Rolex offers.</p>}
           </div>
         )}
         {!vintage && <div className="offer" data-on={polish}>

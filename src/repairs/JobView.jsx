@@ -6,6 +6,7 @@ import JobServiceInfo from './JobServiceInfo.jsx'
 import JobDocuments from './JobDocuments.jsx'
 import JobTimer from './JobTimer.jsx'
 import JobAssessment from './JobAssessment.jsx'
+import { makeBagLabel } from '../docs/label.js'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -92,6 +93,11 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </div>
       )}
       {msg && <p className="msg warn">{msg}</p>}
+      {(() => { // documents made before the serial / model / bracelet / dial were changed
+        const latest = Object.values((job.job_docs || []).filter(d => d.kind !== 'signed_estimate').reduce((m, d) => (!m[d.kind] || m[d.kind].at < d.at ? { ...m, [d.kind]: d } : m), {}))
+        const stale = job.ident_changed_at ? latest.filter(d => d.at < job.ident_changed_at) : []
+        return stale.length > 0 && <p className="flagline">Watch details changed on {fmtTime(job.ident_changed_at)}, after {stale.map(d => d.file_name).join(', ')}. Create {stale.length === 1 ? 'that document' : 'those documents'} again so the client's copy shows the corrected details.</p>
+      })()}
 
       <JobServiceInfo job={job} can={can} userId={userId} actions={actions} onChange={load} />
 
@@ -208,7 +214,8 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         <div className="grid">
           {[['watch_ref', 'Model number'], ['watch_name', 'Model name'], ['serial', 'Serial #'], ['calibre', 'Calibre'], ['movement_no', 'Movement #'],
             ['dial_ref', 'Dial ref #'], ['dial_serial', 'Dial serial #'], ['dial', 'Dial description'], ['bracelet_ref', 'Bracelet reference'], ['bracelet', 'Bracelet description'],
-            ['rolex_service_no', 'Rolex / WSC #'], ['mrws_ref', 'MRWS #']].map(([k, label]) => (
+            ['movement_serial', 'Movement serial'], ['bracelet_links', 'Bracelet links'], ['clasp_code', 'Clasp / bracelet code'],
+            ['rolex_service_no', 'WSC #'], ['mrws_ref', 'MRWS #'], ['rolex_service_ref', 'Rolex service # (Toronto)']].map(([k, label]) => (
             <label key={k}>{label}
               <input key={job[k] ?? ''} defaultValue={job[k] ?? ''} disabled={!can.status} onBlur={e => saveField(k, e.target.value.trim())} />
             </label>
@@ -226,7 +233,9 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
 
       {/* ---- documents + history ---- */}
       <section className="panel">
-        <h3>Documents</h3>
+        <div className="actions"><h3 className="grow">Documents</h3>
+          {can.intake && <button type="button" className="btn" onClick={async () => printDoc(await makeBagLabel({ job, clientName: (Array.isArray(job.job_clients) ? job.job_clients[0] : job.job_clients)?.name }))}>Print bag label</button>}
+        </div>
         {(job.job_docs || []).length ? (job.job_docs || []).map(d => (
           <div key={d.id} className="actions">
             <span className="grow">{d.file_name} · {fmtTime(d.at)}{d.emailed_at ? <span className="msg"> · emailed {fmtTime(d.emailed_at)}</span> : ''}</span>

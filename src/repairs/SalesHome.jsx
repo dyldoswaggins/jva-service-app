@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../data.js'
 import IntakeView from './IntakeView.jsx'
 import { ChangePassword } from '../SignIn.jsx'
+import { makeBagLabel } from '../docs/label.js'
 
 // What a Sales associate sees: the client-facing intake, then the receipt — nothing else in the app.
 export default function SalesHome({ models, actions, userId, me, onSignOut }) {
@@ -9,6 +10,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
   const [key, setKey] = useState(0)
   const [msg, setMsg] = useState('')
 
+  const openPdf = blob => window.open(URL.createObjectURL(blob), '_blank')
   const print = () => {
     const url = URL.createObjectURL(done.pdf)
     if ('ontouchend' in document) return window.open(url, '_blank') // iPad: print / share from the PDF
@@ -43,9 +45,10 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
           <section className="step">
             {done.job.classification === 'Vintage'
               ? <p>Your signed Vintage Analysis Fee and Immediate Proceed forms are ready. Please keep it and bring it with photo ID when you collect your watch. Your watch will be analysed by Rolex; we'll contact you with the estimate.</p>
-              : <p>Your signed receipt is ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
+              : <p>Your signed receipt{done.job.service_type === 'CTR' ? ' and Rolex Immediate Proceed are' : ' is'} ready. Please keep it and bring it with photo ID when you collect your watch. We'll contact you with the full estimate after our watchmakers' analysis.</p>}
             <div className="actions">
-              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' ? 'Print forms' : 'Print receipt'}</button>
+              <button type="button" className="btn solid big" onClick={print}>{done.job.classification === 'Vintage' || done.job.service_type === 'CTR' ? 'Print documents' : 'Print receipt'}</button>
+              <button type="button" className="btn big" onClick={async () => openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name }))}>Print bag label</button>
               <button type="button" className="btn big" onClick={email}>Email to service manager</button>
               <span className="grow" />
               <button type="button" className="btn big" onClick={() => { setDone(null); setKey(k => k + 1); setMsg('') }}>Next client</button>
@@ -55,7 +58,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
         </div>
       ) : (
         <IntakeView key={key} standalone models={models} actions={actions} userId={userId} staffName={me.name || me.email}
-          onDone={(id, pdf, doc, job) => id && setDone({ pdf, doc, job })} />
+          onDone={(id, pdf, doc, job, client) => id && setDone({ pdf, doc, job, client })} />
       )}
     </div>
   )

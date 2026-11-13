@@ -63,52 +63,6 @@ export async function makeVintageFee({ job, client, requests, conditions, signat
     },
   })
 }
-// Rolex Immediate Proceed form (v1.2 EN), signed at Vintage intake with the Vintage Analysis Fee form (Workflow v2.1, Dylan 2026-11-10).
-// Wording from "IMMEDIATEPROCEEDRolex_v1.2EN.pdf". Rolex's own form has no legal-notices page.
-export async function makeImmediateProceed({ job, client, requests, conditions, signaturePng, date = new Date(), amount, staffName }) {
-  const day = date.toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })
-  return buildDocument({
-    title: 'Immediate Proceed', job, client, date, signaturePng, legal: false,
-    body: d => {
-      d.section('General information')
-      d.row('Retailer name', 'J. Vair Anderson')
-      d.row('Retailer ref. #', job.edge_no)
-      d.row('Model #', job.watch_ref ? (/^M/i.test(job.watch_ref) ? job.watch_ref : 'M' + job.watch_ref) : '')
-      d.row('Serial #', job.serial || '')
-      d.row('Client name', client.name || '')
-      d.gap(4)
-      d.section('Interventions and spare parts requested by client')
-      d.bullets(requests.map(r => r.request))
-      d.gap(2)
-      d.para('For Complete Overhaul: Polishing & Satin-Finishing of Case and Bracelet (Optional)')
-      d.checkbox('Yes', { checked: !!job.polish })
-      d.checkbox('No', { checked: !job.polish })
-      d.section('Watch conditions and client additional information')
-      d.bullets(conditions.length ? [conditionText(conditions)] : ['No visible marks noted.'])
-      d.gap(4)
-      d.section('Immediate proceed', { rightHeading: 'MSRP CAD (TAX EXCL.)' })
-      d.item({ label: 'Intervention and spare parts for a total amount of (tax(es) excluded)', price: amount ?? 'On estimate' })
-      d.gap(2)
-      d.para('It is accepted that:')
-      d.bullets([
-        'After analysis by a certified watchmaker, any intervention not included in the set service price but necessary for the proper ' +
-          'functioning of the watch will be charged within the limit of an additional 15% of the set service price. Should the amount be ' +
-          'exceeded, a detailed estimate will be submitted to the Client.',
-        'The interventions requested by the Client are invoiced.',
-        'The data in this document will be transmitted to and processed by Rolex Canada.',
-      ])
-      d.gap(4)
-      d.signature('Client signature: {name}', { name: client.name })
-      d.row('Retailer signature', `${staffName || '______________________'} · J. Vair Anderson · ${day}`)
-      d.gap(8)
-      d.para('* Spare parts not included in the set service price will be invoiced separately. Recommended public prices. Taxes excluded. ' +
-        'Rolex does not provide after-sales service for watches that have been modified with non-original parts. ' +
-        'This document does not guarantee the authenticity of a watch.', { size: 7 })
-    },
-  })
-}
-export const immediateProceedFileName = job => `JVA-${job.edge_no}-Immediate-Proceed.pdf`
-
 // One file to print several documents together (each is still filed separately)
 export async function mergePdfs(blobs) {
   const { PDFDocument } = await import('pdf-lib')
