@@ -11,11 +11,12 @@ import JobsView from './repairs/JobsView.jsx'
 import SalesHome from './repairs/SalesHome.jsx'
 import SettingsView from './SettingsView.jsx'
 import ChecklistView from './ChecklistView.jsx'
+import ManagerDashboard from './ManagerDashboard.jsx'
 import RolePicker, { roleTitle } from './RolePicker.jsx'
 import { OPEN_ACCESS, chosenRole, chooseRole } from './supabase.js'
 
-const VIEWS = ['Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings', 'Checklist']
-const ADMIN_ONLY = ['Inbox', 'Settings', 'Checklist']
+const VIEWS = ['Dashboard', 'Jobs', 'Parts', 'Reorder', 'History', 'Models', 'Inbox', 'Settings', 'Checklist']
+const ADMIN_ONLY = ['Dashboard', 'Inbox', 'Settings', 'Checklist']
 
 export default function App() {
   const [session, setSession] = useState(undefined) // undefined = checking
@@ -61,7 +62,8 @@ function Workshop({ session, openRole }) {
   const [parts, setParts] = useState(null) // Map id → part
   const [models, setModels] = useState(new Map())
   const [profiles, setProfiles] = useState([])
-  const [view, setView] = useState('Jobs')
+  const [viewPick, setView] = useState(null) // null = the role's home: Dashboard for the Service Manager, Jobs for everyone else
+  const [jump, setJump] = useState(null)     // open a job / filter the jobs list from the dashboard
   const [loadError, setLoadError] = useState('')
   const [toast, setToast] = useState(null)
   const [modelFilter, setModelFilter] = useState('')
@@ -84,6 +86,8 @@ function Workshop({ session, openRole }) {
   const me = openRole ? { id: null, name: roleTitle(openRole), role: openRole } : profiles.find(p => p.id === session.user.id) || { role: 'view' }
   const signOut = openRole ? () => chooseRole('') : api.signOut
   const role = me.role || 'view'
+  const view = viewPick || (role === 'admin' ? 'Dashboard' : 'Jobs')
+  const goJobs = j => { setJump({ ...j, n: Date.now() }); setView('Jobs') }
   const can = {
     count: role === 'admin', edit: role === 'admin', models: role === 'admin' || role === 'watchmaker',
     intake: role === 'admin' || role === 'sales',                       // take in a watch, see signed receipts
@@ -197,7 +201,8 @@ function Workshop({ session, openRole }) {
             ))}
           </div>
           {role === 'view' && <p className="msg">You can view everything. Ask Dylan for a role to make changes.</p>}
-          {view === 'Jobs' && <JobsView models={models} allParts={parts} can={can} actions={actions} userId={session.user.id} who={who} />}
+          {view === 'Dashboard' && can.edit && <ManagerDashboard can={can} actions={actions} onOpenJob={id => goJobs({ id })} onFilter={filter => goJobs({ filter })} />}
+          {view === 'Jobs' && <JobsView models={models} allParts={parts} can={can} actions={actions} userId={session.user.id} who={who} jump={jump} />}
           {view === 'Parts' && (
             <PartsView parts={list} allParts={parts} models={models} can={can} actions={actions} who={who}
               modelFilter={modelFilter} setModelFilter={setModelFilter} />

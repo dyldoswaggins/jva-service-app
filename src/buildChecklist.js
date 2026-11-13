@@ -28,7 +28,7 @@ export const CHECKLIST = [
     detail: 'Estimate, Waiting on parts, On deck, Polishing, Timekeeping, Sent to Toronto, Done, Ready for pickup, Picked up, Cancelled.' },
 
   // ---- To build ----
-  { id: 'dash-manager', group: 'To build', who: 'Claude', title: 'Service Manager dashboard',
+  { id: 'dash-manager', group: 'To build', who: 'Claude', done: true, title: 'Service Manager dashboard (built: Dashboard tab, the Service Manager home)',
     detail: 'Own home screen: estimates due / overdue, waiting on the client, watch validation, Toronto, pickup, invoices, plus turnaround times and weekly counts. Today: the to-do panel on the Jobs page.' },
   { id: 'dash-watchmaker', group: 'To build', who: 'Claude', title: 'Watchmaker dashboard',
     detail: 'My bench: jobs to assess, bench queue by ETA, time on each job, parts short, timing tests due.' },

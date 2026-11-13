@@ -6,7 +6,7 @@ import JobView from './JobView.jsx'
 import TodoPanel from './TodoPanel.jsx'
 
 // All repair jobs. Sales start an intake here; anyone opens a job.
-export default function JobsView({ models, allParts, can, actions, userId, who }) {
+export default function JobsView({ models, allParts, can, actions, userId, who, jump }) {
   const [jobs, setJobs] = useState(null)
   const [statuses, setStatuses] = useState([])
   const [filter, setFilter] = useState('open')
@@ -17,6 +17,8 @@ export default function JobsView({ models, allParts, can, actions, userId, who }
   const load = () => api.loadJobs().then(setJobs).catch(e => setErr(e.message))
   useEffect(() => { load(); api.loadStatuses().then(setStatuses).catch(() => {}) }, [])
   useEffect(() => api.subscribe({ onJob: () => load() }), [])
+  // From the dashboard: open a job, or show a status
+  useEffect(() => { if (jump?.id) setMode({ view: 'job', id: jump.id }); else if (jump?.filter) { setFilter(jump.filter); setMode({ view: 'list' }) } }, [jump?.n])
 
   const kind = s => statuses.find(x => x.name === s)?.kind || 'open'
   const shown = useMemo(() => {

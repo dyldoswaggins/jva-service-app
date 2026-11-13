@@ -285,3 +285,35 @@ table.imp tr.click:hover td { background: var(--hover); }
 .cl-note { display: block; width: 100%; max-width: 640px; margin-top: 4px; font-size: 13px; padding: 3px 6px; }
 .offer.autoclass { display: flex; flex-direction: row; align-items: center; gap: 6px; flex-wrap: wrap; text-align: left; }
 .autoclass .link { margin-left: auto; }
+
+/* Service Manager dashboard */
+.dash { display: flex; flex-direction: column; gap: 12px; }
+.dash > .actions h2 { margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.kpi { display: flex; flex-direction: column; gap: 2px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font: inherit; color: inherit; }
+.kpi.click { cursor: pointer; } .kpi.click:hover { background: var(--hover); border-color: var(--focus); }
+.kpi-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.kpi-value { font-size: 32px; font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.kpi-value.small { font-size: 20px; padding: 6px 0 4px; }
+.kpi-alert { font-size: 13px; color: var(--warn); background: var(--warn-bg); border-radius: 4px; padding: 1px 6px; align-self: flex-start; }
+.dash-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
+.dash-cols > .panel { margin: 0; }
+.meters { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 8px; }
+.meter-row { display: grid; grid-template-columns: 130px 1fr 32px; align-items: center; gap: 10px; background: none; border: 0; padding: 4px 2px; font: inherit; color: inherit; cursor: pointer; border-radius: 4px; text-align: left; }
+.meter-row:hover { background: var(--hover); }
+.meter-name { font-size: 13px; }
+.meter-n { text-align: right; font-variant-numeric: tabular-nums; }
+.meter-track { display: block; height: 8px; background: var(--line2); border-radius: 4px; overflow: hidden; }
+.meter-fill { display: block; height: 100%; background: var(--navy); border-radius: 4px; min-width: 0; }
+.tstats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 6px; }
+.tstat { display: flex; flex-direction: column; gap: 3px; }
+.tstat-value { font-size: 22px; font-variant-numeric: tabular-nums; }
+.weekbars { margin: 0; position: relative; }
+.weekbars figcaption { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+.weekbars svg { width: 100%; height: auto; display: block; }
+.weekbars .bar { fill: var(--navy); opacity: .85; } .weekbars .bar.on { opacity: 1; }
+.weekbars .axis { stroke: var(--line); stroke-width: 1; }
+.weekbars .tick { font-size: 10px; fill: var(--muted); text-anchor: middle; }
+.weekbars .val { font-size: 11px; fill: var(--fg); text-anchor: middle; font-weight: 600; }
+.weektip { position: absolute; top: 0; right: 0; font-size: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 2px 8px; }
+@media (max-width: 600px) { .meter-row { grid-template-columns: 100px 1fr 28px; } .kpi-value { font-size: 26px; } }
