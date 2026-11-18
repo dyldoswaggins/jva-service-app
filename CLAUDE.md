@@ -4,7 +4,7 @@ Read this first, every session. It is the source of truth. When a rule changes, 
 
 ## 1. What this is
 
-A web app for J. Vair Anderson Jewellers' Rolex service workshop (Calgary). It replaces The Edge for watch service (The Edge stays for retail). Built by Dylan Barr, who does not code: explain in plain language, ask before anything risky, keep steps small.
+A web app for J. Vair Anderson Jewellers' Rolex service workshop (Calgary). It replaces The Edge for watch service (The Edge stays for retail). Built by Dylan Barr, with Richard (Service Manager) also working on it through Claude Code. Neither codes: explain in plain language, ask before anything risky, keep steps small. See §2b before changing anything.
 
 Sections:
 
@@ -13,20 +13,36 @@ Sections:
 | 1 | Parts (stock count, reorder, invoices, models) | **Rebuilt in the app** (`src/parts/`): Count, Reorder, History, Models. Invoice import (PDF, adds stock + cost, Undo in History) done. Still to port from the prototype: PDF count sheets/report, voice count, drawer sheets/scan, photo check, quick scan. Prototype artifact stays live until cut-over. |
 | 2 | Repairs (intake, watchmaker bench screen, parts on a job) | **Parts 1–2 built** (`src/repairs/`): iPad intake with signed receipt, jobs list, job page with condition + request prompts and status gate, CTR kits from Jared's lists (auto), + Add (In CTR / Upgrades / Billable / Search), stock taken when a job leaves Estimate. Next: client-facing intake redesign (Sales see only intake), CTR + polish price, ETA from queue, iPad photos. |
 | 3 | Documents (intake receipt, estimate, confirmation, invoice) | **Built** on one harmonized layout from JVA's SAV templates (`src/docs/`, `docs/rolex-customer-documents.md`). Admin creates Estimate → records decision → Confirmation → Invoice on the job page. |
-| 4 | Service Manager Dashboard | Not started; design here in Claude Code |
+| 4 | Dashboards | **Built**: Service Manager (Dashboard tab, `src/ManagerDashboard.jsx`), Watchmaker (Bench tab, `src/WatchmakerDashboard.jsx`). Admin Checklist tab = what's left to build or decide. |
 
 ## 2. Stack (agreed)
 
-- **Code** lives in `C:\Users\dylan\jva-service-app` (not OneDrive: sync breaks on `node_modules`), backed up to a private GitHub repo. Netlify publishes from GitHub. OneDrive source files (Jared's lists, ROLP invoices, intake worksheet) are read in place.
+- **Code** lives in `C:\Users\<you>\jva-service-app` on each person's computer (not OneDrive: sync breaks on `node_modules`), shared through the private GitHub repo. Netlify publishes from GitHub. OneDrive source files (Jared's lists, ROLP invoices, intake worksheet) are read in place.
 - **Website** hosted on **Netlify** (store already uses it for the intake form). This app: site `watchservicejva` (https://watchservicejva.netlify.app), team "Watch Service", auto-deploys from GitHub `dyldoswaggins/jva-service-app` branch `main`. Supabase URL/key set as Netlify build env vars.
 - **Supabase**: Postgres database, auth, realtime. Project `jva-service` (ref `lexvtfypmutjirluuwwn`), region ca-central-1. URL + publishable key in `.env.local` (not committed) and Netlify env vars.
-- **Sign-in (changed 2026-11-09): email code.** Staff enter their @jvairanderson.com address and get a 6-digit code (Supabase email OTP, sent through the parts Gmail account's SMTP). Other domains are refused by a database trigger on `auth.users` (migration 005). New logins are View only until Admin gives a role. Microsoft (Entra) sign-in is kept in code for later: build with `VITE_SIGNIN=microsoft` once IT registers the app. One login per person.
+- **Sign-in (current, 2026-11-12): OPEN ACCESS — no sign-in.** The app opens on a role picker (Service Manager / Watchmaker / Sales); the choice is sent as the `x-app-role` header and trusted while `app_settings.open_access.enabled` is true (migration 030). Anyone with the link can read and change data, so **no real client data until it is switched off** (set it false + Netlify `VITE_ACCESS=signin`). Staff accounts (username + password, roles from `staff_roles`, migrations 019–020) still work and return when it's off. Microsoft (Entra) sign-in kept in code for later (`VITE_SIGNIN=microsoft`).
 - **2–4 people at once**, live updates via Supabase Realtime.
 - **Stock changes run as a single database transaction** (update `parts.qty` + insert `log` together). Never allow a negative count.
 - Roles checked on the server (Row Level Security), not just hidden buttons.
 - Prefer a Canadian region for the database if available.
 - Daily backups; Excel export of parts, log and jobs any time.
 - Keep the code simple and readable. Business rules (order limits, pack maths, CTR kit, pricing) live in one module, not repeated per page.
+
+## 2b. Working together (Dylan + Richard)
+
+Two people change this app, each with their own Claude Code on their own computer. Claude follows these steps every session, without being asked:
+
+1. **Start: get the latest.** `git pull` before reading or changing anything. If it fails or there are local changes you didn't make, stop and explain in plain words before going further.
+2. **One person at a time.** Before starting real work, ask whether the other person is working on the app right now. If yes, wait or agree who does what. Never both on the same screen or file at once.
+3. **Small, finished steps.** Each change: build (`npm run build`), test in demo mode (`npm run dev`, open `/?demo&role=admin`, also `role=watchmaker` / `role=sales`), then commit with a clear message and `git push`. Anything pushed to `main` **goes live on the site automatically** (Netlify) — never push something half-done or untested.
+4. **Database changes** (Supabase): ask the person first, describe it in plain words, save it as the next numbered file in `supabase/migrations/`, apply it, and mention it in the commit. Never delete data or drop tables; no hard deletes.
+5. **Record decisions here.** When a rule or design changes, update this file in the same commit and add a Changelog line with the date and who asked ("Richard, 2026-11-20: …"). This file is the shared memory: Claude's own memory is per person and is not shared.
+6. **Build checklist.** Open questions and remaining work live in the app's Checklist tab (`src/buildChecklist.js`). Tick items there when done; add new ones there rather than only in chat.
+7. **End: push everything.** Finish with a commit and push so the other person starts from the latest. Say plainly what changed and what is not done.
+8. **Never commit or share** secrets (`.env.local`, passwords, API keys) or client data (scans, signed documents, names). Test only with demo data.
+9. **Disagreements** between what the two people asked for: don't pick one silently — point out the conflict and ask.
+
+Setup for a new person: GitHub collaborator (Write) on `dyldoswaggins/jva-service-app`, Supabase team invite (Developer) on project `jva-service`, own Claude Code; then clone the repo, `npm install`, and create `.env.local` from `.env.example` (Supabase → Project Settings → API).
 
 ## 3. People and roles
 
@@ -302,3 +318,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-12 | Class from the reference digits first (Dylan: 6 = Modern, 5 = Classic, 4 = Vintage; calibre only when no usable reference; full reference list to come — Checklist). Polishing shows only the model's line ("Other lines" to change). |
 | 2026-11-12 | Migration 034: final QC (`qc_at`, `qc_by`, `qc_checker`). Under the timing analysis the watchmaker signs off once a second watchmaker has checked the watch. Invoice, status Done / Ready for pickup / Picked up and "Mark ready for pickup" wait for a passed timing + QC (`finishBlockers`, in-store services only). Watchmaker to-do: Final QC. |
 | 2026-11-12 | **Dashboards.** Service Manager: Dashboard tab, Admin home (`ManagerDashboard.jsx`): headline numbers (in the workshop, estimates due/overdue, waiting on client, ready for pickup, this week), to-do cards, status bars + bench load, turnaround last 90 days vs Rolex 24 h targets, weekly taken-in / done, longest open. Watchmaker: Bench tab, watchmaker home (`WatchmakerDashboard.jsx`): to assess with estimate due, next up by ETA with next step (parts / service / timing / final QC), timing due, QC, parts short, time on each job; no client details or costs. Dashboard rows open the job (`jump` prop on JobsView). |
+| 2026-11-18 | §2b "Working together" (Dylan): Richard also works on the app with his own Claude Code. Every session: pull first, one person at a time, test in demo before pushing (push = live), database changes asked + saved as migrations, decisions recorded here + Changelog, Checklist tab for open items, push at the end, no secrets or client data. Sign-in section and dashboards row brought up to date. |
