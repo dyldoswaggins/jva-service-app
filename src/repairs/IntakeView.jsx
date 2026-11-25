@@ -6,6 +6,7 @@ import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFile
 import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
 import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm } from '../docs/engravingForm.js'
 import { compressPhoto } from '../photos.js'
+import { referenceCatalog, stripM, suggestReferences } from '../rolexReferences.js'
 import SignaturePad from './SignaturePad.jsx'
 
 const INTAKE_CONDITIONS = CONDITIONS.filter(x => x.intake !== false)
@@ -55,6 +56,21 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   useEffect(() => {
     if (model) setJob(j => ({ ...j, watch_name: j.watch_name || model.name, calibre: j.calibre || String(model.cal || '').split(/[,\s]+/)[0] }))
   }, [model])
+  // Auto-suggest for model number and model name (Richard, 2026-11-25): models table + extra vintage/new references.
+  // The model number always shows with its "M"; the job stores the digits/letters after it (watchLine adds the M on documents).
+  const catalog = useMemo(() => referenceCatalog(models), [models])
+  const [suggestFor, setSuggestFor] = useState(null) // 'ref' | 'name' while that field has focus
+  const suggestions = suggestFor ? suggestReferences(catalog, suggestFor === 'ref' ? job.watch_ref : job.watch_name, suggestFor) : []
+  const pickReference = r => { setJob(j => ({ ...j, watch_ref: stripM(r.ref), watch_name: r.name || j.watch_name, calibre: r.cal || j.calibre })); setSuggestFor(null) }
+  const SuggestList = ({ by }) => suggestFor === by && suggestions.length > 0 && (
+    <ul className={`suggest${by === 'name' ? ' right' : ''}`} role="listbox">
+      {suggestions.map(r => (
+        <li key={r.ref} role="option" aria-selected="false" onPointerDown={e => { e.preventDefault(); pickReference(r) }}>
+          <b>M{stripM(r.ref)}</b><span>{r.name || 'Name to confirm'}</span>{r.cal && <span className="msg">cal {r.cal}</span>}
+        </li>
+      ))}
+    </ul>
+  )
   // Rolex's official complete-service offers (Settings can adjust the prices); shown for the chosen class
   const allOffers = Object.keys(settings?.ctr_prices || {}).some(k => k.startsWith('CO - ')) ? settings.ctr_prices : ROLEX_CO_OFFERS
   const ctrPrices = Object.fromEntries(Object.entries(allOffers).filter(([k]) => !cls || cls === 'Vintage' || k.toUpperCase().includes(cls.toUpperCase())))
@@ -257,8 +273,15 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       <section className="step">
         <h2><span>2</span>Your timepiece</h2>
         <div className="grid big">
-          <label>Model number<input value={job.watch_ref} onChange={set('watch_ref')} placeholder="126710BLNR" autoCapitalize="characters" /></label>
-          <label>Model name<input value={job.watch_name} onChange={set('watch_name')} placeholder="GMT-Master II / Oyster Perpetual" /></label>
+          <label className="suggest-field">Model number
+            <span className="mprefix"><span aria-hidden="true">M</span>
+              <input value={job.watch_ref} onChange={e => setJob({ ...job, watch_ref: stripM(e.target.value) })} placeholder="126710BLNR" autoCapitalize="characters"
+                autoComplete="off" onFocus={() => setSuggestFor('ref')} onBlur={() => setSuggestFor(null)} aria-label="Model number, after M" /></span>
+            <SuggestList by="ref" /></label>
+          <label className="suggest-field">Model name
+            <input value={job.watch_name} onChange={set('watch_name')} placeholder="GMT-Master II / Oyster Perpetual" autoComplete="off"
+              onFocus={() => setSuggestFor('name')} onBlur={() => setSuggestFor(null)} />
+            <SuggestList by="name" /></label>
           <label>Serial number<input value={job.serial} onChange={set('serial')} autoCapitalize="characters" /></label>
           <label>Bracelet description<input value={job.bracelet} onChange={set('bracelet')} placeholder="Rolex Oyster Fliplock Steel" /></label>
           <label>Dial description<input value={job.dial} onChange={set('dial')} placeholder="126610 black markers w lgn" /></label>
