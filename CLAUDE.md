@@ -337,3 +337,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-25 | Sales thank-you page (Richard): Print documents, Print bag label and Email to service manager required; warning on Next client / Sign out until all three are done. |
 | 2026-11-25 | Intake (Richard): model number (fixed M) and model name auto-suggest from the models table + `src/rolexReferences.js` (vintage 4-digit + newest references); free typing still allowed. |
 | 2026-11-25 | Intake (Richard): Notes box under Condition on arrival → Customer Requests on the receipt, Watch Conditions and Client additional information on the Immediate Proceed. |
+| 2026-11-25 | Intake order (Richard): 1 Client Details, 2 Your timepiece, 3 Photos, 4 Your service, 5 Condition on arrival (+ Notes), 6 Estimate and timing, 7 Signatures, 8 For the boutique. |

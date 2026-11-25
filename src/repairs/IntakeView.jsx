@@ -314,36 +314,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>4</span>Condition on arrival</h2>
-        <p className="msg">Tap a part, then what you see. Our watchmakers confirm every note during the analysis.</p>
-        <div className="chips">
-          {INTAKE_CONDITIONS.map(({ c }) => {
-            const n = conds.filter(x => x.component === c).length
-            return <button key={c} type="button" className="chip" aria-pressed={openComp === c} data-marked={n > 0}
-              onClick={() => setOpenComp(openComp === c ? null : c)}>{c}{n ? ` · ${n}` : ''}</button>
-          })}
-        </div>
-        {openComp && (
-          <div className="subpanel">
-            <b>{openComp}</b>
-            <div className="chips">
-              {INTAKE_CONDITIONS.find(x => x.c === openComp).t.map(t => (
-                <button key={t} type="button" className="chip" aria-pressed={hasCond(openComp, t)} onClick={() => toggleCond(openComp, t)}>{t}</button>
-              ))}
-            </div>
-            {conds.some(x => x.component === openComp) && (
-              <input value={noteFor(openComp)} onChange={e => setNote(openComp, e.target.value)} placeholder="Note, e.g. at 2 o'clock" />
-            )}
-          </div>
-        )}
-        <p className="summary">{conds.length ? conditionText(conds) : 'No visible marks noted.'}</p>
-        <label className="stackfield">Notes
-          <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything else about the watch or the client's wishes" /></label>
-        <p className="msg">Printed under Customer Requests on the receipt, and under Watch Conditions and Client additional information on the Rolex Immediate Proceed.</p>
-      </section>
-
-      <section className="step">
-        <h2><span>5</span>Your service</h2>
+        <h2><span>4</span>Your service</h2>
         {auto && !allClasses ? (
           <div className="offer autoclass" data-on="true">
             <b>{auto.cls}{auto.collection && auto.collection !== auto.cls ? ` · ${auto.collection}` : ''}</b>
@@ -425,6 +396,35 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <input value={otherReq} onChange={e => setOtherReq(e.target.value)} placeholder="Something else" onKeyDown={e => e.key === 'Enter' && addOther()} />
           <button type="button" className="btn" onClick={addOther} disabled={!otherReq.trim()}>Add</button>
         </div>
+      </section>
+
+      <section className="step">
+        <h2><span>5</span>Condition on arrival</h2>
+        <p className="msg">Tap a part, then what you see. Our watchmakers confirm every note during the analysis.</p>
+        <div className="chips">
+          {INTAKE_CONDITIONS.map(({ c }) => {
+            const n = conds.filter(x => x.component === c).length
+            return <button key={c} type="button" className="chip" aria-pressed={openComp === c} data-marked={n > 0}
+              onClick={() => setOpenComp(openComp === c ? null : c)}>{c}{n ? ` · ${n}` : ''}</button>
+          })}
+        </div>
+        {openComp && (
+          <div className="subpanel">
+            <b>{openComp}</b>
+            <div className="chips">
+              {INTAKE_CONDITIONS.find(x => x.c === openComp).t.map(t => (
+                <button key={t} type="button" className="chip" aria-pressed={hasCond(openComp, t)} onClick={() => toggleCond(openComp, t)}>{t}</button>
+              ))}
+            </div>
+            {conds.some(x => x.component === openComp) && (
+              <input value={noteFor(openComp)} onChange={e => setNote(openComp, e.target.value)} placeholder="Note, e.g. at 2 o'clock" />
+            )}
+          </div>
+        )}
+        <p className="summary">{conds.length ? conditionText(conds) : 'No visible marks noted.'}</p>
+        <label className="stackfield">Notes
+          <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything else about the watch or the client's wishes" /></label>
+        <p className="msg">Printed under Customer Requests on the receipt, and under Watch Conditions and Client additional information on the Rolex Immediate Proceed.</p>
       </section>
 
       <section className="step quote">
