@@ -7,6 +7,9 @@ import { PDFDocument, StandardFonts } from 'pdf-lib'
 import { conditionText } from '../rules.js'
 
 // Rolex's official offers, exactly as in the form's list (also the CTR prices offered at intake)
+// Customer request line that carries the associate's intake notes
+export const NOTES_PREFIX = 'Notes: '
+
 export const ROLEX_CO_OFFERS = {
   'CO - MODERN $840': 840, 'CO - MODERN $980': 980, 'CO - MODERN $1,190': 1190,
   'CO - CLASSIC $1,250': 1250, 'CO - CLASSIC $1,530': 1530, 'CO - CLASSIC $1,810': 1810,
@@ -45,7 +48,9 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   set('Model N', ref ? (ref.startsWith('M') ? ref : 'M' + ref) : 'N/A')
 
   // Interventions: the Rolex offer (list) + the client's other requests (two lines)
-  const extra = requests.map(r => r.request || r).filter(r => !/^Perform complete overhaul$|^Do not refinish|^Refinish case and bracelet$/i.test(r))
+  const all = requests.map(r => r.request || r)
+  const notes = all.filter(r => r.startsWith(NOTES_PREFIX)).map(r => r.slice(NOTES_PREFIX.length))
+  const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$|^Do not refinish|^Refinish case and bracelet$/i.test(r))
   const dd = form.getDropdown('Dropdown1')
   if (offer && dd.getOptions().includes(offer)) { dd.select(offer); try { dd.setFontSize(10) } catch { /* keeps Rolex's setting */ } } else form.removeField(dd)
   const [i1, i2] = twoLines(vintageFee != null ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`, ...extra].join(', ') : extra.join(', '), font)
@@ -54,7 +59,10 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   const yes = form.getCheckBox('Check Box4'), no = form.getCheckBox('Check Box5')
   if (vintageFee == null) { if (polish) yes.check(); else no.check() }
   // Watch conditions and client additional information
-  const [c1, c2] = twoLines(conditions.length ? conditionText(conditions) : 'No visible marks noted.', font)
+  // Conditions, then the associate's notes (Richard, 2026-11-25): own line when both fit, else run on over the two lines
+  const cond = conditions.length ? conditionText(conditions) : 'No visible marks noted.'
+  const fits = s => font.widthOfTextAtSize(s, 9.5) <= 390
+  const [c1, c2] = notes.length && fits(cond) && fits(notes.join(' · ')) ? [cond, notes.join(' · ')] : twoLines([cond, ...notes].join(' · '), font)
   set('undefined_3', c1, 9.5); set('undefined_4', c2, 9.5)
   // Total (tax excl.): set price + polish; optionally with the 15 % allowance the form permits
   const base = vintageFee != null ? Number(vintageFee) : (Number(offerPrice) || 0) + (polish ? Number(polishPrice) || 0 : 0)

@@ -6,6 +6,7 @@ import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFile
 import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
 import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm } from '../docs/engravingForm.js'
 import { compressPhoto } from '../photos.js'
+import { NOTES_PREFIX } from '../docs/immediateProceed.js'
 import { referenceCatalog, stripM, suggestReferences } from '../rolexReferences.js'
 import SignaturePad from './SignaturePad.jsx'
 
@@ -26,6 +27,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [openComp, setOpenComp] = useState(null)
   const [reqs, setReqs] = useState([])
   const [otherReq, setOtherReq] = useState('')
+  // Notes typed by the associate under Condition on arrival (Richard, 2026-11-25): printed under Customer Requests on the receipt
+  // (and Vintage form) and under Watch Conditions and Client additional information on the Rolex Immediate Proceed
+  const [notes, setNotes] = useState('')
   const [client, setClient] = useState({ name: '', address1: '', address2: '', postal_code: '', phone: '', email: '' })
   // e-Signature (Richard, 2026-11-25): the client signs each form on the iPad, or later from a private link emailed to them
   const [signMode, setSignMode] = useState('ipad') // ipad | email
@@ -121,6 +125,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     ...(engraving ? [{ request: ENGRAVING_REQUEST, note: [engr.text.trim() && `"${engr.text.trim()}"`, engr.font, engr.case, engr.position].filter(Boolean).join(' · ') }] : []),
     ...(polish ? [{ request: REQ.refinish, note: family }] : isCTR ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
     ...reqs,
+    ...(notes.trim() ? [{ request: NOTES_PREFIX + notes.trim().replace(/\s+/g, ' '), note: '' }] : []),
   ]
 
   const showEta = !vintage && !engraving && timeframeAtIntake({ isCTR, polish, requests: reqs })
@@ -332,6 +337,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           </div>
         )}
         <p className="summary">{conds.length ? conditionText(conds) : 'No visible marks noted.'}</p>
+        <label className="stackfield">Notes
+          <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything else about the watch or the client's wishes" /></label>
+        <p className="msg">Printed under Customer Requests on the receipt, and under Watch Conditions and Client additional information on the Rolex Immediate Proceed.</p>
       </section>
 
       <section className="step">
