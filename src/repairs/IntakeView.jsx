@@ -132,13 +132,19 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     engraving && !engr.font && 'engraving font',
     engraving && !engr.case && 'engraving letter case',
     !allReqs.length && 'at least one request',
+    // Client Details: every field required (Richard, 2026-11-25)
+    !job.edge_no.trim() && 'JVA Number',
     !client.name.trim() && 'client name',
-    !byEmail && client.email.trim() && !emailOk && 'a valid email (or leave it blank)',
-    byEmail && !emailOk && "the client's email (for the signing link)",
+    !client.address1.trim() && 'address',
+    !client.address2.trim() && 'city, province',
+    !client.postal_code.trim() && 'postal code',
+    !client.phone.trim() && 'phone',
+    !emailOk && "the client's email",
     ...(!byEmail ? forms.filter(f => !sigs[f.kind]).map(f => `client signature on the ${f.title}`) : []),
-    !staffName && 'your name (associate)',
-    staff.email.trim() && !staffEmailOk && 'your @jvairanderson.com email (or leave it blank)',
-    forms.some(f => f.kind === 'immediate_proceed') && !staffSig && 'your signature (Retailer signature on the Immediate Proceed)',
+    // Associate name, email and signature: required (Richard, 2026-11-25)
+    !staffName && 'associate name',
+    !staffEmailOk && 'associate @jvairanderson.com email',
+    !staffSig && 'associate signature',
   ].filter(Boolean)
 
   // Fill in every form. signed = with the client's signatures (iPad); otherwise blank spots for the email link.
@@ -170,7 +176,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   async function preview(kind) {
     setMsg('')
     try {
-      const f = await buildForms({ ...job, edge_no: '(on saving)', watch_ref: job.watch_ref.trim().toUpperCase(), ctr_tier: isCTR ? tier : null, classification: cls }, false)
+      const f = await buildForms({ ...job, edge_no: job.edge_no.trim() || '(JVA Number)', watch_ref: job.watch_ref.trim().toUpperCase(), ctr_tier: isCTR ? tier : null, classification: cls }, false)
       window.open(URL.createObjectURL(f[kind]), '_blank')
     } catch (e) { setMsg(`Preview failed: ${e.message}`) }
   }
@@ -232,8 +238,24 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         {!standalone && <button type="button" className="btn" onClick={() => onDone(null)}>Cancel</button>}
       </header>
 
+      {/* Client Details first, every field required (Richard, 2026-11-25). The JVA Number is the job number: OUR REF # on the
+          receipt and Vintage Analysis Fee form, Retailer Ref. N° on the Rolex Immediate Proceed. */}
       <section className="step">
-        <h2><span>1</span>Your timepiece</h2>
+        <h2><span>1</span>Client Details</h2>
+        <div className="grid big">
+          <label>JVA Number *<input value={job.edge_no} onChange={set('edge_no')} autoComplete="off" autoCapitalize="characters" placeholder="124595-001" required /></label>
+          <label>Name *<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} autoComplete="off" required /></label>
+          <label>Address *<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} autoComplete="off" required /></label>
+          <label>City, province *<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" placeholder="Calgary, AB" required /></label>
+          <label>Postal code *<input value={client.postal_code} onChange={e => setClient({ ...client, postal_code: e.target.value })} autoComplete="off" autoCapitalize="characters" placeholder="T2P 4Z2" required /></label>
+          <label>Phone *<input type="tel" value={client.phone} onChange={e => setClient({ ...client, phone: e.target.value })} autoComplete="off" inputMode="tel" required /></label>
+          <label>Email *<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" required /></label>
+        </div>
+        <p className="msg">All fields are required. The signed documents are emailed to this address.</p>
+      </section>
+
+      <section className="step">
+        <h2><span>2</span>Your timepiece</h2>
         <div className="grid big">
           <label>Model number<input value={job.watch_ref} onChange={set('watch_ref')} placeholder="126710BLNR" autoCapitalize="characters" /></label>
           <label>Model name<input value={job.watch_name} onChange={set('watch_name')} placeholder="GMT-Master II / Oyster Perpetual" /></label>
@@ -251,7 +273,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>2</span>Photos</h2>
+        <h2><span>3</span>Photos</h2>
         <p className="msg">A record of your watch as it arrived: dial, case back, clasp and any marks.</p>
         <div className="photos">
           {photos.map((p, i) => (
@@ -264,7 +286,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>3</span>Condition on arrival</h2>
+        <h2><span>4</span>Condition on arrival</h2>
         <p className="msg">Tap a part, then what you see. Our watchmakers confirm every note during the analysis.</p>
         <div className="chips">
           {INTAKE_CONDITIONS.map(({ c }) => {
@@ -290,7 +312,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>4</span>Your service</h2>
+        <h2><span>5</span>Your service</h2>
         {auto && !allClasses ? (
           <div className="offer autoclass" data-on="true">
             <b>{auto.cls}{auto.collection && auto.collection !== auto.cls ? ` · ${auto.collection}` : ''}</b>
@@ -375,7 +397,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step quote">
-        <h2><span>5</span>Estimate and timing</h2>
+        <h2><span>6</span>Estimate and timing</h2>
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
             <div className="msg">{vintage ? 'Rolex Vintage Analysis Fee. The estimate for the work follows the analysis.' : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
@@ -396,16 +418,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>6</span>Your details and signature</h2>
-        <div className="grid big">
-          <label>Name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} autoComplete="off" /></label>
-          <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} autoComplete="off" /></label>
-          <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" placeholder="Calgary, AB" /></label>
-          <label>Postal code<input value={client.postal_code} onChange={e => setClient({ ...client, postal_code: e.target.value })} autoComplete="off" autoCapitalize="characters" placeholder="T2P 4Z2" /></label>
-          <label>Phone<input type="tel" value={client.phone} onChange={e => setClient({ ...client, phone: e.target.value })} autoComplete="off" inputMode="tel" /></label>
-          <label>Email {byEmail ? '(for the signing link)' : "(we'll send you a signed copy)"}<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" placeholder={byEmail ? '' : 'Optional'} /></label>
-        </div>
-        <h3>Your signature</h3>
+        <h2><span>7</span>Signatures</h2>
         <div className="chips">
           <button type="button" className="chip" aria-pressed={!byEmail} onClick={() => setSignMode('ipad')}>Sign here on the iPad</button>
           <button type="button" className="chip" aria-pressed={byEmail} onClick={() => setSignMode('email')}>Email me a link to sign</button>
@@ -428,15 +441,13 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>7</span>For the boutique</h2>
+        <h2><span>8</span>For the boutique</h2>
         <div className="grid">
-          <label>Associate name<input value={staff.name} onChange={e => setStaff({ ...staff, name: e.target.value })} autoComplete="off" /></label>
-          <label>Associate email (gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" /></label>
+          <label>Associate name *<input value={staff.name} onChange={e => setStaff({ ...staff, name: e.target.value })} autoComplete="off" required /></label>
+          <label>Associate email * (gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" required /></label>
         </div>
-        {forms.some(f => f.kind === 'immediate_proceed') && (<>
-          <p className="msg">Retailer signature on the Rolex Immediate Proceed.</p>
-          <SignaturePad onChange={setStaffSig} label="Associate signs here" />
-        </>)}
+        <p className="msg">Associate signature *{forms.some(f => f.kind === 'immediate_proceed') ? ' (Retailer signature on the Rolex Immediate Proceed)' : ''}</p>
+        <SignaturePad onChange={setStaffSig} label="Associate signs here" />
       </section>
 
       <div className="savebar">
