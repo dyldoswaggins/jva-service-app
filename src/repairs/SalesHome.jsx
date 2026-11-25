@@ -15,9 +15,23 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
   const [msg, setMsg] = useState('')
   const [view, setView] = useState('intake') // intake | pickup
   const [signing, setSigning] = useState(null) // token: the client signs the emailed forms on this iPad instead
+  // After an intake, three steps are required (Richard, 2026-11-25): print the documents, print the bag label, email the service
+  // manager. Leaving with "Next client" or "Sign out" before all three shows a warning first.
+  const [steps, setSteps] = useState({ print: false, label: false, email: false })
+  const [leaving, setLeaving] = useState(null) // 'next' | 'signout': waiting on the warning
+  const mark = k => setSteps(s => ({ ...s, [k]: true }))
+  const STEP_NAMES = { print: 'Print documents', label: 'Print bag label', email: 'Email to service manager' }
+  const notDone = done ? Object.keys(STEP_NAMES).filter(k => !steps[k]) : []
+  const nextClient = () => { setDone(null); setKey(k => k + 1); setMsg(''); setSteps({ print: false, label: false, email: false }); setLeaving(null) }
+  const leave = kind => {
+    if (notDone.length && !leaving) { setView('intake'); setSigning(null); return setLeaving(kind) }
+    setLeaving(null)
+    if (kind === 'next') nextClient(); else { nextClient(); onSignOut() }
+  }
 
   const openPdf = blob => window.open(URL.createObjectURL(blob), '_blank')
   const print = () => {
+    mark('print')
     const url = URL.createObjectURL(done.pdf)
     if ('ontouchend' in document) return window.open(url, '_blank') // iPad: print / share from the PDF
     const f = document.createElement('iframe')
@@ -27,7 +41,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
     document.body.appendChild(f)
   }
   const email = async () => {
-    setMsg('')
+    setMsg(''); mark('email')
     try { const r = await api.emailJobDoc(done.doc.id); actions.say(`${done.doc.file_name || 'Document'} emailed to ${r.to}`) } catch (e) { setMsg(e.message) }
   }
 
@@ -40,7 +54,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
           <button type="button" aria-pressed={view === 'pickup'} onClick={() => setView('pickup')}>Pickup</button>
         </span>
         {api.mode !== 'demo' && me.id && <ChangePassword actions={actions} />}
-        <button type="button" className="btn" onClick={onSignOut}>{me.id ? 'Sign out' : 'Switch role'}</button>
+        <button type="button" className="btn" onClick={() => (done ? leave('signout') : onSignOut())}>{me.id ? 'Sign out' : 'Switch role'}</button>
       </div>
       {signing ? <SignPage token={signing} onClose={() => setSigning(null)} /> : view === 'pickup' ? <PickupView actions={actions} /> : done ? (
         <div className="intake client">
@@ -65,14 +79,25 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
                 <button type="button" className="btn big" onClick={async () => { setMsg(''); try { const r = await api.emailSignRequest(done.signLink.id); actions.say(`Signing link emailed to ${r.to}`) } catch (e) { setMsg(e.message) } }}>Email the link again</button>
               </div>
             )}
+            <h3 className="required-steps">Required before the next client *</h3>
             <div className="actions">
-              <button type="button" className="btn solid big" onClick={print}>Print documents</button>
-              <button type="button" className="btn big" onClick={async () => openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name }))}>Print bag label</button>
-              <button type="button" className="btn big" onClick={email}>Email to service manager</button>
+              <button type="button" className="btn big" data-done={steps.print} onClick={print}>{steps.print ? '✓ ' : ''}Print documents</button>
+              <button type="button" className="btn big" data-done={steps.label} onClick={async () => { mark('label'); openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name })) }}>{steps.label ? '✓ ' : ''}Print bag label</button>
+              <button type="button" className="btn big" data-done={steps.email} onClick={email}>{steps.email ? '✓ ' : ''}Email to service manager</button>
               <span className="grow" />
-              <button type="button" className="btn big" onClick={() => { setDone(null); setKey(k => k + 1); setMsg('') }}>Next client</button>
+              <button type="button" className={`btn big${notDone.length ? '' : ' solid'}`} onClick={() => leave('next')}>Next client</button>
             </div>
             {msg && <p className="msg warn">{msg}</p>}
+            {leaving && notDone.length > 0 && (
+              <div className="leave-warning" role="alert">
+                <b>Not done yet: {listWords(notDone.map(k => STEP_NAMES[k]))}.</b>
+                <span className="msg">Every intake needs the documents printed, the bag label printed and the service manager emailed.</span>
+                <div className="actions">
+                  <button type="button" className="btn solid big" onClick={() => setLeaving(null)}>Go back and finish</button>
+                  <button type="button" className="btn big" onClick={() => leave(leaving)}>{leaving === 'next' ? 'Next client anyway' : 'Sign out anyway'}</button>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       ) : (

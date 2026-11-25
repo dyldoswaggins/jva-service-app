@@ -363,3 +363,8 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
   .intake.client .quote-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) { .intake.client .quote-grid { grid-template-columns: 1fr; } .intake.client .grid { grid-template-columns: 1fr; } }
+/* Thank-you page: the three required steps after an intake (Richard, 2026-11-25) */
+.intake.client .required-steps { margin: 4px 0 0; color: var(--navy); }
+.intake.client .btn[data-done="true"] { border-color: var(--gold); box-shadow: inset 3px 0 0 var(--gold); }
+.leave-warning { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--warn); background: var(--warn-bg); color: var(--warn); border-radius: 8px; padding: 14px 16px; }
+.leave-warning b { font-size: 16px; }
