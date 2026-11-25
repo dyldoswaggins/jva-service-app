@@ -1,5 +1,6 @@
 // Supabase Edge Function "send-doc": email a job document (receipt, estimate, invoice…) from the parts
 // Gmail account to the watch service manager. Admin + Sales only (documents can hold client details).
+// Also { doc_ids, to: "signed_copies" }: the signed intake paperwork to the client and the associate who took the watch in.
 // Secrets: GMAIL_USER (the Gmail address), GMAIL_APP_PASSWORD (16-char app password),
 //          SERVICE_MANAGER_EMAIL (where documents go).
 import nodemailer from "npm:nodemailer@6";
@@ -9,20 +10,67 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-app-role" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
-const KIND = { vintage_fee: "Vintage Analysis Fee form", receipt: "Receipt", estimate: "Estimate", confirmation: "Confirmation", invoice: "Invoice", other: "Document" } as Record<string, string>;
+const KIND = { vintage_fee: "Vintage Analysis Fee form", immediate_proceed: "Rolex Immediate Proceed", receipt: "Receipt", estimate: "Estimate", confirmation: "Confirmation", invoice: "Invoice", other: "Document" } as Record<string, string>;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
-    const { doc_id, to: target } = await req.json().catch(() => ({}));
+    const { doc_id, doc_ids, to: target } = await req.json().catch(() => ({}));
     const toClient = target === "client"; // the client's own copy (email given at intake), else the service manager
-    if (!doc_id) return json({ error: "Missing document" }, 400);
 
     // Act as the signed-in person: RLS decides whether they may see this document
     const auth = req.headers.get("Authorization") || "";
     const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { ...(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/.test(auth) ? { Authorization: auth } : {}), "x-app-role": req.headers.get("x-app-role") || "" } } });
     const { data: role } = await user.rpc("app_role");
     if (!["admin", "sales"].includes(role)) return json({ error: "Only Admin or Sales can email documents" }, 403);
+
+    // ---- signed intake paperwork: one email with every form, to the client and to the associate who took the watch in
+    //      (Richard, 2026-11-25). { doc_ids: [...], to: "signed_copies" }. The associate's address is always @jvairanderson.com (migration 035).
+    if (target === "signed_copies") {
+      if (!Array.isArray(doc_ids) || !doc_ids.length || doc_ids.length > 6) return json({ error: "Missing documents" }, 400);
+      const { data: docs } = await user.from("job_docs").select("*").in("id", doc_ids);
+      if (!docs?.length || docs.length !== doc_ids.length || new Set(docs.map((d: any) => d.job_id)).size !== 1) return json({ error: "Documents not found" }, 404);
+      const jobId = docs[0].job_id;
+      const [{ data: job }, { data: c }] = await Promise.all([
+        svc.from("jobs").select("edge_no, watch_ref, watch_name, intake_staff_name, intake_staff_email").eq("id", jobId).single(),
+        svc.from("job_clients").select("name, email").eq("job_id", jobId).maybeSingle(),
+      ]);
+      const gmail = Deno.env.get("GMAIL_USER"), pass = Deno.env.get("GMAIL_APP_PASSWORD");
+      if (!gmail || !pass) return json({ error: "email isn't connected yet" }, 400);
+      const attachments = [];
+      for (const d of docs) {
+        const { data: file } = await svc.storage.from("job-docs").download(d.file_path);
+        if (!file) return json({ error: "A file could not be opened" }, 500);
+        attachments.push({ filename: d.file_name, content: new Uint8Array(await file.arrayBuffer()), contentType: "application/pdf" });
+      }
+      const transport = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gmail, pass } });
+      const watch = [job.watch_ref && `M${String(job.watch_ref).replace(/^M/i, "")}`, "Rolex", String(job.watch_name || "").replace(/^rolex\s+/i, "")].filter(Boolean).join(" ");
+      const list = docs.map((d: any) => KIND[d.kind] || "Document").join(", ");
+      const out: Record<string, string | null> = { client: null, staff: null };
+      const errors: string[] = [];
+      const ok = (e: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e || "");
+      if (ok(c?.email)) {
+        try {
+          await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: c!.email,
+            subject: `Your signed Rolex service documents · J. Vair Anderson job ${job.edge_no}`,
+            text: `Dear ${c?.name || ""},\n\nThank you for entrusting your ${watch} to J. Vair Anderson. Your signed documents (${list}) are attached for your records. ` +
+              `Please bring your receipt, with photo ID, when you collect your watch.\n\nJ. Vair Anderson · 409 – 3rd Street SW, Calgary · (403) 266-1669`, attachments });
+          out.client = c!.email;
+        } catch (e) { errors.push(`client: ${(e as Error).message}`) }
+      }
+      if (/^[^@\s]+@jvairanderson\.com$/i.test(job.intake_staff_email || "")) {
+        try {
+          await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: job.intake_staff_email,
+            subject: `Signed intake ${job.edge_no} ${watch}`.trim(),
+            text: `Signed paperwork for job ${job.edge_no} (${list}) is attached: ${c?.name || "client"} and ${job.intake_staff_name || "you"} have signed.\n\nSent from the Watch Service app.`, attachments });
+          out.staff = job.intake_staff_email;
+        } catch (e) { errors.push(`associate: ${(e as Error).message}`) }
+      }
+      const { data: who } = await user.auth.getUser();
+      if (out.client) for (const d of docs) await svc.from("job_docs").update({ emailed_at: new Date().toISOString(), emailed_to: out.client, emailed_by: who?.user?.id ?? null }).eq("id", d.id);
+      return json({ ok: true, ...out, errors });
+    }
+    if (!doc_id) return json({ error: "Missing document" }, 400);
     const { data: doc, error } = await user.from("job_docs").select("*, jobs(edge_no, watch_ref, watch_name)").eq("id", doc_id).single();
     if (error || !doc) return json({ error: "Document not found" }, 404);
     const { data: who } = await user.auth.getUser();

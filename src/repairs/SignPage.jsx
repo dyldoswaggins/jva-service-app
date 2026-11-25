@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { money } from '../rules.js'
 import SignaturePad from './SignaturePad.jsx'
+import IntakeSignPage from './IntakeSignPage.jsx'
 
 const toDataUrl = bytes => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(new Blob([bytes], { type: 'image/png' })) })
 const sum = ls => Math.round(ls.reduce((s, l) => s + (Number(l.price) || 0), 0) * 100) / 100
@@ -53,11 +54,12 @@ export default function SignPage({ token, onClose }) {
     </div>
   )
 
+  if (info?.purpose === 'intake' && info.status === 'open') return <IntakeSignPage token={token} info={info} onClose={onClose} />
   if (err && !info) return shell(<section className="step"><p className="msg warn">{err}</p></section>)
   if (!info) return shell(<section className="step"><p className="msg">Loading your estimate…</p></section>)
   if (info.status !== 'open') return shell(
     <section className="step">
-      <h2>{info.status === 'signed' ? 'This estimate has already been signed' : 'This link is no longer active'}</h2>
+      <h2>{info.status === 'signed' ? `${info.purpose === 'intake' ? 'These documents have' : 'This estimate has'} already been signed` : 'This link is no longer active'}</h2>
       <p>{info.status === 'signed' ? 'Thank you, we have your decision.' : 'Please call us at (403) 266-1669 and we will send you a new link.'}</p>
     </section>)
   if (done) return shell(

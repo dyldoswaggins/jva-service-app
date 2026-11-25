@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Finger / stylus signature on iPad. onChange gets PNG bytes (Uint8Array) or null when cleared.
-export default function SignaturePad({ onChange }) {
+export default function SignaturePad({ onChange, label = 'Client signs here with a finger' }) {
   const ref = useRef(null)
   const drawing = useRef(false)
   const [empty, setEmpty] = useState(true)
@@ -30,17 +30,18 @@ export default function SignaturePad({ onChange }) {
   const up = async () => {
     if (!drawing.current) return
     drawing.current = false
-    const blob = await new Promise(r => ref.current.toBlob(r, 'image/png'))
-    onChange(new Uint8Array(await blob.arrayBuffer()))
+    // Synchronous, so a tap on Save right after signing already has the signature (iPad)
+    const bin = atob(ref.current.toDataURL('image/png').split(',')[1])
+    onChange(Uint8Array.from(bin, c => c.charCodeAt(0)))
   }
   const clear = () => { const c = ref.current; c.getContext('2d').clearRect(0, 0, c.width, c.height); setEmpty(true); onChange(null) }
 
   return (
     <div className="sigwrap">
       <canvas ref={ref} className="sigpad" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
-        aria-label="Client signature" />
+        aria-label={label} />
       <div className="actions">
-        <span className="msg">{empty ? 'Client signs here with a finger' : 'Signed'}</span>
+        <span className="msg">{empty ? label : 'Signed'}</span>
         <span className="grow" />
         <button type="button" className="btn" onClick={clear} disabled={empty}>Clear</button>
       </div>

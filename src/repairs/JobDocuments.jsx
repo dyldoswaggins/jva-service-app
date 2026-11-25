@@ -10,7 +10,7 @@ const one = x => (Array.isArray(x) ? x[0] : x) || null
 // Admin: Estimate → client's decision → Confirmation → Invoice (Rolex SAV documents), filed on the job.
 export default function JobDocuments({ job, allParts, userId, actions, onChange, printPdf }) {
   const client0 = one(job.job_clients)
-  const [client, setClient] = useState({ name: client0?.name || '', address1: client0?.address1 || '', address2: client0?.address2 || '', address3: client0?.address3 || '', email: client0?.email || '' })
+  const [client, setClient] = useState({ name: client0?.name || '', address1: client0?.address1 || '', address2: client0?.address2 || '', address3: client0?.address3 || '', postal_code: client0?.postal_code || '', phone: client0?.phone || '', email: client0?.email || '' })
   const [notes, setNotes] = useState(job.estimate_notes ?? autoNotes(job, allParts))
   // Until someone edits the notes, keep them in step with the findings
   useEffect(() => { if (job.estimate_notes == null) setNotes(autoNotes(job, allParts)) }, [job, allParts])
@@ -68,7 +68,27 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
     else setSigning(r.token)
     loadSigns()
   })
-  const lastSign = signs.find(r => !r.cancelled_at)
+  const lastSign = signs.find(r => !r.cancelled_at && (r.purpose || 'estimate') === 'estimate')
+  // Intake forms (Receipt, Immediate Proceed, Vintage fee): signed on the iPad at intake, or by the emailed link (migration 035)
+  const intakeSign = signs.find(r => !r.cancelled_at && r.purpose === 'intake')
+  const INTAKE_KINDS = ['receipt', 'immediate_proceed', 'vintage_fee']
+  const latestOf = (k, signed) => (job.job_docs || []).filter(d => d.kind === k && (d.label === 'Signed online') === signed).sort((a, b) => (a.at < b.at ? 1 : -1))[0]
+  const unsignedForms = INTAKE_KINDS.map(k => latestOf(k, false)).filter(Boolean)
+  const signedForms = intakeSign?.signed_at ? INTAKE_KINDS.map(k => latestOf(k, true)).filter(Boolean) : intakeSign ? [] : unsignedForms
+  const intakeLink = channel => run(channel === 'email' ? 'Sending…' : 'Opening…', async () => {
+    if (!unsignedForms.length) throw new Error('No intake forms on this job')
+    if (channel === 'email' && client.email !== (client0?.email || '')) await api.saveJobClient(job.id, client, !!client0)
+    const r = await api.createIntakeSignRequest(job.id, unsignedForms.map(d => d.id), channel, channel === 'email' ? client.email : null)
+    if (channel === 'email') { const m = await api.emailSignRequest(r.id); actions.say(`Intake forms emailed to ${m.to} for signature`) }
+    else setSigning(r.token)
+    loadSigns()
+  })
+  const sendCopies = () => run('Sending…', async () => {
+    const r = await api.emailSignedCopies(signedForms.map(d => d.id))
+    const to = [r.client, r.staff].filter(Boolean)
+    actions.say(to.length ? `Signed copies emailed to ${to.join(' and ')}` : 'No client or associate email on this job')
+    if (r.errors?.length) setMsg(r.errors.join('; '))
+  })
   const startDecision = () => setDec({ refused: false, optional: Object.fromEntries(optional.map(l => [l.key, l.decision === 'accepted'])) })
   const saveDecision = () => run('Saving decision…', async () => {
     const acc = optional.filter(l => !dec.refused && dec.optional[l.key])
@@ -105,7 +125,8 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         <label>Client name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} /></label>
         <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} /></label>
         <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} /></label>
-        <label>Postal code / phone<input value={client.address3} onChange={e => setClient({ ...client, address3: e.target.value })} /></label>
+        <label>Postal code<input value={client.postal_code || client.address3} onChange={e => setClient({ ...client, postal_code: e.target.value })} /></label>
+        <label>Phone<input type="tel" value={client.phone} onChange={e => setClient({ ...client, phone: e.target.value })} /></label>
         <label>Email (for the estimate)<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} /></label>
       </div>
       <div className="actions"><button type="button" className="btn" onClick={saveClient}>Save client details</button><span className="msg">Visible to Admin only.</span></div>
@@ -133,6 +154,15 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
       </div>
 
       <div className="docsteps">
+        <div className="docstep">
+          <b>Intake forms</b>
+          <span className="msg">{intakeSign ? (intakeSign.signed_at ? `Signed online by ${intakeSign.signer_name}${intakeSign.decision?.fee_decision === 'decline' ? ' · analysis fee DECLINED' : ''}` : `Waiting for the client${intakeSign.emailed_at ? ` (emailed ${new Date(intakeSign.emailed_at).toLocaleDateString('en-CA')} to ${intakeSign.email})` : ''}`) : unsignedForms.length ? 'Signed at intake' : 'None'}{job.intake_staff_name ? ` · taken in by ${job.intake_staff_name}` : ''}</span>
+          {intakeSign && !intakeSign.signed_at && <>
+            <button type="button" className="btn" disabled={!!busy || !client.email} onClick={() => intakeLink('email')}>Email link again</button>
+            <button type="button" className="btn" disabled={!!busy} onClick={() => intakeLink('in_store')}>Sign in store</button>
+          </>}
+          {signedForms.length > 0 && <button type="button" className="btn" disabled={!!busy} onClick={sendCopies}>Email signed copies</button>}
+        </div>
         <div className="docstep">
           <b>1. Estimate</b>
           <span className="msg">{docsOf('estimate').length ? `Created ${docsOf('estimate').length}×` : 'Within 24 h of intake (Rolex)'}</span>

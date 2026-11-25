@@ -14,13 +14,24 @@ const VARIANTS = {
     labels: ['OUR REF #', 'WATCH', 'SERIAL #', 'BRACELET', 'DIAL'] },
   // Invoice template: same style, header block 57 pt lower
   get invoice() { return { ...this.standard, storeTop: 624, dateY: 553, titleY: 531, refTop: 500 } },
-  receipt: { L: 81, R: 531, FS: 6.8, titleSize: 15.4, valueX: 170, rowGap: 9.3, storeSize: 5.2, storeGap: 9.3, storeTop: 626, billX: 394, dateY: 560, titleY: 525, refTop: 504,
-    store: ['J.Vair Anderson Jewellers', '409 3rd Street SW', 'Calgary, Alberta, T2P 4Z2', '(403) 266 -1669'],
-    labels: ['OUR REFERENCE N°', 'WATCH', 'SERIAL N°', 'BRACELET', 'DIAL'] },
+  // JVA's post-audit receipt "Rolex Receipt (Modern & Classic) - Editable.pdf" (Rolex › 1. Service - Rolex › … › SAV ALL - POST AUDIT NEW),
+  // measured 2026-11-25 (Richard). Also used for the Vintage Analysis Fee form, so both look the same.
+  receipt: { L: 103.4, R: 509.5, FS: 8.14, lineRatio: 1.2, titleSize: 13.28, valueX: 212, rowGap: 10.1, storeSize: 8.14,
+    storeYs: [596, 584, 574.3, 564.5], storeTop: 596, billX: 418.3, billSize: 7.42, billYs: [584, 574, 564, 554], dateY: 540, titleY: 523.5, refTop: 510.5,
+    refTopNoTitle: 539.6, headRule: 9, afterHeadRule: 13.4, secHead: 8.8, secAfter: 14, sigX: 316.3, sigGap: 23.6, sigRule: 5,
+    logo: { file: '/templates/jva-logo-2026.pdf', box: { left: 200, bottom: 660, right: 415, top: 725 } },
+    pageNo: { x: 507, y: 68.5, size: 4 }, bottom: 74,
+    legal: { title: 11.86, titleGap: 18, rightUp: 20, head: 6.58, body: 5.86, lineH: 7.5, headGap: 8.3, paraGap: 9.7, colGap: 13 },
+    store: ['J. Vair Jewellers', '409 - 3rd Street SW', 'T2P 4Z2, Calgary, AB', '(403) 266 1669'],
+    labels: ['OUR REF #', 'WATCH', 'SERIAL #', 'BRACELET', 'DIAL'] },
 }
+// Bill to/Deliver to lines from the client details (postal code has its own field since 2026-11-25; address3 on older jobs)
+export const billLines = (c = {}) => [c.name, c.address1, c.address2, c.postal_code || c.address3].filter(Boolean)
 const black = rgb(0, 0, 0), grey = rgb(0.35, 0.35, 0.35)
 
-export async function buildDocument({ title, job, client = {}, date = new Date(), body, signaturePng, legal = true, variant = 'standard' }) {
+// titleText: the title exactly as printed (default: title in capitals). bill: lines under "Bill to/Deliver to" (default from the client).
+// footer: one centred line at the bottom of every page.
+export async function buildDocument({ title, job, client = {}, date = new Date(), body, signaturePng, legal = true, variant = 'standard', titleText, bill, footer }) {
   const V = VARIANTS[variant] || VARIANTS.standard
   const { L, R, FS } = V
   const pdf = await PDFDocument.create()
@@ -31,15 +42,19 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
     bold: await pdf.embedFont(StandardFonts.HelveticaBold),
     ital: await pdf.embedFont(StandardFonts.HelveticaOblique),
   }
-  // J.VAIR "Jewellers since 1925" logo, taken from JVA's blank receipt template
-  const tpl = await PDFDocument.load(await fetch('/templates/jva-receipt.pdf').then(r => r.arrayBuffer()))
-  const logo = await pdf.embedPage(tpl.getPage(0), { left: 180, bottom: 700, right: 380, top: 770 })
+  // J.VAIR "Jewellers since 1925" logo, taken from JVA's blank receipt template (the post-audit receipt has the colour emblem)
+  const LOGO = V.logo || { file: '/templates/jva-receipt.pdf', box: { left: 180, bottom: 700, right: 380, top: 770 }, at: { x: (W - 180) / 2, y: H - 92, width: 180, height: 63 } }
+  const tpl = await PDFDocument.load(await fetch(LOGO.file).then(r => r.arrayBuffer()))
+  const logo = await pdf.embedPage(tpl.getPage(0), LOGO.box)
+  const logoAt = LOGO.at || { x: LOGO.box.left, y: LOGO.box.bottom, width: LOGO.box.right - LOGO.box.left, height: LOGO.box.top - LOGO.box.bottom }
+  const lineH = size => size * (V.lineRatio || 1.27)
+  const billText = bill || billLines(client)
   const sig = signaturePng ? await pdf.embedPng(signaturePng) : null
   const dd = n => String(n).padStart(2, '0')
   const day = `${dd(date.getDate())}/${dd(date.getMonth() + 1)}/${date.getFullYear()}` // template: 04/02/2025
   const fields = {}
 
-  let page, y
+  let page, y, topY
   const text = (s, x, yy, { font = f.reg, size = 8, color = black } = {}) => page.drawText(String(s ?? ''), { x, y: yy, size, font, color })
   const right = (s, xr, yy, o = {}) => text(s, xr - (o.font || f.reg).widthOfTextAtSize(String(s ?? ''), o.size || 8), yy, o)
   const rule = (yy, t = 1) => page.drawLine({ start: { x: L, y: yy }, end: { x: R, y: yy }, thickness: t, color: black })
@@ -56,20 +71,25 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
     return out
   }
 
-  function header() {
+  // noTitle: the legal-notices page repeats the header without the title (as in the post-audit receipt)
+  function header({ noTitle = false } = {}) {
     page = pdf.addPage([W, H])
-    page.drawPage(logo, { x: (W - 180) / 2, y: H - 92, width: 180, height: 63 })
-    V.store.forEach((s, i) => text(s, L, V.storeTop - i * V.storeGap, { font: i ? f.reg : f.bold, size: V.storeSize }))
+    page.drawPage(logo, logoAt)
+    V.store.forEach((s, i) => text(s, L, V.storeYs ? V.storeYs[i] : V.storeTop - i * V.storeGap, { font: i ? f.reg : f.bold, size: V.storeSize }))
     const billX = V.billX
     text('Bill to/Deliver to', billX, V.storeTop, { font: f.bold, size: FS })
-    ;[client.name, client.address1, client.address2, client.address3].filter(Boolean).forEach((s, i) => text(s, billX, V.storeTop - FS - 5 - i * (FS + 3), { size: FS }))
-    text(day, billX, V.dateY, { size: FS })
-    text(title.toUpperCase(), L, V.titleY, { size: V.titleSize })
+    billText.forEach((s, i) => text(s, billX, V.billYs ? (V.billYs[i] ?? V.billYs[V.billYs.length - 1] - (i - V.billYs.length + 1) * 10) : V.storeTop - FS - 5 - i * (FS + 3), { size: V.billSize || FS }))
+    if (!bill) text(day, billX, V.dateY, { size: V.billSize || FS })
+    const top = noTitle && V.refTopNoTitle ? V.refTopNoTitle : V.refTop
+    if (!(noTitle && V.refTopNoTitle)) text(titleText || title.toUpperCase(), L, V.titleY, { size: V.titleSize })
     const vals = [job.edge_no, watchLine(job), job.serial, braceletLine(job), dialLine(job)]
-    V.labels.forEach((k, i) => { text(k, L, V.refTop - i * V.rowGap, { font: f.bold, size: FS }); text(vals[i], V.valueX, V.refTop - i * V.rowGap, { size: FS }) })
-    y = V.refTop - V.labels.length * V.rowGap - 4
+    V.labels.forEach((k, i) => { text(k, L, top - i * V.rowGap, { font: f.bold, size: FS }); text(vals[i], V.valueX, top - i * V.rowGap, { size: FS }) })
+    const last = top - (V.labels.length - 1) * V.rowGap
+    if (V.headRule) { page.drawLine({ start: { x: L - 1.6, y: last - V.headRule }, end: { x: R + 0.8, y: last - V.headRule }, thickness: 0.8, color: black }); y = last - V.headRule - V.afterHeadRule }
+    else y = V.refTop - V.labels.length * V.rowGap - 4
+    topY = y
   }
-  const ensure = h => { if (y - h < BOTTOM) header() }
+  const ensure = h => { if (y - h < (V.bottom || BOTTOM)) header() }
 
   // ---- building blocks ----
   const pageNo = () => pdf.getPageCount() - 1
@@ -81,14 +101,29 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
     // Heavy rule, bold heading (+ "MSRP CAD (TAX EXCL.)" on the right), as in the SAV templates
     section(heading, { rightHeading, middle } = {}) {
       ensure(40)
-      rule(y, 1.1); y -= 13
+      if (V.headRule && y === topY) y += V.afterHeadRule - (V.secHead || 13) // right under the header rule: no second rule
+      else rule(y, V.headRule ? 0.8 : 1.1)
+      y -= V.secHead || 13
       text(heading, L, y, { font: f.bold, size: FS })
       if (middle) text(middle, V.valueX, y, { font: f.bold, size: FS })
       if (rightHeading) right(rightHeading, R, y, { font: f.bold, size: FS })
-      y -= 19
+      y -= V.secAfter || 19
     },
     para(s, { size = FS, font = f.reg, indent = 0 } = {}) {
-      for (const ln of wrap(s, font, size, R - L - indent)) { ensure(size * 1.3); text(ln, L + indent, y, { size, font }); y -= size * 1.27 }
+      for (const ln of wrap(s, font, size, R - L - indent)) { ensure(size * 1.3); text(ln, L + indent, y, { size, font }); y -= lineH(size) }
+    },
+    // Boxes on one line after their captions (Vintage form: "I accept the analysis fee ☐   I decline the analysis fee ☐")
+    inlineBoxes(list) {
+      ensure(18)
+      let x = L + 24
+      for (const { label, name, checked } of list) {
+        text(label, x, y, { size: FS }); x += f.reg.widthOfTextAtSize(label, FS) + 5
+        page.drawRectangle({ x, y: y - 1.5, width: 9, height: 9, borderWidth: 0.7, borderColor: black })
+        if (name) mark(name, x + 2, y)
+        if (checked) text('X', x + 2, y + 0.2, { font: f.bold, size: 8 })
+        x += 60
+      }
+      y -= lineH(FS) + 5
     },
     bullets(list, o) { list.forEach(s => api.para(`- ${s}`, o)) },
     // { label, price, parts: ['24-704-0 crown with gasket 704 st'], subs: ['Clean case and bracelet'] }: "-" at 86, italic text at 92
@@ -137,23 +172,31 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
     },
     // "I, the undersigned ____ , certify …" then DATE: (x 55) and SIGNATURE: (x 298), as in the template
     signature(statement, { name, signed = !!sig } = {}) {
-      ensure(80)
+      ensure(V.lineRatio ? 56 : 80)
       const [before, after] = statement.split('{name}')
       const blank = '___________________________'
       const who = name || blank
       const first = before + who + after
       const lines = wrap(first, f.reg, FS, R - L)
       if (!name) mark('undersigned', L + f.reg.widthOfTextAtSize(before, FS) + 2, y + 1.5, { w: f.reg.widthOfTextAtSize(blank, FS) })
-      lines.forEach(ln => { ensure(12); text(ln, L, y, { size: FS }); y -= 11.5 })
-      y -= 27
-      text('DATE:', L, y, { size: FS }); text('SIGNATURE:', 298, y, { size: FS })
+      const gap = V.lineRatio ? lineH(FS) : 11.5
+      lines.forEach(ln => { ensure(12); text(ln, L, y, { size: FS }); y -= gap })
+      y -= V.sigGap ? V.sigGap - gap : 27
+      const sx = V.sigX || 298, vx = sx + 58
+      text('DATE:', L, y, { size: FS }); text('SIGNATURE:', sx, y, { size: FS })
       if (signed) text(day, L + 36, y, { size: FS }); else mark('date', L + 36, y)
-      if (sig && signed) { const w = 150, h = Math.min(36, (sig.height / sig.width) * w); page.drawImage(sig, { x: 356, y: y - 4, width: w, height: h }) }
-      else mark('signature', 356, y - 4, { w: 180, h: 36 })
+      if (sig && signed) { const w = 150, h = Math.min(36, (sig.height / sig.width) * w); page.drawImage(sig, { x: vx, y: y - 4, width: w, height: h }) }
+      else mark('signature', vx, y - 4, { w: R - vx, h: 36 })
+      if (!(sig && signed)) mark('audit', L, V.pageNo ? V.pageNo.y - 24 : 28) // e-signature trail line, clear of the footer
+      if (V.sigRule) rule(y - V.sigRule, 0.8)
       y -= 24
     },
-    // Remarks line (blank on the estimate; filled by online signing)
-    remarks() { ensure(16); text('Remarks: _______________________________________________________________________________', L, y, { size: FS }); mark('remarks', L + 44, y + 1.5); y -= 21 },
+    // Remarks line (blank on the estimate; filled by online signing). italic: "Remarks:" in italics with space under it (Vintage form)
+    remarks({ italic = false } = {}) {
+      ensure(16)
+      if (italic) { text('Remarks:', L, y, { size: FS, font: f.ital }); mark('remarks', L + 40, y); y -= 26; return }
+      text('Remarks: _______________________________________________________________________________', L, y, { size: FS }); mark('remarks', L + 44, y + 1.5); y -= 21
+    },
   }
 
   header()
@@ -161,25 +204,30 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
 
   // ---- legal notices (JVA, Alberta) in two columns ----
   if (legal) {
-    header()
-    rule(y, 1.1); y -= 12
-    text('Legal Notices', L, y, { font: f.bold, size: 9 }); y -= 14
-    const colW = (R - L - 18) / 2
+    const G = V.legal || { title: 9, titleGap: 14, head: 7.2, body: 6.8, lineH: 8.2, headGap: 9.5, paraGap: 6, colGap: 18 }
+    header({ noTitle: true })
+    if (!V.headRule) { rule(y, 1.1); y -= 12 } else y -= 2
+    text('Legal Notices', L, y, { font: f.bold, size: G.title }); y -= G.titleGap
+    const colW = (R - L - G.colGap) / 2
     let x = L, top = y
-    const colBottom = BOTTOM
+    const colBottom = V.bottom || BOTTOM
     for (const s of LEGAL) {
-      const lines = wrap(s.text, f.reg, 6.8, colW)
-      const need = 10 + lines.length * 8.2 + 6
-      if (y - need < colBottom) { if (x === L) { x = L + colW + 18; y = top } else { header(); top = y; x = L } }
-      text(s.heading, x, y, { font: f.bold, size: 7.2 }); y -= 9.5
-      lines.forEach(ln => { text(ln, x, y, { size: 6.8 }); y -= 8.2 })
-      y -= 6
+      const lines = wrap(s.text, f.reg, G.body, colW)
+      const need = G.headGap + lines.length * G.lineH
+      if (y - need < colBottom) { if (x === L) { x = L + colW + G.colGap; y = top + (G.rightUp || 0) } else { header({ noTitle: true }); top = y; x = L } }
+      text(s.heading, x, y, { font: f.bold, size: G.head }); y -= G.headGap
+      lines.forEach(ln => { text(ln, x, y, { size: G.body }); y -= G.lineH })
+      y -= G.paraGap
     }
   }
 
-  // ---- page numbers ----
+  // ---- page numbers (+ footer line) ----
   const pages = pdf.getPages()
-  pages.forEach((p, i) => { const s = `${i + 1}/${pages.length}`; p.drawText(s, { x: 554, y: 11, size: 6, font: f.reg, color: grey }) })
+  const PN = V.pageNo || { x: 554, y: 11, size: 6 }
+  pages.forEach((p, i) => {
+    p.drawText(`${i + 1}/${pages.length}`, { x: PN.x, y: PN.y, size: PN.size, font: f.reg, color: grey })
+    if (footer) p.drawText(footer, { x: (W - f.reg.widthOfTextAtSize(footer, 7)) / 2, y: 26, size: 7, font: f.reg, color: grey })
+  })
   const blob = new Blob([await pdf.save()], { type: 'application/pdf' })
   blob.fields = fields // fill-in spots for online signing (page, x, y)
   return blob

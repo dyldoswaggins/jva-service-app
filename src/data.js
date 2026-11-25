@@ -146,8 +146,14 @@ const live = {
     if (error) throw error
     return data
   },
+  // Intake forms (migration 035): the client signs the receipt / Immediate Proceed / Vintage fee form by email link, or later in store
+  async createIntakeSignRequest(jobId, docIds, channel, email = null) {
+    const { data, error } = await supabase.rpc('create_intake_sign_request', { p_job: jobId, p_docs: docIds, p_channel: channel, p_email: email })
+    if (error) throw error
+    return data
+  },
   async loadSignRequests(jobId) {
-    const { data, error } = await supabase.from('sign_requests').select('id, token, channel, email, created_at, emailed_at, cancelled_at, signed_at, signer_name, expires_at, doc_id').eq('job_id', jobId).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('sign_requests').select('id, token, channel, email, created_at, emailed_at, cancelled_at, signed_at, signer_name, expires_at, doc_id, purpose, doc_ids, decision').eq('job_id', jobId).order('created_at', { ascending: false })
     if (error) throw error
     return data
   },
@@ -283,6 +289,15 @@ const live = {
   // Email a job document to the watch service manager (Edge Function send-doc, parts Gmail)
   async emailJobDoc(docId, to = 'manager') { // to: 'manager' (service manager) | 'client' (the job's client email)
     const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_id: docId, to } })
+    if (error) {
+      const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
+      throw new Error(msg || error.message)
+    }
+    return data
+  },
+  // Signed intake paperwork, one email to the client and one to the associate (Richard, 2026-11-25) → { client, staff, errors }
+  async emailSignedCopies(docIds) {
+    const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_ids: docIds, to: 'signed_copies' } })
     if (error) {
       const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
       throw new Error(msg || error.message)

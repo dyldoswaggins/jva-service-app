@@ -15,14 +15,21 @@ const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA',
 const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
-export default function IntakeView({ models, actions, userId, onDone, standalone, staffName }) {
+export default function IntakeView({ models, actions, userId, onDone, standalone, staffName: signedInName, staffEmail = '' }) {
+  // The associate taking the watch in: signs the Immediate Proceed and gets a copy of the signed paperwork (@jvairanderson.com only)
+  const [staff, setStaff] = useState({ name: signedInName || '', email: /@jvairanderson\.com$/i.test(staffEmail || '') ? staffEmail : '' })
+  const staffName = staff.name.trim()
+  const staffEmailOk = /^[^@\s]+@jvairanderson\.com$/i.test(staff.email.trim())
   const [job, setJob] = useState(blank)
   const [conds, setConds] = useState([])
   const [openComp, setOpenComp] = useState(null)
   const [reqs, setReqs] = useState([])
   const [otherReq, setOtherReq] = useState('')
-  const [client, setClient] = useState({ name: '', address1: '', address2: '', address3: '', email: '' })
-  const [sig, setSig] = useState(null)
+  const [client, setClient] = useState({ name: '', address1: '', address2: '', postal_code: '', phone: '', email: '' })
+  // e-Signature (Richard, 2026-11-25): the client signs each form on the iPad, or later from a private link emailed to them
+  const [signMode, setSignMode] = useState('ipad') // ipad | email
+  const [sigs, setSigs] = useState({})             // { receipt, immediate_proceed, vintage_fee }: PNG bytes
+  const [staffSig, setStaffSig] = useState(null)   // associate's signature ("Retailer signature" on the Immediate Proceed)
   const [photos, setPhotos] = useState([])        // [{ blob, url }]
   const [settings, setSettings] = useState(null)
   const [tier, setTier] = useState('')
@@ -30,8 +37,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [family, setFamily] = useState('')
   const [eta, setEta] = useState(null)
   const [cls, setCls] = useState('')          // Modern | Classic | Vintage
-  const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted
-  const [proceedNow, setProceedNow] = useState(false) // client wants to proceed immediately (Rolex Immediate Proceed form)
+  const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted (signing on the iPad; by email link the client ticks it)
   const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
   const [allClasses, setAllClasses] = useState(false) // Sales overrides the class worked out from the model
   const [allTiers, setAllTiers] = useState(false)     // … or the suggested complete-service offer
@@ -102,9 +108,18 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   ]
 
   const showEta = !vintage && !engraving && timeframeAtIntake({ isCTR, polish, requests: reqs })
+  // Forms filled in at intake (Richard, 2026-11-25): Receipt + Rolex Immediate Proceed for every Modern, Classic and Vintage watch,
+  // + the Vintage Analysis Fee form for Vintage. Engraving goes straight to Rolex with its own request form (no Immediate Proceed).
+  const forms = [
+    { kind: 'receipt', title: 'Receipt' },
+    ...(!engraving ? [{ kind: 'immediate_proceed', title: 'Rolex Immediate Proceed' }] : []),
+    ...(vintage ? [{ kind: 'vintage_fee', title: 'Vintage Analysis Fee' }] : []),
+  ]
+  const byEmail = signMode === 'email'
+  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(client.email.trim())
   const missing = [
     !cls && 'Modern, Classic or Vintage',
-    vintage && !feeOk && 'acceptance of the analysis fee',
+    vintage && !byEmail && !feeOk && 'acceptance of the analysis fee',
     !job.watch_ref.trim() && 'model number',
     !job.watch_name.trim() && 'model name',
     !job.serial.trim() && 'serial #',
@@ -118,9 +133,47 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     engraving && !engr.case && 'engraving letter case',
     !allReqs.length && 'at least one request',
     !client.name.trim() && 'client name',
-    client.email.trim() && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(client.email.trim()) && 'a valid email (or leave it blank)',
-    !sig && 'client signature',
+    !byEmail && client.email.trim() && !emailOk && 'a valid email (or leave it blank)',
+    byEmail && !emailOk && "the client's email (for the signing link)",
+    ...(!byEmail ? forms.filter(f => !sigs[f.kind]).map(f => `client signature on the ${f.title}`) : []),
+    !staffName && 'your name (associate)',
+    staff.email.trim() && !staffEmailOk && 'your @jvairanderson.com email (or leave it blank)',
+    forms.some(f => f.kind === 'immediate_proceed') && !staffSig && 'your signature (Retailer signature on the Immediate Proceed)',
   ].filter(Boolean)
+
+  // Fill in every form. signed = with the client's signatures (iPad); otherwise blank spots for the email link.
+  const buildForms = async (clean, signed) => {
+    const args = { job: clean, client, requests: allReqs, conditions: conds }
+    const sig = k => (signed ? sigs[k] || null : null)
+    const quote = vintage
+      ? { items: [{ label: 'Rolex Vintage Analysis Fee', price: vfee }], total: vfee, weeks: null }
+      : {
+        items: [
+          isCTR ? { label: `Complete overhaul (${tier.replace(/^CO - /, '').replace(/ \$.*/, '').toLowerCase().replace(/^./, c => c.toUpperCase())})`, price: ctrPrice ?? 'On estimate' } : { label: job.service_type, price: 'On estimate' },
+          ...(polish ? [{ label: 'Refinish case and bracelet', price: polishPrice ?? 'On estimate' }] : []),
+        ],
+        total: total || null,
+        weeks: showEta ? weeksUntil(eta?.eta) : null,
+      }
+    const out = {}
+    out.receipt = await makeReceipt({ ...args, signaturePng: sig('receipt'), quote })
+    if (forms.some(f => f.kind === 'immediate_proceed')) {
+      out.immediate_proceed = await makeImmediateProceedRolex({ ...args, signaturePng: sig('immediate_proceed'), retailerSigPng: staffSig, staffName,
+        offer: isCTR ? tier : null, offerPrice: ctrPrice, polish, polishPrice: polishPrice ?? 210,
+        includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null })
+    }
+    if (vintage) out.vintage_fee = await makeVintageFee({ ...args, signaturePng: sig('vintage_fee'), fee: vfee, weeks: vweeks, decision: signed && feeOk ? 'accept' : null })
+    return out
+  }
+  const fileNames = { receipt: receiptFileName, immediate_proceed: immediateProceedFileName, vintage_fee: vintageFeeFileName }
+  // Show the client a form before they sign it (no job number yet)
+  async function preview(kind) {
+    setMsg('')
+    try {
+      const f = await buildForms({ ...job, edge_no: '(on saving)', watch_ref: job.watch_ref.trim().toUpperCase(), ctr_tier: isCTR ? tier : null, classification: cls }, false)
+      window.open(URL.createObjectURL(f[kind]), '_blank')
+    } catch (e) { setMsg(`Preview failed: ${e.message}`) }
+  }
 
   async function save() {
     if (missing.length) return setMsg('Still needed: ' + missing.join(', ') + '.')
@@ -131,40 +184,39 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
       classification: cls, vintage_fee: vintage ? vfee : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
       engraving: engraving ? { ...engr, text: engr.text.trim() } : null,
-    }
-    const quote = {
-      items: [
-        isCTR ? { label: `Complete overhaul (${tier.replace(/^CO - /, '').replace(/ \$.*/, '').toLowerCase().replace(/^./, c => c.toUpperCase())})`, price: ctrPrice ?? 'On estimate' } : { label: job.service_type, price: 'On estimate' },
-        ...(polish ? [{ label: 'Refinish case and bracelet', price: polishPrice ?? 'On estimate' }] : []),
-      ],
-      total: total || null,
-      weeks: showEta ? weeksUntil(eta?.eta) : null,
+      intake_staff_name: staffName, intake_staff_email: staffEmailOk ? staff.email.trim().toLowerCase() : null,
     }
     let id = null
     try {
       // The Edge job # is added later by the Service Manager (watch validation); the job gets a provisional number now (P<yymmdd>-<nn>)
-      const cl = { ...client, email: client.email.trim() || null }
+      const cl = { ...client, postal_code: client.postal_code.trim().toUpperCase(), email: client.email.trim() || null }
       id = await api.createJob(clean, conds, allReqs, cl)
       clean.edge_no = (await api.loadJob(id)).edge_no
-      const args = { job: clean, client, requests: allReqs, conditions: conds, signaturePng: sig }
-      // Rolex Immediate Proceed (Rolex's own form): Vintage (Workflow v2.1, 1.1), or a complete service the client wants done without waiting
-      // for the estimate. Not used routinely in store: the receipt shows the estimated price and the estimate follows within 24 h (Dylan, 2026-11-12).
-      const feePdf = vintage ? await makeVintageFee({ ...args, fee: vfee, weeks: vweeks }) : null
-      const ipPdf = vintage || (isCTR && proceedNow) ? await makeImmediateProceedRolex({ ...args, staffName, offer: isCTR ? tier : null, offerPrice: ctrPrice,
-        polish, polishPrice: polishPrice ?? 210, includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null }) : null
-      const mainPdf = vintage ? feePdf : await makeReceipt({ ...args, quote })
+      // Each form filled in and filed separately; printed together
+      const pdfs = await buildForms(clean, !byEmail)
+      const docs = {}
+      for (const f of forms) docs[f.kind] = await api.uploadJobDoc(id, f.kind, pdfs[f.kind], fileNames[f.kind](clean), userId)
       const engrPdf = engraving ? await makeEngravingForm({ job: clean, client, engraving: clean.engraving, staffName }) : null
-      const doc = await api.uploadJobDoc(id, vintage ? 'vintage_fee' : 'receipt', mainPdf, vintage ? vintageFeeFileName(clean) : receiptFileName(clean), userId)
-      if (ipPdf) await api.uploadJobDoc(id, 'immediate_proceed', ipPdf, immediateProceedFileName(clean), userId)
       if (engrPdf) await api.uploadJobDoc(id, 'engraving_request', engrPdf, engravingFileName(clean), userId)
-      const extra = [ipPdf, engrPdf].filter(Boolean)
-      const pdf = extra.length ? await mergePdfs([mainPdf, ...extra]) : mainPdf // printed together, filed separately
+      const all = [...forms.map(f => pdfs[f.kind]), ...(engrPdf ? [engrPdf] : [])]
+      const pdf = all.length > 1 ? await mergePdfs(all) : all[0]
       for (const p of photos) await api.uploadJobPhoto(id, p.blob, 'Intake', userId).catch(() => {})
-      // The client's copy by email, when they gave an address (sent from the live site once email is connected)
-      let emailed = null
-      if (cl.email) emailed = await api.emailJobDoc(doc.id, 'client').then(r => `emailed to ${r.to}`, e => `not emailed: ${e.message}`)
-      actions.say(`Job ${clean.edge_no} taken in. ${vintage ? 'Vintage Analysis Fee' : 'Receipt'}${ipPdf ? ' and Immediate Proceed' : ''}${engrPdf ? ' and Rolex Engraving Request' : ''} saved${emailed ? `, ${emailed}` : ''}.`)
-      onDone(id, pdf, doc, { ...clean, intake_at: new Date().toISOString() }, client, !!ipPdf, emailed)
+      let emailed = null, signLink = null
+      if (byEmail) {
+        // Private link to sign the forms (Edge Function "sign"; the email carries the forms too)
+        const r = await api.createIntakeSignRequest(id, forms.map(f => docs[f.kind].id), 'email', cl.email)
+        signLink = { id: r.id, token: r.token, email: cl.email }
+        emailed = await api.emailSignRequest(r.id).then(x => `signing link emailed to ${x.to}`, e => `signing link not emailed: ${e.message}`)
+      } else if (cl.email || clean.intake_staff_email) {
+        // Client and associate have both signed: one email with all the signed forms to the client, and one to the associate
+        // (Richard, 2026-11-25; sent from the live site once email is connected)
+        emailed = await api.emailSignedCopies(forms.map(f => docs[f.kind].id)).then(
+          r => { const to = [r.client, r.staff].filter(Boolean); return `${to.length ? `signed copies emailed to ${to.join(' and ')}` : 'signed copies not emailed'}${r.errors?.length ? ` (${r.errors.join('; ')})` : ''}` },
+          e => `signed copies not emailed: ${e.message}`)
+      }
+      const names = [...forms.map(f => f.title), ...(engrPdf ? ['Rolex Engraving Request'] : [])]
+      actions.say(`Job ${clean.edge_no} taken in. ${names.join(', ')} saved${emailed ? `, ${emailed}` : ''}.`)
+      onDone(id, pdf, docs.receipt, { ...clean, intake_at: new Date().toISOString() }, client, !!docs.immediate_proceed, emailed, { forms: names, signLink })
     } catch (e) { setMsg(id ? `The job was saved (${clean.edge_no || 'see Jobs'}) but a document failed: ${e.message}. Open the job to print it; don't take the watch in again.` : e.message) } finally { setBusy(false) }
   }
 
@@ -310,9 +362,6 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             </div>
           )}
         </div>}
-        {isCTR && (
-          <label className="tog big"><input type="checkbox" checked={proceedNow} onChange={e => setProceedNow(e.target.checked)} /> Proceed immediately, without waiting for the estimate (Rolex Immediate Proceed form)</label>
-        )}
         <h3>Anything else you'd like?</h3>
         <div className="chips">
           {[...REQUEST_OPTIONS, ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
@@ -351,21 +400,49 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <div className="grid big">
           <label>Name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} autoComplete="off" /></label>
           <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} autoComplete="off" /></label>
-          <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" /></label>
-          <label>Phone or postal code<input value={client.address3} onChange={e => setClient({ ...client, address3: e.target.value })} autoComplete="off" /></label>
-          <label>Email (we'll send you a copy)<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="Optional" /></label>
+          <label>City, province<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" placeholder="Calgary, AB" /></label>
+          <label>Postal code<input value={client.postal_code} onChange={e => setClient({ ...client, postal_code: e.target.value })} autoComplete="off" autoCapitalize="characters" placeholder="T2P 4Z2" /></label>
+          <label>Phone<input type="tel" value={client.phone} onChange={e => setClient({ ...client, phone: e.target.value })} autoComplete="off" inputMode="tel" /></label>
+          <label>Email {byEmail ? '(for the signing link)' : "(we'll send you a signed copy)"}<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" placeholder={byEmail ? '' : 'Optional'} /></label>
         </div>
-        {vintage && (
-          <label className="tog big"><input type="checkbox" checked={feeOk} onChange={e => setFeeOk(e.target.checked)} /> I accept the Rolex Vintage Analysis Fee of {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</label>
-        )}
-        <p className="msg">By signing, you confirm the details above and accept the {vintage ? 'analysis fee and the' : ''} terms (provided on the printed document). Your details are kept only on your signed {vintage ? 'form' : 'receipt'}.</p>
-        <SignaturePad onChange={setSig} />
+        <h3>Your signature</h3>
+        <div className="chips">
+          <button type="button" className="chip" aria-pressed={!byEmail} onClick={() => setSignMode('ipad')}>Sign here on the iPad</button>
+          <button type="button" className="chip" aria-pressed={byEmail} onClick={() => setSignMode('email')}>Email me a link to sign</button>
+        </div>
+        {byEmail ? (
+          <p className="msg">We'll email you the {forms.map(f => f.title).join(forms.length > 2 ? ', ' : ' and ')} with a private link to review and sign {forms.length > 1 ? 'each one' : 'it'} on your phone or computer. A signed copy is emailed to you once you sign.</p>
+        ) : forms.map(f => (
+          <div key={f.kind} className="subpanel">
+            <div className="actions"><b>{f.title}</b><span className="grow" /><button type="button" className="btn" onClick={() => preview(f.kind)}>View form</button></div>
+            {f.kind === 'vintage_fee' && (
+              <label className="tog big"><input type="checkbox" checked={feeOk} onChange={e => setFeeOk(e.target.checked)} /> I accept the Rolex Vintage Analysis Fee of {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</label>
+            )}
+            <p className="msg">{f.kind === 'receipt' ? 'I declare that I have read and accepted the legal notices applicable to the establishment of the estimate, and confirm that the data on the watch is correct.'
+              : f.kind === 'immediate_proceed' ? 'I accept that after analysis, necessary work not included in the set service price is charged up to an additional 15% of the set service price (beyond that, a detailed estimate is sent), and that this document is transmitted to Rolex Canada.'
+              : 'I certify that I have read and understood the estimate and the legal notices, and confirm my decision for this watch.'}</p>
+            <SignaturePad onChange={png => setSigs(s => ({ ...s, [f.kind]: png }))} label={`Client signs the ${f.title} here`} />
+          </div>
+        ))}
+        <p className="msg">Your details are kept only on your signed documents.</p>
+      </section>
+
+      <section className="step">
+        <h2><span>7</span>For the boutique</h2>
+        <div className="grid">
+          <label>Associate name<input value={staff.name} onChange={e => setStaff({ ...staff, name: e.target.value })} autoComplete="off" /></label>
+          <label>Associate email (gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" /></label>
+        </div>
+        {forms.some(f => f.kind === 'immediate_proceed') && (<>
+          <p className="msg">Retailer signature on the Rolex Immediate Proceed.</p>
+          <SignaturePad onChange={setStaffSig} label="Associate signs here" />
+        </>)}
       </section>
 
       <div className="savebar">
         <span className="msg warn">{msg}</span>
         <span className="grow" />
-        <button type="button" className="btn solid big" disabled={busy} onClick={save}>{busy ? 'Saving…' : vintage ? 'Confirm and print form' : 'Confirm and print receipt'}</button>
+        <button type="button" className="btn solid big" disabled={busy} onClick={save}>{busy ? 'Saving…' : byEmail ? 'Save and email the forms' : 'Confirm and print documents'}</button>
       </div>
     </div>
   )

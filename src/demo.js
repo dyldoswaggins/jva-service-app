@@ -137,8 +137,18 @@ export function makeDemo() {
     async createSignRequest(jobId, docId, lines, channel, email = null) {
       const s = await load(); s.signs = s.signs || []
       if (channel === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) throw new Error("Enter the client's email address")
-      s.signs.filter(r => r.job_id === jobId && !r.signed_at).forEach(r => { r.cancelled_at = new Date().toISOString() })
-      const r = { id: crypto.randomUUID(), token: [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join(''), job_id: jobId, doc_id: docId, lines, channel, email, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 864e5).toISOString() }
+      s.signs.filter(r => r.job_id === jobId && !r.signed_at && (r.purpose || 'estimate') === 'estimate').forEach(r => { r.cancelled_at = new Date().toISOString() })
+      const r = { id: crypto.randomUUID(), token: [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join(''), job_id: jobId, doc_id: docId, lines, channel, email, purpose: 'estimate', created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 864e5).toISOString() }
+      s.signs.push(r); try { localStorage.setItem('demoSign', JSON.stringify({ token: r.token })) } catch { /* */ }
+      return { id: r.id, token: r.token, expires_at: r.expires_at }
+    },
+    // intake forms (mirrors migration 035 + Edge Function "sign" purpose 'intake')
+    async createIntakeSignRequest(jobId, docIds, channel, email = null) {
+      const s = await load(); s.signs = s.signs || []
+      if (channel === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email || '')) throw new Error("Enter the client's email address")
+      if (!docIds?.length) throw new Error('No forms to sign')
+      s.signs.filter(r => r.job_id === jobId && !r.signed_at && r.purpose === 'intake').forEach(r => { r.cancelled_at = new Date().toISOString() })
+      const r = { id: crypto.randomUUID(), token: [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join(''), job_id: jobId, doc_id: docIds[0], doc_ids: docIds, lines: {}, channel, email, purpose: 'intake', created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 30 * 864e5).toISOString() }
       s.signs.push(r); try { localStorage.setItem('demoSign', JSON.stringify({ token: r.token })) } catch { /* */ }
       return { id: r.id, token: r.token, expires_at: r.expires_at }
     },
@@ -148,7 +158,13 @@ export function makeDemo() {
       const s = await load(), r = (s.signs || []).find(x => x.token === token)
       if (!r) return { status: 'invalid' }
       const j = s.jobs.find(x => x.id === r.job_id)
-      if (r.signed_at || r.cancelled_at) return { status: r.signed_at ? 'signed' : 'cancelled', edge_no: j.edge_no }
+      if (r.signed_at || r.cancelled_at) return { status: r.signed_at ? 'signed' : 'cancelled', edge_no: j.edge_no, purpose: r.purpose }
+      if (r.purpose === 'intake') {
+        const titles = { receipt: 'Receipt', immediate_proceed: 'Rolex Immediate Proceed', vintage_fee: 'Vintage Analysis Fee' }
+        const forms = r.doc_ids.map(id => j.job_docs.find(d => d.id === id)).map(d => ({ id: d.id, kind: d.kind, title: titles[d.kind], url: URL.createObjectURL(d._blob) }))
+        return { status: 'open', purpose: 'intake', edge_no: j.edge_no, watch: [j.watch_ref && 'M' + j.watch_ref.replace(/^M/, ''), 'Rolex', j.watch_name].filter(Boolean).join(' '),
+          serial_last4: String(j.serial || '').slice(-4), client_name: j.job_clients?.name || '', forms, vintage_fee: j.vintage_fee, expires_at: r.expires_at, channel: r.channel }
+      }
       const doc = j.job_docs.find(d => d.id === r.doc_id)
       return { status: 'open', edge_no: j.edge_no, watch: [j.watch_ref && 'M' + j.watch_ref.replace(/^M/, ''), 'Rolex', j.watch_name].filter(Boolean).join(' '), serial_last4: String(j.serial || '').slice(-4),
         client_name: j.job_clients?.name || '', lines: r.lines, pdf_url: URL.createObjectURL(doc._blob), expires_at: r.expires_at, channel: r.channel }
@@ -156,6 +172,7 @@ export function makeDemo() {
     async signSubmit({ token, refused, optional, name, signature, remarks }) {
       const s = await load(), r = (s.signs || []).find(x => x.token === token)
       if (!r || r.signed_at || r.cancelled_at) throw new Error('This signing link is no longer valid.')
+      if (r.purpose === 'intake') return this.signSubmitIntake(r, arguments[0])
       const j = s.jobs.find(x => x.id === r.job_id), doc = j.job_docs.find(d => d.id === r.doc_id)
       const chosen = refused ? [] : r.lines.optional.filter(l => optional?.[l.key]).map(l => l.key)
       const { stampEstimate } = await import('./docs/stamp.js')
@@ -170,6 +187,25 @@ export function makeDemo() {
         extra: (j.extra_lines || []).map(x => ({ ...x, decision: x.kind === 'optional' ? (chosen.includes('extra:' + x.id) ? 'accepted' : 'declined') : (refused ? 'declined' : 'accepted') })) })
       Object.assign(r, { signed_at: new Date().toISOString(), signer_name: name })
       return { ok: true, refused, copied: false }
+    },
+    async signSubmitIntake(r, { name, signatures, fee_decision }) {
+      const s = await load(), j = s.jobs.find(x => x.id === r.job_id)
+      const docs = r.doc_ids.map(id => j.job_docs.find(d => d.id === id))
+      for (const d of docs) if (!signatures?.[d.id]) throw new Error('Please sign every form.')
+      if (docs.some(d => d.kind === 'vintage_fee') && !['accept', 'decline'].includes(fee_decision)) throw new Error('Please tick whether you accept the analysis fee.')
+      const { stampEstimate } = await import('./docs/stamp.js')
+      const files = { receipt: 'Receipt', immediate_proceed: 'Immediate-Proceed', vintage_fee: 'Vintage-Analysis-Fee' }
+      const signed = []
+      for (const d of docs) {
+        const sigPng = new Uint8Array(await (await fetch(signatures[d.id])).arrayBuffer())
+        const bytes = await stampEstimate(new Uint8Array(await d._blob.arrayBuffer()), d.fields || {}, { refused: false,
+          chosen: d.kind === 'vintage_fee' ? [fee_decision === 'accept' ? 'accept_fee' : 'decline_fee'] : [], name, sigPng,
+          audit: `Signed electronically by ${name} on ${new Date().toLocaleString('en-CA')} (demo)` })
+        const nd = await this.uploadJobDoc(j.id, d.kind, new Blob([bytes], { type: 'application/pdf' }), `JVA-${j.edge_no}-${files[d.kind]}-signed.pdf`)
+        nd.label = 'Signed online'; signed.push(nd.id)
+      }
+      Object.assign(r, { signed_at: new Date().toISOString(), signer_name: name, decision: { fee_decision: fee_decision || null, signed_docs: signed } })
+      return { ok: true, purpose: 'intake', fee_decision: fee_decision || null, copied: false }
     },
     async createJob(job, conditions, requests, client = null) {
       const s = await load(); s.jobs = s.jobs || []
@@ -301,6 +337,7 @@ export function makeDemo() {
     async uploadJobDoc(jobId, kind, blob, fileName) { const s = await load(); const d = { id: crypto.randomUUID(), kind, file_name: fileName, _blob: blob, fields: blob.fields || null, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async uploadJobFile(jobId, file, label, note) { const s = await load(); const d = { id: crypto.randomUUID(), kind: 'upload', label, note, file_name: file.name, content_type: file.type, _blob: file, at: new Date().toISOString() }; s.jobs.find(j => j.id === jobId).job_docs.push(d); return d },
     async jobDocFile(doc) { return doc._blob },
+    async emailSignedCopies() { await new Promise(r => setTimeout(r, 300)); throw new Error('demo mode, email is sent from the live site only') },
     async emailJobDoc() { await new Promise(r => setTimeout(r, 400)); throw new Error('demo mode, email is sent from the live site only') },
     async loadInbox() { const s = await load(); return [...(s.inbox || [])] },
     async uploadToInbox(file) {

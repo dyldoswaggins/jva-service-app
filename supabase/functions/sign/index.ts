@@ -1,5 +1,7 @@
-// Supabase Edge Function "sign": the client signs their estimate online (Dylan, 2026-11-12).
-// Public (no sign-in) for the client, who holds a private link token; Admin-only for sending the email.
+// Supabase Edge Function "sign": the client signs their estimate online (Dylan, 2026-11-12), and their intake forms (Receipt,
+// Rolex Immediate Proceed, Vintage Analysis Fee) when they didn't sign on the iPad (Richard, 2026-11-25; migration 035, purpose 'intake').
+// Public (no sign-in) for the client, who holds a private link token; Admin-only for sending the estimate email (intake: Sales or Admin).
+//   intake: { action: "get" } → forms: [{ id, kind, title, url }], fee; { action: "submit", token, name, signatures: { <doc id>: dataUrl }, fee_decision }
 //   { action: "get",    token }                                   → what the signing page shows
 //   { action: "submit", token, refused, optional: {key: bool}, name, signature: "data:image/png;base64,…" }
 //        → signed estimate PDF filed on the job (original estimate + signed decision page), decision recorded
@@ -37,6 +39,17 @@ async function loadByToken(token: string) {
   return { r, job, doc, client };
 }
 const statusOf = (r: any) => (r.signed_at ? "signed" : r.cancelled_at ? "cancelled" : new Date(r.expires_at) < new Date() ? "expired" : "open");
+const FORM_TITLES: Record<string, string> = { receipt: "Receipt", immediate_proceed: "Rolex Immediate Proceed", vintage_fee: "Vintage Analysis Fee" };
+const FORM_FILES: Record<string, string> = { receipt: "Receipt", immediate_proceed: "Immediate-Proceed", vintage_fee: "Vintage-Analysis-Fee" };
+async function intakeDocs(r: any) {
+  const { data } = await svc.from("job_docs").select("*").in("id", r.doc_ids || []);
+  const order = ["receipt", "immediate_proceed", "vintage_fee"];
+  return (data || []).sort((a: any, b: any) => order.indexOf(a.kind) - order.indexOf(b.kind));
+}
+const dataUrlPng = (s: unknown) => {
+  const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(s || ""));
+  return m && m[1].length <= 700000 ? Uint8Array.from(atob(m[1]), c => c.charCodeAt(0)) : null;
+};
 
 // Same as src/docs/stamp.js — fills the client's decision into the estimate's own spots (template unchanged)
 async function stampEstimate(original: Uint8Array, fields: any, { refused, chosen, name, sigPng, remarks, when = new Date(), dateText, audit }: any) {
@@ -63,7 +76,8 @@ async function stampEstimate(original: Uint8Array, fields: any, { refused, chose
     s.page.drawImage(img, { x: s.x, y: s.y, width: (img.width / img.height) * h, height: h })
   }
   const r = at('remarks'); if (r && remarks) r.page.drawText(String(remarks).slice(0, 110), { x: r.x + 2, y: r.y + 1, size: 8.5, font: reg, color: black })
-  if (audit && (d || s)) (d || s).page.drawText(audit, { x: 55, y: 28, size: 6, font: reg, color: grey })
+  const au = at('audit') // where the form has room for it (else bottom left)
+  if (audit && (au || d || s)) (au || d || s).page.drawText(audit, { x: au ? au.x : 55, y: au ? au.y : 28, size: 6, font: reg, color: grey })
   return await pdf.save()
 }
 
@@ -142,7 +156,14 @@ Deno.serve(async (req) => {
       const x = await loadByToken(body.token);
       if (!x) return json({ status: "invalid" });
       const st = statusOf(x.r);
-      if (st !== "open") return json({ status: st, edge_no: x.job.edge_no });
+      if (st !== "open") return json({ status: st, edge_no: x.job.edge_no, purpose: x.r.purpose });
+      if (x.r.purpose === "intake") {
+        const docs = await intakeDocs(x.r);
+        const forms = await Promise.all(docs.map(async (d: any) => ({ id: d.id, kind: d.kind, title: FORM_TITLES[d.kind] || d.kind,
+          url: (await svc.storage.from("job-docs").createSignedUrl(d.file_path, 3600)).data?.signedUrl || null })));
+        return json({ status: st, purpose: "intake", edge_no: x.job.edge_no, watch: watchLine(x.job), serial_last4: String(x.job.serial || "").slice(-4),
+          client_name: x.client?.name || "", forms, vintage_fee: x.job.vintage_fee, expires_at: x.r.expires_at, channel: x.r.channel });
+      }
       const { data: url } = await svc.storage.from("job-docs").createSignedUrl(x.doc.file_path, 3600);
       return json({
         status: st, edge_no: x.job.edge_no, watch: watchLine(x.job), serial_last4: String(x.job.serial || "").slice(-4),
@@ -157,6 +178,62 @@ Deno.serve(async (req) => {
       if (statusOf(x.r) !== "open") return json({ error: "This estimate has already been signed, or the link has expired. Please call us at (403) 266-1669." }, 410);
       const name = String(body.name || "").trim().slice(0, 120);
       if (name.length < 2) return json({ error: "Please type your full name." }, 400);
+
+      // ---- intake forms: each form signed in its own box, filled in at the spots the form recorded (job_docs.fields) ----
+      if (x.r.purpose === "intake") {
+        const docs = await intakeDocs(x.r);
+        const sigs: Record<string, Uint8Array> = {};
+        for (const d of docs) {
+          const png = dataUrlPng(body.signatures?.[d.id]);
+          if (!png) return json({ error: `Please sign the ${FORM_TITLES[d.kind] || "form"}.` }, 400);
+          sigs[d.id] = png;
+        }
+        const fee = body.fee_decision === "decline" ? "decline" : body.fee_decision === "accept" ? "accept" : null;
+        if (docs.some((d: any) => d.kind === "vintage_fee") && !fee) return json({ error: "Please tick whether you accept the analysis fee." }, 400);
+        const when = new Date();
+        const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+        const audit = `Signed electronically by ${name} on ${mtTime(when)} (Mountain time) ${x.r.channel === "in_store" ? "in store on the J. Vair Anderson iPad" : `through a private link emailed to ${x.r.email}`} · IP ${ip || "unknown"}`;
+        const dateText = when.toLocaleDateString("en-GB", { timeZone: "America/Edmonton" });
+        const signedIds: string[] = [], attachments: any[] = [];
+        for (const d of docs) {
+          const { data: orig } = await svc.storage.from("job-docs").download(d.file_path);
+          if (!orig) return json({ error: "A form could not be opened. Please call us." }, 500);
+          const bytes = await stampEstimate(new Uint8Array(await orig.arrayBuffer()), d.fields || {}, { refused: false,
+            chosen: d.kind === "vintage_fee" ? [fee === "accept" ? "accept_fee" : "decline_fee"] : [], name, sigPng: sigs[d.id], when, audit, dateText });
+          const fileName = `JVA-${x.job.edge_no}-${FORM_FILES[d.kind] || d.kind}-signed.pdf`;
+          const path = `${x.job.id}/${Date.now()}-${fileName}`;
+          const up = await svc.storage.from("job-docs").upload(path, bytes, { contentType: "application/pdf" });
+          if (up.error) throw up.error;
+          const { data: nd, error: dErr } = await svc.from("job_docs").insert({ job_id: x.job.id, kind: d.kind, label: "Signed online", file_path: path, file_name: fileName,
+            by_user: x.r.created_by, has_client_data: d.has_client_data ?? true }).select().single();
+          if (dErr) throw dErr;
+          signedIds.push(nd.id); attachments.push({ filename: fileName, content: bytes, contentType: "application/pdf" });
+        }
+        const { error: aErr } = await svc.rpc("apply_signed_intake", { p_request: x.r.id, p_name: name, p_ip: ip, p_agent: req.headers.get("user-agent") || "",
+          p_decision: { fee_decision: fee, signed_at: when.toISOString() }, p_signed_docs: signedIds });
+        if (aErr) throw aErr;
+        let copied = false;
+        const mail = mailer();
+        if (mail && x.r.email) {
+          try {
+            await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: x.r.email,
+              subject: `Your signed Rolex service documents: J. Vair Anderson job ${x.job.edge_no}`,
+              text: `Dear ${firstName(x.client?.name || name)},\n\nThank you. Your signed documents for your ${watchLine(x.job)} are attached for your records. ` +
+                `Please keep your receipt and bring it with photo ID when you collect your watch.\n\n${STORE}`, attachments });
+            copied = true;
+          } catch (_) { /* signature stands */ }
+        }
+        // …and to the associate who took the watch in (Richard, 2026-11-25; always an @jvairanderson.com address)
+        if (mail && /^[^@\s]+@jvairanderson\.com$/i.test(x.job.intake_staff_email || "")) {
+          try {
+            await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: x.job.intake_staff_email,
+              subject: `Signed intake ${x.job.edge_no} ${watchLine(x.job)}`,
+              text: `${name} signed the intake paperwork for job ${x.job.edge_no} online${fee === "decline" ? " and DECLINED the Vintage Analysis Fee" : ""}. Signed copies attached.\n\nSent from the Watch Service app.`, attachments });
+          } catch (_) { /* signature stands */ }
+        }
+        return json({ ok: true, purpose: "intake", fee_decision: fee, copied });
+      }
+
       const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(body.signature || ""));
       if (!m || m[1].length > 700000) return json({ error: "Please sign in the box." }, 400);
       const sigPng = Uint8Array.from(atob(m[1]), c => c.charCodeAt(0));
@@ -214,14 +291,49 @@ Deno.serve(async (req) => {
       const auth = req.headers.get("Authorization") || "";
       const user = createClient(URL_, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { ...(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/.test(auth) ? { Authorization: auth } : {}), "x-app-role": req.headers.get("x-app-role") || "" } } });
       const { data: role } = await user.rpc("app_role");
-      if (role !== "admin") return json({ error: "Only Admin sends estimates for signature" }, 403);
-      const { data: r } = await user.from("sign_requests").select("*").eq("id", body.request_id).maybeSingle();
+      if (role !== "admin" && role !== "sales") return json({ error: "Only Admin sends estimates for signature" }, 403);
+      // Sales can't read sign requests (RLS): look it up with the service key once the role is checked
+      const { data: r } = await svc.from("sign_requests").select("*").eq("id", body.request_id).maybeSingle();
+      if (r && r.purpose !== "intake" && role !== "admin") return json({ error: "Only Admin sends estimates for signature" }, 403);
       if (!r || statusOf(r) !== "open") return json({ error: "This signing request is no longer open. Create a new one." }, 400);
       if (!r.email) return json({ error: "No client email on this request" }, 400);
       const mail = mailer();
       if (!mail) return json({ error: "Email isn't set up yet (GMAIL_USER and GMAIL_APP_PASSWORD in Supabase)." }, 400);
       const origin = String(body.origin || req.headers.get("origin") || "").replace(/\/$/, "");
       if (!/^https?:\/\//.test(origin)) return json({ error: "Missing site address" }, 400);
+
+      // ---- intake forms: all forms attached + "Review and sign" link ----
+      if (r.purpose === "intake") {
+        const [{ data: job }, { data: client }, docs] = await Promise.all([
+          svc.from("jobs").select("*").eq("id", r.job_id).single(),
+          svc.from("job_clients").select("*").eq("job_id", r.job_id).maybeSingle(),
+          intakeDocs(r),
+        ]);
+        const attachments = [];
+        for (const d of docs) {
+          const { data: file } = await svc.storage.from("job-docs").download(d.file_path);
+          if (!file) return json({ error: "A form could not be opened" }, 500);
+          attachments.push({ filename: d.file_name, content: new Uint8Array(await file.arrayBuffer()), contentType: "application/pdf" });
+        }
+        const link = `${origin}/sign/${r.token}`;
+        const watch = watchLine(job), last4 = String(job.serial || "").slice(-4), nm = client?.name || "";
+        const list = docs.map((d: any) => FORM_TITLES[d.kind] || d.kind).join(", ");
+        const html = `<div style="font-family:Georgia,serif;color:#14232b;max-width:560px">
+<p style="letter-spacing:.12em;font-size:12px;color:#8a6d3b">J. VAIR ANDERSON · JEWELLERS SINCE 1925</p>
+<p>Dear ${nm.replace(/[<>&]/g, "")},</p>
+<p>Thank you for entrusting your ${watch}${last4 ? ` (serial ending ${last4})` : ""} to J. Vair Anderson. Your documents for job <b>${job.edge_no}</b> (${list}) are attached. Please review and sign them.</p>
+<p style="margin:26px 0"><a href="${link}" style="background:#14232b;color:#fff;text-decoration:none;padding:12px 22px;border-radius:4px;font-family:Arial,sans-serif">Review and sign your documents</a></p>
+<p>You can also sign in store, or call us at (403) 266-1669 with any questions.</p>
+<p style="font-size:12px;color:#5f6b70">J. Vair Anderson · 409 – 3rd Street SW, Calgary AB T2P 4Z2 · (403) 266-1669<br>This link is personal to your documents and expires on ${new Date(r.expires_at).toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" })}.</p></div>`;
+        await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: r.email,
+          subject: `Please sign: your Rolex service documents, J. Vair Anderson job ${job.edge_no}`, html,
+          text: `Dear ${nm},\n\nThank you for entrusting your ${watch}${last4 ? ` (serial ending ${last4})` : ""} to J. Vair Anderson. Your documents for job ${job.edge_no} (${list}) are attached.\n\nReview and sign: ${link}\n\nYou can also sign in store, or call us at (403) 266-1669.\n\n${STORE}`,
+          attachments });
+        const { data: who } = await user.auth.getUser();
+        await svc.from("sign_requests").update({ emailed_at: new Date().toISOString() }).eq("id", r.id);
+        for (const d of docs) await svc.from("job_docs").update({ emailed_at: new Date().toISOString(), emailed_to: r.email, emailed_by: who?.user?.id ?? null }).eq("id", d.id);
+        return json({ ok: true, to: r.email });
+      }
       const [{ data: job }, { data: doc }, { data: client }] = await Promise.all([
         svc.from("jobs").select("*").eq("id", r.job_id).single(),
         svc.from("job_docs").select("*").eq("id", r.doc_id).single(),

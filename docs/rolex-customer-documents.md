@@ -144,3 +144,8 @@ Bracelet: dented, scratched, stretched, worn.
   confirmation / invoice required to complete.
 - Dashboard: "Call the client: ready", "Waiting for pickup" (late after 30 days).
 - Reason only for billable parts (migration 028).
+
+## Intake forms + e-signature (Richard, 2026-11-25)
+- Supersedes "Immediate Proceed not routine in store" above: the Receipt and Rolex Immediate Proceed are filled and signed at **every** Modern, Classic and Vintage intake; Vintage also signs the Vintage Analysis Fee form (and now also gets a Receipt).
+- Receipt + Vintage Analysis Fee form are laid out on JVA's post-audit "Rolex Receipt (Modern & Classic) - Editable.pdf" (variant `receipt` in `src/docs/rolexDoc.js`); the Vintage form keeps every word of "Vintage Analysis Fee Form - Editable_1.pdf".
+- Each form is signed in its own box on the iPad, or through a private emailed link; the associate signs the Immediate Proceed as retailer. Signed copies go by email to the client and the associate. Details in CLAUDE.md section 6.

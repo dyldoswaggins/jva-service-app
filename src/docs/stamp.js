@@ -28,6 +28,7 @@ export async function stampEstimate(original, fields, { refused, chosen, name, s
     s.page.drawImage(img, { x: s.x, y: s.y, width: (img.width / img.height) * h, height: h })
   }
   const r = at('remarks'); if (r && remarks) r.page.drawText(String(remarks).slice(0, 110), { x: r.x + 2, y: r.y + 1, size: 8.5, font: reg, color: black })
-  if (audit && (d || s)) (d || s).page.drawText(audit, { x: 55, y: 28, size: 6, font: reg, color: grey })
+  const au = at('audit') // where the form has room for it (else bottom left)
+  if (audit && (au || d || s)) (au || d || s).page.drawText(audit, { x: au ? au.x : 55, y: au ? au.y : 28, size: 6, font: reg, color: grey })
   return await pdf.save()
 }
