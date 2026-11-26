@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
 import { fmtDate, maskSerial, openPrompts } from '../rules.js'
 import IntakeView from './IntakeView.jsx'
@@ -19,8 +19,12 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
   const [mode, setMode] = useState({ view: 'list' }) // list | intake | job
   const [err, setErr] = useState('')
 
-  const load = () => api.loadJobs({ clients: sav }).then(setJobs).catch(e => setErr(e.message))
-  useEffect(() => { load(); api.loadStatuses().then(setStatuses).catch(() => {}) }, [])
+  // "Deleted" filter: the intakes hidden with Delete this intake (Service Manager), loaded on their own
+  const deletedView = useRef(false)
+  deletedView.current = filter === 'deleted'
+  const load = () => api.loadJobs({ clients: sav, deleted: deletedView.current }).then(setJobs).catch(e => setErr(e.message))
+  useEffect(() => { api.loadStatuses().then(setStatuses).catch(() => {}) }, [])
+  useEffect(() => { setJobs(null); load() }, [filter === 'deleted'])
   useEffect(() => api.subscribe({ onJob: () => load() }), [])
   // From the dashboard: open a job, or show a status
   useEffect(() => { if (jump?.id) setMode({ view: 'job', id: jump.id }); else if (jump?.filter) { setFilter(jump.filter); setMode({ view: 'list' }) } }, [jump?.n])
@@ -29,7 +33,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()
     return (jobs || []).filter(j =>
-      (filter === 'all' || (filter === 'open' && ['open', 'away'].includes(kind(j.status))) || j.status === filter) &&
+      (filter === 'all' || filter === 'deleted' || (filter === 'open' && ['open', 'away'].includes(kind(j.status))) || j.status === filter) &&
       (!s || j.edge_no.toLowerCase().includes(s) || String(j.serial || '').toLowerCase().endsWith(s) || String(j.watch_ref || '').toLowerCase().includes(s) ||
         String(j.watch_name || '').toLowerCase().includes(s) || String(j.rolex_service_no || '').toLowerCase().includes(s) || String(j.mrws_ref || '').includes(s) ||
         (sav && String(one(j.job_clients)?.name || '').toLowerCase().includes(s))))
@@ -63,6 +67,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
               <option value="open">In progress</option>
               {statuses.map(s => <option key={s.name} value={s.name}>{s.name} ({count(s.name)})</option>)}
               <option value="all">All statuses</option>
+              <option value="deleted">Deleted</option>
             </select>
             <ul className="sav-jobs">
               {!jobs ? <li className="msg">Loading…</li> : shown.length ? shown.map(j => {

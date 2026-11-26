@@ -105,10 +105,11 @@ const live = {
     if (error) throw error
     return data
   },
-  async loadJobs({ clients = false } = {}) {
+  async loadJobs({ clients = false, deleted = false } = {}) {
+    // deleted: only the jobs hidden with "Delete this intake" (migration 036); otherwise they're left out everywhere
     // clients: the client's name for the Service Manager's job list (Admin only; RLS shows it to no one else)
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(state), job_requests(state), job_docs(kind, at), job_parts(state, short_qty)' + (clients ? ', job_clients(name)' : '')).order('intake_at', { ascending: false }).limit(500)
+      .select('*, job_conditions(state), job_requests(state), job_docs(kind, at), job_parts(state, short_qty)' + (clients ? ', job_clients(name)' : '')).filter('deleted_at', deleted ? 'not.is' : 'is', null).order('intake_at', { ascending: false }).limit(500)
     if (error) throw error
     return data
   },

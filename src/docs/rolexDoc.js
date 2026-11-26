@@ -24,6 +24,11 @@ const VARIANTS = {
     legal: { title: 11.86, titleGap: 18, rightUp: 20, head: 6.58, body: 5.86, lineH: 7.5, headGap: 8.3, paraGap: 9.7, colGap: 13 },
     store: ['J. Vair Jewellers', '409 - 3rd Street SW', 'T2P 4Z2, Calgary, AB', '(403) 266 1669'],
     labels: ['OUR REF #', 'WATCH', 'SERIAL #', 'BRACELET', 'DIAL'] },
+  // SAV invoice (Rolex SAV page, post-audit "All" template): same as the receipt, header block 58 pt lower (Richard, 2026-11-26)
+  get savInvoice() {
+    const r = this.receipt, d = 58
+    return { ...r, storeYs: r.storeYs.map(v => v - d), storeTop: r.storeTop - d, billYs: r.billYs.map(v => v - d), dateY: r.dateY - d, titleY: r.titleY - d, refTop: r.refTop - d }
+  },
 }
 // Bill to/Deliver to lines from the client details (postal code has its own field since 2026-11-25; address3 on older jobs)
 export const billLines = (c = {}) => [c.name, c.address1, c.address2, c.postal_code || c.address3].filter(Boolean)
@@ -31,7 +36,7 @@ const black = rgb(0, 0, 0), grey = rgb(0.35, 0.35, 0.35)
 
 // titleText: the title exactly as printed (default: title in capitals). bill: lines under "Bill to/Deliver to" (default from the client).
 // footer: one centred line at the bottom of every page.
-export async function buildDocument({ title, job, client = {}, date = new Date(), body, signaturePng, legal = true, variant = 'standard', titleText, bill, footer }) {
+export async function buildDocument({ title, job, client = {}, date = new Date(), body, signaturePng, legal = true, variant = 'standard', titleText, bill, footer, showDate, legalRefs = true }) {
   const V = VARIANTS[variant] || VARIANTS.standard
   const { L, R, FS } = V
   const pdf = await PDFDocument.create()
@@ -72,14 +77,21 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
   }
 
   // noTitle: the legal-notices page repeats the header without the title (as in the post-audit receipt)
-  function header({ noTitle = false } = {}) {
+  // noRefs: SAV legal-notices page — store and Bill to only, then the rule (no date, no watch block)
+  function header({ noTitle = false, noRefs = false } = {}) {
     page = pdf.addPage([W, H])
     page.drawPage(logo, logoAt)
     V.store.forEach((s, i) => text(s, L, V.storeYs ? V.storeYs[i] : V.storeTop - i * V.storeGap, { font: i ? f.reg : f.bold, size: V.storeSize }))
     const billX = V.billX
     text('Bill to/Deliver to', billX, V.storeTop, { font: f.bold, size: FS })
     billText.forEach((s, i) => text(s, billX, V.billYs ? (V.billYs[i] ?? V.billYs[V.billYs.length - 1] - (i - V.billYs.length + 1) * 10) : V.storeTop - FS - 5 - i * (FS + 3), { size: V.billSize || FS }))
-    if (!bill) text(day, billX, V.dateY, { size: V.billSize || FS })
+    if ((showDate ?? !bill) && !noRefs) text(day, billX, V.dateY, { size: V.billSize || FS })
+    if (noRefs) {
+      const by = (V.billYs ? V.billYs[V.billYs.length - 1] - Math.max(0, billText.length - V.billYs.length) * 10 : V.storeTop - 40) - 14
+      page.drawLine({ start: { x: L - 1.6, y: by }, end: { x: R + 0.8, y: by }, thickness: 0.8, color: black })
+      y = topY = by - (V.afterHeadRule || 12)
+      return
+    }
     const top = noTitle && V.refTopNoTitle ? V.refTopNoTitle : V.refTop
     if (!(noTitle && V.refTopNoTitle)) text(titleText || title.toUpperCase(), L, V.titleY, { size: V.titleSize })
     const vals = [job.edge_no, watchLine(job), job.serial, braceletLine(job), dialLine(job)]
@@ -126,6 +138,34 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
       y -= lineH(FS) + 5
     },
     bullets(list, o) { list.forEach(s => api.para(`- ${s}`, o)) },
+    // A plain rule across the page (SAV: above Remarks and above the signature statement)
+    line(after = 11) { ensure(20); rule(y, 0.8); y -= after },
+    // Paragraph mixing regular and bold runs: [['Kindly return … at '], ['email', true], [' so that …']]
+    rich(runs, { size = FS } = {}) {
+      const words = runs.flatMap(([t, b]) => String(t).split(/(?<= )/).filter(Boolean).map(w => ({ w, font: b ? f.bold : f.reg })))
+      let line = [], width = 0
+      const flush = () => { ensure(size * 1.3); let x = L; for (const p of line) { text(p.w, x, y, { size, font: p.font }); x += p.font.widthOfTextAtSize(p.w, size) } y -= lineH(size); line = []; width = 0 }
+      for (const p of words) { const wd = p.font.widthOfTextAtSize(p.w, size); if (width + wd > R - L && line.length) flush(); line.push(p); width += wd }
+      if (line.length) flush()
+    },
+    // SAV line: service on the left, price on the right (none when 0 / not set), detail in italics underneath
+    savItem({ label, price, detail, italic = false, gap = 6 }) {
+      ensure(14 + (detail ? 12 : 0))
+      const font = italic ? f.ital : f.reg
+      wrap(label, font, FS, 380).forEach((ln, i) => { text(ln, L, y, { size: FS, font }); if (!i && Number(price)) right(money(price), R, y, { size: FS }); y -= lineH(FS) + 1 })
+      if (detail) wrap(detail, f.ital, FS * 0.92, R - L - 90).forEach(ln => { ensure(12); text(ln, L, y, { size: FS * 0.92, font: f.ital }); y -= lineH(FS * 0.92) })
+      y -= gap
+    },
+    // SAV client's decision row: ☐ at L+15, caption at L+42, price on the right. small: the option rows (italic, smaller)
+    savBox(caption, price, { name, checked = false, small = false } = {}) {
+      ensure(18)
+      page.drawRectangle({ x: L + 15, y: y - 1, width: 7.5, height: 7.5, borderWidth: 0.7, borderColor: black, borderRadius: 1 })
+      if (name) mark(name, L + 16.2, y)
+      if (checked) text('X', L + 16.2, y + 0.2, { font: f.bold, size: 7.5 })
+      text(caption, L + 42, y, { size: small ? FS * 0.8 : FS, font: small ? f.ital : f.reg })
+      if (price != null) right(money(price), R, y, { size: FS })
+      y -= small ? 14 : 18
+    },
     // { label, price, parts: ['24-704-0 crown with gasket 704 st'], subs: ['Clean case and bracelet'] }: "-" at 86, italic text at 92
     item({ label, price, parts = [], subs = [] }) {
       ensure(14 + (parts.length + subs.length) * 12)
@@ -205,7 +245,7 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
   // ---- legal notices (JVA, Alberta) in two columns ----
   if (legal) {
     const G = V.legal || { title: 9, titleGap: 14, head: 7.2, body: 6.8, lineH: 8.2, headGap: 9.5, paraGap: 6, colGap: 18 }
-    header({ noTitle: true })
+    header({ noTitle: true, noRefs: !legalRefs })
     if (!V.headRule) { rule(y, 1.1); y -= 12 } else y -= 2
     text('Legal Notices', L, y, { font: f.bold, size: G.title }); y -= G.titleGap
     const colW = (R - L - G.colGap) / 2
@@ -214,7 +254,7 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
     for (const s of LEGAL) {
       const lines = wrap(s.text, f.reg, G.body, colW)
       const need = G.headGap + lines.length * G.lineH
-      if (y - need < colBottom) { if (x === L) { x = L + colW + G.colGap; y = top + (G.rightUp || 0) } else { header({ noTitle: true }); top = y; x = L } }
+      if (y - need < colBottom) { if (x === L) { x = L + colW + G.colGap; y = top + (G.rightUp || 0) } else { header({ noTitle: true, noRefs: !legalRefs }); top = y; x = L } }
       text(s.heading, x, y, { font: f.bold, size: G.head }); y -= G.headGap
       lines.forEach(ln => { text(ln, x, y, { size: G.body }); y -= G.lineH })
       y -= G.paraGap

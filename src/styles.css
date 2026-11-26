@@ -431,3 +431,48 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
   .sav-jobs { max-height: 300px; }
   .sav-main { padding: 14px 12px 40px; }
 }
+
+/* SAV sheet (Intake tab) and document previews (Estimate / Confirmation / Invoice tabs), Richard 2026-11-26 */
+.sav .hint { font-size: 12px; color: var(--muted); margin: 0; }
+.sav .grid label.wide { grid-column: span 2; }
+@media (max-width: 520px) { .sav .grid label.wide { grid-column: auto; } }
+.sav .pick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sav .pick select { flex: 1; min-width: 200px; padding: 7px 9px; border-radius: 6px; background: var(--field); }
+.sav .pick input { padding: 7px 9px; border-radius: 6px; background: var(--field); }
+.sav .btn.small { padding: 4px 9px; font-size: 12.5px; }
+.sav .btn.danger { color: var(--warn); border-color: var(--warn); }
+.sav .btn.danger.solid { background: var(--warn); color: var(--surface); }
+.sav .panel textarea { width: 100%; min-height: 72px; line-height: 1.45; resize: vertical; border: 1px solid var(--line); font: inherit; }
+.sav-text { border: 1px solid var(--line); border-radius: 6px; background: var(--field); padding: 8px 10px; min-height: 40px; }
+.sav .chip .x { border: 0; background: none; padding: 0 0 0 6px; color: var(--muted); }
+.sav-items { display: flex; flex-direction: column; gap: 8px; }
+.sav .li { display: grid; grid-template-columns: minmax(170px, 1.1fr) minmax(200px, 1.6fr) 110px 110px 34px; gap: 8px; align-items: center; }
+.sav .li.opt { grid-template-columns: 28px minmax(150px, 1.1fr) minmax(180px, 1.6fr) 110px 110px 34px; }
+.sav .li.head { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.sav .li input, .sav .li select { padding: 7px 9px; border-radius: 6px; background: var(--field); width: 100%; min-width: 0; font-size: 14px; }
+.sav .li input[type=number] { text-align: right; font-family: var(--f-mono); }
+.sav .li .det { font-style: italic; font-size: 13px; color: var(--muted); }
+.sav .li .chk { display: flex; justify-content: center; }
+.sav .li .x { border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; }
+.sav .li.adding { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.sav .li.adding .backing { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); max-width: 420px; }
+.sav .li.adding .actions { grid-column: 1 / -1; }
+@media (max-width: 760px) { .sav .li, .sav .li.opt { grid-template-columns: 1fr 1fr; } .sav .li.head { display: none; } }
+.sav .tot { display: grid; grid-template-columns: auto 130px; gap: 3px 16px; justify-content: end; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.sav .tot span:nth-child(even) { text-align: right; font-family: var(--f-mono); }
+.sav .decision { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+.sav .decision label { display: flex; gap: 7px; align-items: center; min-height: 32px; }
+.sav .compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.sav .compare div { border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; background: var(--surface); }
+.sav .compare small { display: block; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.sav .compare strong { font: 500 18px var(--f-mono); }
+.sav .confirmbar { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border: 1px solid var(--warn); border-radius: 6px; background: var(--warn-bg); color: var(--fg); max-width: 640px; }
+.sav .confirmbar b { color: var(--warn); }
+.sav-sheet { display: flex; flex-direction: column; }
+.sav-band { margin: 26px 0 12px; padding-top: 14px; border-top: 2px solid var(--line); font: 600 21px/1.2 var(--f-display); color: var(--navy); }
+.sav details.panel > summary { cursor: pointer; }
+.sav details.panel > .panel { border: 0; padding: 10px 0 0; margin: 0; }
+.docview { margin-bottom: 18px; }
+.docbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.docs { overflow-x: auto; padding-bottom: 10px; }
+.docpage { display: block; width: 100%; max-width: 816px; height: auto; margin: 0 auto 18px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); }

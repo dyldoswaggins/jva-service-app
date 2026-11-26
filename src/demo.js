@@ -108,7 +108,7 @@ export function makeDemo() {
       return ['Estimate', 'Waiting on parts', 'On deck', 'Polishing', 'Timekeeping', 'Sent to Toronto', 'Done', 'Ready for pickup', 'Picked up', 'Cancelled']
         .map((name, i) => ({ name, ord: i, kind: ['Done', 'Ready for pickup', 'Picked up'].includes(name) ? 'done' : name === 'Cancelled' ? 'cancelled' : name === 'Sent to Toronto' ? 'away' : 'open' }))
     },
-    async loadJobs() {
+    async loadJobs({ deleted = false } = {}) {
       const s = await load()
       // ?demo&sample → one realistic job to look at (e.g. ?demo&role=watchmaker&sample)
       if (!s.jobs && new URLSearchParams(location.search).has('sample')) {
@@ -120,7 +120,7 @@ export function makeDemo() {
         [{ request: 'Perform complete overhaul', note: 'Modern CTR' }, { request: 'Refinish case and bracelet', note: '' }, { request: 'Replace crystal', note: '' }],
         { name: 'Sample Client' })
       }
-      return (s.jobs || []).map(j => ({ ...j }))
+      return (s.jobs || []).filter(j => !!j.deleted_at === deleted).map(j => ({ ...j }))
     },
     async loadJob(id) { const s = await load(); return { ...s.jobs.find(j => j.id === id) } },
     async saveJobClient(jobId, fields) { const s = await load(); const j = s.jobs.find(x => x.id === jobId); j.job_clients = { job_id: jobId, ...(j.job_clients || {}), ...fields } },

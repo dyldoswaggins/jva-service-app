@@ -14,6 +14,8 @@ import JobTiming from './JobTiming.jsx'
 import JobCompletion from './JobCompletion.jsx'
 import JobContacts from './JobContacts.jsx'
 import JobValidation from './JobValidation.jsx'
+import SavSheet from './SavSheet.jsx'
+import DocPreview from './DocPreview.jsx'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -28,6 +30,7 @@ function printPdf(blob) {
 
 // One job. The watchmaker answers every intake prompt (condition + client request) before the estimate.
 export default function JobView({ id, receipt, statuses, can, actions, userId, who, onBack, allParts, models, tabs = false }) {
+  const [ticks, setTicks] = useState({}) // Options' OK ticks on the SAV sheet, until the decision is recorded
   const [tab, setTab] = useState('intake') // Service Manager layout (tabs): intake | estimate | confirmation | invoice
   const [job, setJob] = useState(null)
   const [msg, setMsg] = useState('')
@@ -225,8 +228,8 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
   // ---- Rolex Timing Analysis (in-house services) ----
   const timing = job.classification !== 'Vintage' && !direct && <JobTiming job={job} can={can} userId={userId} who={who} actions={actions} onChange={load} />
   // ---- client details, estimate, decision, confirmation, invoice (Admin); part = all | client | estimate | confirmation | invoice ----
-  const documents = part => can.edit && (
-    <JobDocuments key={part} part={part} job={job} allParts={allParts} userId={userId} actions={actions}
+  const documents = (part, stepsOnly = false) => can.edit && (
+    <JobDocuments key={part} part={part} stepsOnly={stepsOnly} job={job} allParts={allParts} userId={userId} actions={actions}
       onChange={async () => { await load(); await actions.reload() }} printPdf={printPdf} />
   )
   // ---- completion → ready for pickup (Workflow 9–11), contact log ----
@@ -290,53 +293,37 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
 
   // ---- Service Manager: JVA's Rolex SAV layout, Intake / Estimate / Confirmation / Invoice tabs (Richard, 2026-11-26) ----
   if (tabs) {
-    const eta = job.eta_override || job.eta_quoted
     const TABS = [['intake', 'Intake'], ['estimate', 'Estimate'], ['confirmation', 'Confirmation'], ['invoice', 'Invoice']]
+    const restore = () => run(() => api.updateJob(id, { deleted_at: null, deleted_by: null }), `Intake ${job.edge_no} restored`)
     return (
       <div className="job sheet">
         <div className="actions sav-head">
           <h2 className="grow"><span className="mono">{job.edge_no}</span> · {watchLine(job)}</h2>
           {timer}
         </div>
+        {job.deleted_at && <p className="flagline">This intake was deleted on {fmtTime(job.deleted_at)}{job.deleted_by ? ` by ${who(job.deleted_by)}` : ''}. It is hidden from every list. <button type="button" className="btn solid" onClick={restore}>Restore</button></p>}
         <div className="sav-tabs" role="tablist">
           {TABS.map(([k, label]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{label}</button>)}
         </div>
         {top}
         {tab === 'intake' && <>
-          <section className="panel">
-            <h3>Job</h3>
-            <div className="grid">
-              <label>Our Ref # (JVA number)<span className="val mono">{job.edge_no}</span></label>
-              <label>Status{statusSelect}</label>
-              <label>Taken in by<span className="val">{job.intake_staff_name || who(job.intake_by) || '—'}</span></label>
-              <label>Intake date<span className="val">{fmtTime(job.intake_at)}</span></label>
-              <label>Service<span className="val">{[job.service_type, job.classification].filter(Boolean).join(' · ') || '—'}</span></label>
-              <label>{job.eta_override ? 'ETA (watchmaker)' : 'ETA'}<span className="val">{eta ? fmtDate(eta) : '—'}</span></label>
-            </div>
-          </section>
-          {validation}
-          {documents('client')}
-          {watchDetails}
-          {requests}
+          <SavSheet key={job.id} job={job} allParts={allParts} userId={userId} who={who} actions={actions} onChange={load} statusSelect={statusSelect} onDeleted={onBack} ticks={ticks} setTicks={setTicks} />
+          <h3 className="sav-band">Workshop and records</h3>
           {prompts}
-          {analysis}
+          {validation}
+          {documents('client', true)}
           {overview}
           {serviceInfo}
-        </>}
-        {tab === 'estimate' && <>
-          {assessment}
           {parts}
-          {documents('estimate')}
-        </>}
-        {tab === 'confirmation' && <>
-          {documents('confirmation')}
           {timing}
-        </>}
-        {tab === 'invoice' && <>
           {completion}
-          {documents('invoice')}
           {contacts}
           {filed}
+          <details className="panel"><summary><b>More watch details</b> <span className="msg">calibre, movement, dial and bracelet codes, Rolex numbers</span></summary>{watchDetails}</details>
+        </>}
+        {tab !== 'intake' && <>
+          <DocPreview kind={tab} job={job} allParts={allParts} printPdf={printPdf} />
+          {documents(tab, true)}
         </>}
       </div>
     )

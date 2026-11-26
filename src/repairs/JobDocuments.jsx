@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { finishBlockers, money, openPrompts, weeksUntil } from '../rules.js'
 import { autoNotes, decidedLines, documentLines, sumLines, unbackedOptional, unpriced } from '../docs/lines.js'
-import { buildConfirmation, buildEstimate, buildInvoice, docFileName } from '../docs/serviceDocs.js'
+import { buildConfirmation, buildEstimate, buildInvoice, docDate, docFileName } from '../docs/serviceDocs.js'
 import SignPage from './SignPage.jsx'
 
 const one = x => (Array.isArray(x) ? x[0] : x) || null
 
 // Admin: Estimate → client's decision → Confirmation → Invoice (Rolex SAV documents), filed on the job.
 // part: everything (watchmaker-era layout) or one tab of the Service Manager's Rolex SAV layout (Richard, 2026-11-26)
-export default function JobDocuments({ job, allParts, userId, actions, onChange, printPdf, part = 'all' }) {
+export default function JobDocuments({ job, allParts, userId, actions, onChange, printPdf, part = 'all', stepsOnly = false }) {
   const has = p => part === 'all' || part === p
   const client0 = one(job.job_clients)
   const [client, setClient] = useState({ name: client0?.name || '', address1: client0?.address1 || '', address2: client0?.address2 || '', address3: client0?.address3 || '', postal_code: client0?.postal_code || '', phone: client0?.phone || '', email: client0?.email || '' })
@@ -49,7 +49,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
   async function makeDoc(kind) {
     if (!client.name.trim()) return setMsg('Enter the client name first (needed on every Rolex document).')
     await run(`Creating ${kind}…`, async () => {
-      const args = { job, client, allParts, notes, weeks, date: new Date() }
+      const args = { job, client, allParts, notes, weeks, date: docDate(job, kind) }
       const pdf = kind === 'estimate' ? await buildEstimate(args) : kind === 'confirmation' ? await buildConfirmation(args) : await buildInvoice(args)
       await api.uploadJobDoc(job.id, kind, pdf, docFileName(job, kind), userId)
       actions.say(`${kind[0].toUpperCase() + kind.slice(1)} created and filed`)
@@ -120,12 +120,12 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
 
   return (
     <section className="panel">
-      <h3>{{ all: 'Estimate, confirmation and invoice', client: 'Bill to / Deliver to', estimate: 'Estimate', confirmation: 'Confirmation', invoice: 'Invoice' }[part]}</h3>
+      <h3>{stepsOnly ? (part === 'client' ? 'Intake forms' : 'File, sign and send') : { all: 'Estimate, confirmation and invoice', client: 'Bill to / Deliver to', estimate: 'Estimate', confirmation: 'Confirmation', invoice: 'Invoice' }[part]}</h3>
       {has('estimate') && <>
       {prompts > 0 && job.service_type !== 'Engraving' && <p className="flagline">The watchmaker still has {prompts} prompt{prompts === 1 ? '' : 's'} to answer (WSR, condition, requests). The estimate should follow the full analysis.</p>}
       </>}
 
-      {has('client') && <>
+      {has('client') && !stepsOnly && <>
       <div className="grid">
         <label>Client name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} /></label>
         <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} /></label>
@@ -137,7 +137,7 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
       <div className="actions"><button type="button" className="btn" onClick={saveClient}>Save client details</button><span className="msg">Visible to Admin only.</span></div>
       </>}
 
-      {has('estimate') && <>
+      {has('estimate') && !stepsOnly && <>
       <table className="imp">
         <thead><tr><th>Necessary work</th><th className="r">MSRP CAD (tax excl.)</th><th /><th /></tr></thead>
         <tbody><LineRows lines={necessary} /><tr><td className="b">Total necessary</td><td className="r b">{money(sumLines(necessary))}</td><td /><td /></tr></tbody>
