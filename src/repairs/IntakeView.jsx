@@ -303,8 +303,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>3</span>Photos</h2>
-        <p className="msg">A record of your watch as it arrived: dial, case back, clasp and any marks.</p>
+        <h2><span>3</span>Timepiece Photo/s</h2>
         <div className="photos">
           {photos.map((p, i) => (
             <div key={i} className="thumb"><img src={p.url} alt={`Photo ${i + 1}`} />

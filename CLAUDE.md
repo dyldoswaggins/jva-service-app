@@ -340,3 +340,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-25 | Intake order (Richard): 1 Client Details, 2 Your timepiece, 3 Photos, 4 Your service, 5 Condition on arrival (+ Notes), 6 Estimate and timing, 7 Signatures, 8 For the boutique. |
 | 2026-11-26 | Intake (Richard): step 2 renamed "Timepiece Information" (was "Your timepiece"). |
 | 2026-11-26 | Intake (Richard): client email optional (still required when the client signs by emailed link). |
+| 2026-11-26 | Intake (Richard): step 3 renamed "Timepiece Photo/s" (was "Photos"), its description line removed. |
