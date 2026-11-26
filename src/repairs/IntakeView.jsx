@@ -315,7 +315,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>4</span>Your service</h2>
+        <h2><span>4</span>Rolex Service Information</h2>
         {auto && !allClasses ? (
           <div className="offer autoclass" data-on="true">
             <b>{auto.cls}{auto.collection && auto.collection !== auto.cls ? ` · ${auto.collection}` : ''}</b>
