@@ -342,3 +342,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-26 | Intake (Richard): client email optional (still required when the client signs by emailed link). |
 | 2026-11-26 | Intake (Richard): step 3 renamed "Timepiece Photo/s" (was "Photos"), its description line removed. |
 | 2026-11-26 | Intake (Richard): step 4 renamed "Rolex Service Information" (was "Your service"). |
+| 2026-11-26 | Intake (Richard): Classic described as "Serviced in-store or at Rolex Toronto (Model/Reference depending)" (`CLASSES` in rules.js). |

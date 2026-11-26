@@ -64,7 +64,7 @@ export const REQUEST_OPTIONS = ['Replace crystal', 'Adjust bracelet', 'Timekeepi
 // Classification at intake (Rolex Service Workflow v2.1): decides the forms, where it is serviced and who handles parts
 export const CLASSES = [
   { name: 'Modern', hint: 'Serviced in-store · Receipt' },
-  { name: 'Classic', hint: 'Serviced in-store · Receipt' },
+  { name: 'Classic', hint: 'Serviced in-store or at Rolex Toronto (Model/Reference depending) · Receipt' }, // Richard, 2026-11-26
   { name: 'Vintage', hint: 'Rolex Toronto · Vintage Analysis Fee' },
 ]
 export const VINTAGE_REQUEST = 'Perform vintage analysis and estimate'
