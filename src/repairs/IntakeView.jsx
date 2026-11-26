@@ -160,7 +160,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !client.address2.trim() && 'city, province',
     !client.postal_code.trim() && 'postal code',
     !client.phone.trim() && 'phone',
-    !emailOk && "the client's email",
+    // Client email optional (Richard, 2026-11-26), but needed to email a signing link
+    byEmail && !emailOk && "the client's email (for the signing link)",
+    !byEmail && client.email.trim() && !emailOk && 'a valid client email (or leave it blank)',
     ...(!byEmail ? forms.filter(f => !sigs[f.kind]).map(f => `client signature on the ${f.title}`) : []),
     // Associate name, email and signature: required (Richard, 2026-11-25)
     !staffName && 'associate name',
@@ -270,9 +272,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <label>City, province *<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" placeholder="Calgary, AB" required /></label>
           <label>Postal code *<input value={client.postal_code} onChange={e => setClient({ ...client, postal_code: e.target.value })} autoComplete="off" autoCapitalize="characters" placeholder="T2P 4Z2" required /></label>
           <label>Phone *<input type="tel" value={client.phone} onChange={e => setClient({ ...client, phone: e.target.value })} autoComplete="off" inputMode="tel" required /></label>
-          <label>Email *<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" required /></label>
+          <label>Email<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="Optional" /></label>
         </div>
-        <p className="msg">All fields are required. The signed documents are emailed to this address.</p>
+        <p className="msg">Fields marked * are required. With an email, the client gets a copy of the signed documents.</p>
       </section>
 
       <section className="step">
