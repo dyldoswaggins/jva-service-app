@@ -8,7 +8,9 @@ import SignPage from './SignPage.jsx'
 const one = x => (Array.isArray(x) ? x[0] : x) || null
 
 // Admin: Estimate → client's decision → Confirmation → Invoice (Rolex SAV documents), filed on the job.
-export default function JobDocuments({ job, allParts, userId, actions, onChange, printPdf }) {
+// part: everything (watchmaker-era layout) or one tab of the Service Manager's Rolex SAV layout (Richard, 2026-11-26)
+export default function JobDocuments({ job, allParts, userId, actions, onChange, printPdf, part = 'all' }) {
+  const has = p => part === 'all' || part === p
   const client0 = one(job.job_clients)
   const [client, setClient] = useState({ name: client0?.name || '', address1: client0?.address1 || '', address2: client0?.address2 || '', address3: client0?.address3 || '', postal_code: client0?.postal_code || '', phone: client0?.phone || '', email: client0?.email || '' })
   const [notes, setNotes] = useState(job.estimate_notes ?? autoNotes(job, allParts))
@@ -118,9 +120,12 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
 
   return (
     <section className="panel">
-      <h3>Estimate, confirmation and invoice</h3>
+      <h3>{{ all: 'Estimate, confirmation and invoice', client: 'Bill to / Deliver to', estimate: 'Estimate', confirmation: 'Confirmation', invoice: 'Invoice' }[part]}</h3>
+      {has('estimate') && <>
       {prompts > 0 && job.service_type !== 'Engraving' && <p className="flagline">The watchmaker still has {prompts} prompt{prompts === 1 ? '' : 's'} to answer (WSR, condition, requests). The estimate should follow the full analysis.</p>}
+      </>}
 
+      {has('client') && <>
       <div className="grid">
         <label>Client name<input value={client.name} onChange={e => setClient({ ...client, name: e.target.value })} /></label>
         <label>Address<input value={client.address1} onChange={e => setClient({ ...client, address1: e.target.value })} /></label>
@@ -130,7 +135,9 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         <label>Email (for the estimate)<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} /></label>
       </div>
       <div className="actions"><button type="button" className="btn" onClick={saveClient}>Save client details</button><span className="msg">Visible to Admin only.</span></div>
+      </>}
 
+      {has('estimate') && <>
       <table className="imp">
         <thead><tr><th>Necessary work</th><th className="r">MSRP CAD (tax excl.)</th><th /><th /></tr></thead>
         <tbody><LineRows lines={necessary} /><tr><td className="b">Total necessary</td><td className="r b">{money(sumLines(necessary))}</td><td /><td /></tr></tbody>
@@ -152,8 +159,10 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
         <button type="button" className="btn" onClick={() => setNotes(autoNotes(job, allParts))}>Rewrite notes from findings</button>
         <span className="msg">Delivery shown: {weeks ? `approximately ${weeks} week${weeks === 1 ? '' : 's'}` : 'to be confirmed'} (from the ETA).</span>
       </div>
+      </>}
 
       <div className="docsteps">
+      {has('client') && <>
         <div className="docstep">
           <b>Intake forms</b>
           <span className="msg">{intakeSign ? (intakeSign.signed_at ? `Signed online by ${intakeSign.signer_name}${intakeSign.decision?.fee_decision === 'decline' ? ' · analysis fee DECLINED' : ''}` : `Waiting for the client${intakeSign.emailed_at ? ` (emailed ${new Date(intakeSign.emailed_at).toLocaleDateString('en-CA')} to ${intakeSign.email})` : ''}`) : unsignedForms.length ? 'Signed at intake' : 'None'}{job.intake_staff_name ? ` · taken in by ${job.intake_staff_name}` : ''}</span>
@@ -163,6 +172,8 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
           </>}
           {signedForms.length > 0 && <button type="button" className="btn" disabled={!!busy} onClick={sendCopies}>Email signed copies</button>}
         </div>
+      </>}
+      {has('estimate') && <>
         <div className="docstep">
           <b>1. Estimate</b>
           <span className="msg">{docsOf('estimate').length ? `Created ${docsOf('estimate').length}×` : 'Within 24 h of intake (Rolex)'}</span>
@@ -178,16 +189,21 @@ export default function JobDocuments({ job, allParts, userId, actions, onChange,
           {lastSign && <span className="msg">{lastSign.signed_at ? `Signed online by ${lastSign.signer_name}` : lastSign.emailed_at ? `Emailed ${new Date(lastSign.emailed_at).toLocaleDateString('en-CA')} to ${lastSign.email}, waiting` : lastSign.channel === 'in_store' ? 'In-store signing opened' : 'Not sent'}</span>}
           <button type="button" className="btn" disabled={!!busy || !docsOf('estimate').length} onClick={startDecision}>Record paper decision</button>
         </div>
+      </>}
+      {has('confirmation') && <>
         <div className="docstep">
           <b>3. Confirmation</b>
           <span className="msg">{docsOf('confirmation').length ? `Created ${docsOf('confirmation').length}×` : 'After the decision'}</span>
           <button type="button" className="btn solid" disabled={!!busy || !job.estimate_decision} onClick={() => makeDoc('confirmation')}>Create confirmation</button>
         </div>
+      </>}
+      {has('invoice') && <>
         <div className="docstep">
           <b>4. Invoice</b>
           <span className="msg">{docsOf('invoice').length ? `Created ${docsOf('invoice').length}×` : finishBlockers(job).length ? `After: ${finishBlockers(job).join(', ')}` : 'When the watch is ready'}</span>
           <button type="button" className="btn solid" disabled={!!busy || job.estimate_decision !== 'accepted' || finishBlockers(job).length > 0} onClick={() => makeDoc('invoice')}>Create invoice</button>
         </div>
+      </>}
       </div>
 
       {dec && (

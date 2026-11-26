@@ -255,6 +255,7 @@ Kept 132 jobs: removed 172 sent to Toronto (FedEx / RCL / "shipped to Rolex"), 2
 - **Undo, not "Are you sure?"**
 - Wording: plain language, 1–2 word labels, symbols where clear (★ suggested, ••• masked, ✓ done), messages one short line. Same word for the same action everywhere.
 - One search box: job #, serial, part #.
+- **Service Manager Jobs tab** (Richard, 2026-11-26) mimics JVA's "Rolex SAV" intake page (`SAV ALL - POST AUDIT NEW › Rolex SAV › index.html`): job list on the left (search, status filter, job # + status pill + client · model), the open job on the right with **Intake / Estimate / Confirmation / Invoice** tabs; panels styled as its fieldsets (Cormorant Garamond titles, IBM Plex Sans/Mono, small uppercase labels; fonts from Google Fonts, used only there). Status pills keep the no red/green rule. Watchmakers keep the plain list and one-page job.
 
 ## 8b. Setup still to finish (needs people, not code)
 - **Email-code sign-in (current):** Gmail app password → Supabase → Authentication → Emails → SMTP (smtp.gmail.com, 465) + templates "Magic Link" and "Confirm signup" show `{{ .Token }}` + Site URL `https://watchservicejva.netlify.app` + raise the email rate limit. After Dylan's first sign-in: set his `profiles.role = 'admin'` and `legacy_id = 'u_5FbqzfZ79582E4oxzrqCvw'`.
@@ -343,3 +344,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-26 | Intake (Richard): step 3 renamed "Timepiece Photo/s" (was "Photos"), its description line removed. |
 | 2026-11-26 | Intake (Richard): step 4 renamed "Rolex Service Information" (was "Your service"). |
 | 2026-11-26 | Intake (Richard): Classic described as "Serviced in-store or at Rolex Toronto (Model/Reference depending)" (`CLASSES` in rules.js). |
+| 2026-11-26 | **Service Manager Jobs tab redesigned like the Rolex SAV page (Richard).** `JobsView` (Admin): job rail + working sheet; `JobView` `tabs`: Intake (job, validation, bill to, watch, requests, prompts, analysis, overview, service/price/ETA/photos), Estimate (assessment, parts, estimate + decision), Confirmation (confirmation, timing + QC), Invoice (completion, invoice, contact log, documents). `JobDocuments` `part` prop; `loadJobs({ clients })` adds the client name for Admin only. No database change. |

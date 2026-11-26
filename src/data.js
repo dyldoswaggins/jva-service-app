@@ -105,9 +105,10 @@ const live = {
     if (error) throw error
     return data
   },
-  async loadJobs() {
+  async loadJobs({ clients = false } = {}) {
+    // clients: the client's name for the Service Manager's job list (Admin only; RLS shows it to no one else)
     const { data, error } = await supabase.from('jobs')
-      .select('*, job_conditions(state), job_requests(state), job_docs(kind, at), job_parts(state, short_qty)').order('intake_at', { ascending: false }).limit(500)
+      .select('*, job_conditions(state), job_requests(state), job_docs(kind, at), job_parts(state, short_qty)' + (clients ? ', job_clients(name)' : '')).order('intake_at', { ascending: false }).limit(500)
     if (error) throw error
     return data
   },
