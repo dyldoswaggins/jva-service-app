@@ -276,7 +276,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>2</span>Your timepiece</h2>
+        <h2><span>2</span>Timepiece Information</h2>
         <div className="grid big">
           <label className="suggest-field">Model number
             <span className="mprefix"><span aria-hidden="true">M</span>
