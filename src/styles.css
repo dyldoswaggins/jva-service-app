@@ -489,3 +489,8 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
 .intake-parts .cost { position: relative; display: flex; }
 .intake-parts .cost > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 .intake-parts .cost input { flex: 1; padding-left: 26px; text-align: right; font-variant-numeric: tabular-nums; }
+/* keep the cost boxes inside the panel (Richard, 2026-11-27) */
+.intake-parts .part-row > * { min-width: 0; }
+.intake-parts .part-row input { width: 100%; min-width: 0; box-sizing: border-box; }
+.intake-parts .cost { width: 100%; }
+@media (max-width: 600px) { .intake-parts .part-row { grid-template-columns: minmax(0, 1fr) 120px; } }
