@@ -9,7 +9,8 @@ export const DELIVERY = [ "Pick up in store", "Ship to client", "FedEx" ]
 export const ROLEX_DELIVERY = [ "Fedex-SON", "FedEx", "Courier", "Hand delivered" ]
 export const ROLEX_DUE = [ "Approximately 4 weeks", "Approximately 6 weeks", "Approximately 8 weeks", "Approximately 12 weeks" ]
 export const PROVINCES = [ "Alberta", "British Columbia", "Saskatchewan", "Manitoba", "Ontario", "Quebec", "New Brunswick", "Nova Scotia", "Prince Edward Island", "Newfoundland and Labrador", "Yukon", "Northwest Territories", "Nunavut" ]
-export const LEAD_TIMES = ['Approximately 4 weeks', 'Approximately 6 weeks', 'Approximately 8 weeks', 'Approximately 12 weeks', 'Approximately 6 to 18 weeks']
+// Service lead time / estimated weeks (Richard, 2026-11-27): Approximately 2 … 18 weeks, same list at intake and on the SAV sheet
+export const LEAD_TIMES = Array.from({ length: 17 }, (_, i) => `Approximately ${i + 2} weeks`)
 export const DELIVERY_WEEKS = ['5 to 6', '6 to 8', '6 to 18', '8 to 12']
 export const PAYMENT_METHODS = ['Visa', 'Mastercard', 'American Express', 'Debit', 'Paid in advance', 'Rolex guarantee (no charge)']
 export const CITIES = ['Calgary', 'Okotoks', 'Airdrie', 'Cochrane', 'Chestermere', 'Canmore', 'Banff', 'High River', 'Red Deer', 'Edmonton']

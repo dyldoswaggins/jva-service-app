@@ -513,3 +513,4 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
 .stage-h { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 6px; padding: 6px 10px; background: var(--band); border-left: 3px solid var(--gold); border-radius: 4px; }
 .stage-h b { font-size: 15px; }
 .stage-h:first-of-type { margin-top: 8px; }
+.weeksbox { position: relative; display: block; }

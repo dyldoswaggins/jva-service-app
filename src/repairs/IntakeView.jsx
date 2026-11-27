@@ -9,6 +9,7 @@ import { compressPhoto } from '../photos.js'
 import { NOTES_PREFIX } from '../docs/immediateProceed.js'
 import { referenceCatalog, stripM, suggestReferences } from '../rolexReferences.js'
 import { suggestDescriptions } from '../rolexDescriptions.js'
+import WeeksBox from './WeeksBox.jsx'
 import SignaturePad from './SignaturePad.jsx'
 
 const INTAKE_CONDITIONS = CONDITIONS.filter(x => x.intake !== false)
@@ -19,7 +20,6 @@ const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.tr
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
 // Estimated weeks list: Approximately 3 weeks … Approximately 18 weeks, for every class incl. Vintage (Richard, 2026-11-27)
-const LEAD_OPTIONS = Array.from({ length: 16 }, (_, i) => [`Approximately ${i + 3} weeks`])
 
 export default function IntakeView({ models, actions, userId, onDone, standalone, staffName: signedInName, staffEmail = '' }) {
   // The associate taking the watch in: signs the Immediate Proceed and gets a copy of the signed paperwork (@jvairanderson.com only)
@@ -54,7 +54,6 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [feeOk, setFeeOk] = useState(false)
   // Estimated weeks (Timing): chosen from the list or typed; Vintage starts on 6 to 18 weeks (Richard, 2026-11-27)
   const [leadWeeks, setLeadWeeks] = useState('')
-  const [leadOpen, setLeadOpen] = useState(false) // the weeks list is showing
   const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
   const [allClasses, setAllClasses] = useState(false) // Sales overrides the class worked out from the model
   const [allTiers, setAllTiers] = useState(false)     // … or the suggested complete-service offer
@@ -503,18 +502,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           )}
         </div>
         <label className="field suggest-field" style={{ maxWidth: 420 }}>Estimated weeks (choose or type)
-          <span className="combo">
-            <input value={leadWeeks} onChange={e => setLeadWeeks(e.target.value)} onFocus={() => setLeadOpen(true)} onBlur={() => setLeadOpen(false)}
-              placeholder="Approximately 3 weeks" autoComplete="off" />
-            <button type="button" className="combo-btn" aria-label="Show the weeks" onPointerDown={e => { e.preventDefault(); setLeadOpen(o => !o) }}>▾</button>
-          </span>
-          {leadOpen && (
-            <ul className="suggest" role="listbox">
-              {LEAD_OPTIONS.map(([v]) => (
-                <li key={v} role="option" aria-selected={leadWeeks === v} onPointerDown={e => { e.preventDefault(); setLeadWeeks(v); setLeadOpen(false) }}><span>{v}</span></li>
-              ))}
-            </ul>
-          )}
+          <WeeksBox value={leadWeeks} onChange={setLeadWeeks} />
         </label>
       </section>
 

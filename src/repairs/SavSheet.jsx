@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { api } from '../data.js'
 import { CONDITIONS, conditionText, money, termsFor } from '../rules.js'
 import { autoNotes, documentLines, sumLines } from '../docs/lines.js'
-import { CITIES, DELIVERY, DELIVERY_WEEKS, LEAD_TIMES, NOTES, PAYMENT_METHODS, PROVINCES, REQUESTS, ROLEX_DELIVERY, ROLEX_DUE, SERVICES } from '../savCatalog.js'
+import { CITIES, DELIVERY, DELIVERY_WEEKS, NOTES, PAYMENT_METHODS, PROVINCES, REQUESTS, ROLEX_DELIVERY, ROLEX_DUE, SERVICES } from '../savCatalog.js'
+import { WeeksField } from './WeeksBox.jsx'
 
 const one = x => (Array.isArray(x) ? x[0] : x) || null
 const GST = 0.05
@@ -180,10 +181,9 @@ export default function SavSheet({ job, allParts, userId, who, actions, onChange
           <label>Status{statusSelect}</label>
           <label>Taken in by<span className="val">{job.intake_staff_name || who(job.intake_by) || '—'}</span></label>
           <label>Confirmation date{J('confirmation_date', { type: 'date' })}</label>
-          <label>Service lead time (confirmation){J('lead_time', { list: 'dl-lead', placeholder: 'e.g. Approximately 6 weeks' })}</label>
+          <label className="suggest-field">Service lead time (confirmation)<WeeksField key={job.lead_time || ''} initial={job.lead_time} onSave={x => saveJob('lead_time', x)} /></label>
           <label>Invoice date{J('invoice_date', { type: 'date' })}</label>
         </div>
-        <datalist id="dl-lead">{LEAD_TIMES.map(v => <option key={v} value={v} />)}</datalist>
       </section>
 
       <section className="panel">
