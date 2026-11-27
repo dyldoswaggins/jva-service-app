@@ -85,8 +85,7 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   // Watch conditions and client additional information
   // Conditions, then the associate's notes (Richard, 2026-11-25): own line when both fit, else run on over the two lines
   const cond = conditions.length ? conditionText(conditions) : 'No visible marks noted.'
-  const fits = s => font.widthOfTextAtSize(s, 9.5) <= 390
-  const condOwn = notes.length && fits(cond) && fits(notes.join(' · ')) ? [cond, notes.join(' · ')] : null
+  const condOwn = notes.length > 0
   const condText = [cond, ...notes].join(' · ')
   set('undefined_3', ''); set('undefined_4', '')
   // Total (tax excl.): set price + polish; optionally with the 15 % allowance the form permits
@@ -117,14 +116,37 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
     page0.drawText(money(polishPrice).replace('.00', ''), { x: 411.1, y: 368.3, size: 9, font, color: rgb(0.35, 0.35, 0.35) })
   }
   form.flatten()
-  // Interventions (lines at y 409 / 387) and Watch conditions (322 / 300): drawn so all of it fits (see fitSection)
+  // Interventions (lines at y 409 / 387): drawn so all of it fits (see fitSection)
   const sections = []
-  for (const [title, text, ys, own] of [['Interventions and Spare Parts requested by Client', interventions, [409, 387]],
-    ['Watch Conditions and Client additional information', condText, [322, 300], condOwn]]) {
-    if (!text) continue
-    const fit = own ? { size: 9.5, rows: own.map((t, i) => ({ t, y: ys[i] + 6 })) } : fitSection(text, font, ys)
+  if (interventions) {
+    const fit = fitSection(interventions, font, [409, 387])
     for (const r of fit.rows) page0.drawText(r.t, { x: 146, y: r.y, size: fit.size, font, color: rgb(0, 0, 0) })
-    if (fit.more) sections.push([title, text])
+    if (fit.more) sections.push(['Interventions and Spare Parts requested by Client', interventions])
+  }
+  // Watch conditions (Richard, 2026-11-27): four dotted lines instead of Rolex's two, in the same space (Rolex's lines at
+  // y 321.7 / 299.6 and their bullets are covered; the title sits at 345.7, "IMMEDIATE PROCEED" from about y 281).
+  // Same line style as Rolex's (#404040, 0.48 pt, dots 0.48 / 0.96). Conditions first, notes on their own line when they fit.
+  {
+    const lineY = [331.5, 316.5, 301.5, 286.5], X = 144, LEN = 395.88
+    page0.drawRectangle({ x: 125, y: 284.5, width: 420, height: 57.5, color: rgb(1, 1, 1) })
+    for (const y of lineY) {
+      page0.drawLine({ start: { x: X, y }, end: { x: X + LEN, y }, thickness: 0.48, color: rgb(0.25, 0.25, 0.25), dashArray: [0.48, 0.96] })
+      page0.drawText('•', { x: 131, y: y + 2.5, size: 9.5, font, color: rgb(0.25, 0.25, 0.25) })
+    }
+    let size = null, rows = null
+    for (const s of [9.5, 9, 8.5, 8, 7.5, 7]) {
+      const own = condOwn ? [...wrap(cond, font, s), ...wrap(notes.join(' · '), font, s)] : null
+      const run = wrap(condText, font, s)
+      rows = own && own.length <= 4 ? own : run.length <= 4 ? run : null
+      if (rows) { size = s; break }
+    }
+    if (!rows) {
+      const more = ' … continued on page 2'
+      const l = wrap(condText, font, 7, 390 - font.widthOfTextAtSize(more, 7))
+      rows = [...l.slice(0, 3), l[3] + more]; size = 7
+      sections.push(['Watch Conditions and Client additional information', condText])
+    }
+    rows.forEach((t, i) => page0.drawText(t, { x: 146, y: lineY[i] + 2.5, size, font, color: rgb(0, 0, 0) }))
   }
   if (sections.length) {
     const p = pdf.insertPage(1, [612, 792]), bold = await pdf.embedFont(StandardFonts.HelveticaBold)
