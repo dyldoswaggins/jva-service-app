@@ -18,8 +18,7 @@ const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA',
 const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
-const LEAD_VINTAGE = 'Approximately 6 to 18 weeks'
-// Estimated weeks list: Approximately 6 weeks … Approximately 18 weeks (Richard, 2026-11-27); Vintage still starts on 6 to 18 weeks
+// Estimated weeks list: Approximately 6 weeks … Approximately 18 weeks, for every class incl. Vintage (Richard, 2026-11-27)
 const LEAD_OPTIONS = Array.from({ length: 13 }, (_, i) => [`Approximately ${i + 6} weeks`])
 
 export default function IntakeView({ models, actions, userId, onDone, standalone, staffName: signedInName, staffEmail = '' }) {
@@ -123,7 +122,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const vpolish = Number(settings?.vintage?.polish ?? 420) // Rolex Polish & Satin-Finishing for Vintage (Richard, 2026-11-27)
   const chooseClass = (c, offer = null) => {
     setCls(c)
-    if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier(''); setLeadWeeks(w => w || LEAD_VINTAGE) }
+    if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier(''); }
     else {
       setJob(j => ({ ...j, service_type: j.service_type === 'Vintage analysis' ? 'CTR' : j.service_type }))
       setTier(t => (offer && offer in allOffers ? offer : t && t.toUpperCase().includes(c.toUpperCase()) ? t : ''))
