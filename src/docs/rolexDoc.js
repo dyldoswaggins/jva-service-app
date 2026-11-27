@@ -221,12 +221,15 @@ export async function buildDocument({ title, job, client = {}, date = new Date()
       if (!name) mark('undersigned', L + f.reg.widthOfTextAtSize(before, FS) + 2, y + 1.5, { w: f.reg.widthOfTextAtSize(blank, FS) })
       const gap = V.lineRatio ? lineH(FS) : 11.5
       lines.forEach(ln => { ensure(12); text(ln, L, y, { size: FS }); y -= gap })
-      y -= V.sigGap ? V.sigGap - gap : 27
-      const sx = V.sigX || 298, vx = sx + 58
+      // Room above the DATE / SIGNATURE line for a larger signature (Richard, 2026-11-27)
+      y -= (V.sigGap ? V.sigGap - gap : 27) + 12
+      const sx = V.sigX || 298
       text('DATE:', L, y, { size: FS }); text('SIGNATURE:', sx, y, { size: FS })
       if (signed) text(day, L + 36, y, { size: FS }); else mark('date', L + 36, y)
-      if (sig && signed) { const w = 150, h = Math.min(36, (sig.height / sig.width) * w); page.drawImage(sig, { x: vx, y: y - 4, width: w, height: h }) }
-      else mark('signature', vx, y - 4, { w: R - vx, h: 36 })
+      // The signature (trimmed to its ink by SignaturePad) starts right after "SIGNATURE:" and sits on the line, up to 32 pt tall
+      const vx = sx + f.reg.widthOfTextAtSize('SIGNATURE:', FS) + 8, maxW = R - vx, SIG_H = 32
+      if (sig && signed) { const h = Math.min(SIG_H, (sig.height / sig.width) * maxW); page.drawImage(sig, { x: vx, y: y - 3, width: (sig.width / sig.height) * h, height: h }) }
+      else mark('signature', vx, y - 3, { w: maxW, h: SIG_H })
       if (!(sig && signed)) mark('audit', L, V.pageNo ? V.pageNo.y - 24 : 28) // e-signature trail line, clear of the footer
       if (V.sigRule) rule(y - V.sigRule, 0.8)
       y -= 24
