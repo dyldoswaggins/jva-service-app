@@ -164,9 +164,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     byEmail && !emailOk && "the client's email (for the signing link)",
     !byEmail && client.email.trim() && !emailOk && 'a valid client email (or leave it blank)',
     ...(!byEmail ? forms.filter(f => !sigs[f.kind]).map(f => `client signature on the ${f.title}`) : []),
-    // Associate name, email and signature: required (Richard, 2026-11-25)
+    // Associate name and signature: required (Richard, 2026-11-25). Associate email optional (Richard, 2026-11-27); if typed, a @jvairanderson.com address
     !staffName && 'associate name',
-    !staffEmailOk && 'associate @jvairanderson.com email',
+    staff.email.trim() && !staffEmailOk && 'a @jvairanderson.com associate email (or leave it empty)',
     !staffSig && 'associate signature',
   ].filter(Boolean)
 
@@ -476,7 +476,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <h2><span>8</span>For the boutique</h2>
         <div className="grid">
           <label>Associate name *<input value={staff.name} onChange={e => setStaff({ ...staff, name: e.target.value })} autoComplete="off" required /></label>
-          <label>Associate email * (gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" required /></label>
+          <label>Associate email (optional, gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" /></label>
         </div>
         <p className="msg">Associate signature *{forms.some(f => f.kind === 'immediate_proceed') ? ' (Retailer signature on the Rolex Immediate Proceed)' : ''}</p>
         <SignaturePad onChange={setStaffSig} label="Associate signs here" />
