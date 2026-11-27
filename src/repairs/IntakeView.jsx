@@ -19,7 +19,8 @@ const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.tr
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
 const LEAD_VINTAGE = 'Approximately 6 to 18 weeks'
-const LEAD_OPTIONS = [[LEAD_VINTAGE, 'Approximately 6 to 18 weeks (Vintage)'], ['Approximately 4 weeks'], ['Approximately 6 weeks'], ['Approximately 8 weeks'], ['Approximately 12 weeks']]
+// Estimated weeks list: Approximately 6 weeks … Approximately 18 weeks (Richard, 2026-11-27); Vintage still starts on 6 to 18 weeks
+const LEAD_OPTIONS = Array.from({ length: 13 }, (_, i) => [`Approximately ${i + 6} weeks`])
 
 export default function IntakeView({ models, actions, userId, onDone, standalone, staffName: signedInName, staffEmail = '' }) {
   // The associate taking the watch in: signs the Immediate Proceed and gets a copy of the signed paperwork (@jvairanderson.com only)
@@ -50,7 +51,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [vAnalysis, setVAnalysis] = useState(true), [vWarranty, setVWarranty] = useState(false)
   const [feeOk, setFeeOk] = useState(false)
   // Estimated weeks (Timing): chosen from the list or typed; Vintage starts on 6 to 18 weeks (Richard, 2026-11-27)
-  const [leadWeeks, setLeadWeeks] = useState('')   // Vintage Analysis Fee accepted (signing on the iPad; by email link the client ticks it)
+  const [leadWeeks, setLeadWeeks] = useState('')
+  const [leadOpen, setLeadOpen] = useState(false) // the weeks list is showing
   const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
   const [allClasses, setAllClasses] = useState(false) // Sales overrides the class worked out from the model
   const [allTiers, setAllTiers] = useState(false)     // … or the suggested complete-service offer
@@ -486,10 +488,20 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
               <div className="msg">{isCTR ? 'Your request includes work beyond the complete service, so ' : ''}our watchmakers will assess it first; we'll confirm the timing with your estimate.</div></div>
           )}
         </div>
-        <label className="field">Estimated weeks (choose or type)
-          <input list="lead-weeks" value={leadWeeks} onChange={e => setLeadWeeks(e.target.value)} placeholder={LEAD_VINTAGE} autoComplete="off" style={{ maxWidth: 420 }} />
+        <label className="field suggest-field" style={{ maxWidth: 420 }}>Estimated weeks (choose or type)
+          <span className="combo">
+            <input value={leadWeeks} onChange={e => setLeadWeeks(e.target.value)} onFocus={() => setLeadOpen(true)} onBlur={() => setLeadOpen(false)}
+              placeholder="Approximately 6 weeks" autoComplete="off" />
+            <button type="button" className="combo-btn" aria-label="Show the weeks" onPointerDown={e => { e.preventDefault(); setLeadOpen(o => !o) }}>▾</button>
+          </span>
+          {leadOpen && (
+            <ul className="suggest" role="listbox">
+              {LEAD_OPTIONS.map(([v]) => (
+                <li key={v} role="option" aria-selected={leadWeeks === v} onPointerDown={e => { e.preventDefault(); setLeadWeeks(v); setLeadOpen(false) }}><span>{v}</span></li>
+              ))}
+            </ul>
+          )}
         </label>
-        <datalist id="lead-weeks">{LEAD_OPTIONS.map(([v, l]) => <option key={v} value={v} label={l} />)}</datalist>
       </section>
 
       <section className="step">

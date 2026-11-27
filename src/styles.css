@@ -476,3 +476,9 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
 .docbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .docs { overflow-x: auto; padding-bottom: 10px; }
 .docpage { display: block; width: 100%; max-width: 816px; height: auto; margin: 0 auto 18px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+
+/* Estimated weeks: editable box + tap-to-open list (Richard, 2026-11-27) */
+.combo { position: relative; display: flex; }
+.combo input { flex: 1; padding-right: 48px; }
+.combo-btn { position: absolute; right: 2px; top: 2px; bottom: 2px; width: 44px; border: 0; background: transparent; color: var(--muted); font-size: 18px; }
+.suggest-field .suggest { max-height: 320px; overflow-y: auto; }
