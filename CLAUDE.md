@@ -363,3 +363,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-27 | Photos (Richard): "+ Take photo" opens the iPad / phone back camera (as before); new "Choose photos" picks from the photo library or files. Intake and job page. |
 | 2026-11-27 | **Email connected (Richard).** Supabase secrets GMAIL_USER (JVA service Gmail), GMAIL_APP_PASSWORD and SERVICE_MANAGER_EMAIL set; send-doc `{ to: "test" }` (Admin) sends one plain test email to the service manager; test sent OK. Note: saving secrets bumps Edge Function version numbers without changing code. |
 | 2026-11-27 | Intake (Richard): "Optional" hint removed from the client Email box (it stays optional). |
+| 2026-11-27 | Intake (Richard): Vintage Analysis Fee acceptance tick and every signature box (client per form, associate) marked required (*) with a warning until the fee is ticked; all were already enforced before saving. |

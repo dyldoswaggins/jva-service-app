@@ -479,13 +479,15 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         ) : forms.map(f => (
           <div key={f.kind} className="subpanel">
             <div className="actions"><b>{f.title}</b><span className="grow" /><button type="button" className="btn" onClick={() => preview(f.kind)}>View form</button></div>
-            {f.kind === 'vintage_fee' && (
-              <label className="tog big"><input type="checkbox" checked={feeOk} onChange={e => setFeeOk(e.target.checked)} /> I accept the Rolex Vintage Analysis Fee of {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</label>
-            )}
+            {f.kind === 'vintage_fee' && (<>
+              <label className="tog big"><input type="checkbox" checked={feeOk} onChange={e => setFeeOk(e.target.checked)} /> I accept the Rolex Vintage Analysis Fee of {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)}) *</label>
+              {/* Required before saving when the client signs on the iPad (Richard, 2026-11-27) */}
+              {!feeOk && <p className="msg warn">Required: the client must tick to accept the analysis fee before the forms can be saved.</p>}
+            </>)}
             <p className="msg">{f.kind === 'receipt' ? 'I declare that I have read and accepted the legal notices applicable to the establishment of the estimate, and confirm that the data on the watch is correct.'
               : f.kind === 'immediate_proceed' ? 'I accept that after analysis, necessary work not included in the set service price is charged up to an additional 15% of the set service price (beyond that, a detailed estimate is sent), and that this document is transmitted to Rolex Canada.'
               : 'I certify that I have read and understood the estimate and the legal notices, and confirm my decision for this watch.'}</p>
-            <SignaturePad onChange={png => setSigs(s => ({ ...s, [f.kind]: png }))} label={`Client signs the ${f.title} here`} />
+            <SignaturePad onChange={png => setSigs(s => ({ ...s, [f.kind]: png }))} label={`Client signs the ${f.title} here *`} />
           </div>
         ))}
         <p className="msg">Your details are kept only on your signed documents.</p>
@@ -498,7 +500,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <label>Associate email (optional, gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" /></label>
         </div>
         <p className="msg">Associate signature *{forms.some(f => f.kind === 'immediate_proceed') ? ' (Retailer signature on the Rolex Immediate Proceed)' : ''}</p>
-        <SignaturePad onChange={setStaffSig} label="Associate signs here" />
+        <SignaturePad onChange={setStaffSig} label="Associate signs here *" />
       </section>
 
       <div className="savebar">
