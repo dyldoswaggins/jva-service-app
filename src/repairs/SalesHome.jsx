@@ -82,7 +82,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
             <h3 className="required-steps">Required before the next client *</h3>
             <div className="actions">
               <button type="button" className="btn big" data-done={steps.print} onClick={print}>{steps.print ? '✓ ' : ''}Print documents</button>
-              <button type="button" className="btn big" data-done={steps.label} onClick={async () => { mark('label'); openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name })) }}>{steps.label ? '✓ ' : ''}Print bag label</button>
+              <button type="button" className="btn big" data-done={steps.label} onClick={async () => { mark('label'); openPdf(await makeBagLabel({ job: done.job, clientName: done.client?.name, parts: done.job.intake_parts || [] })) }}>{steps.label ? '✓ ' : ''}Print bag label</button>
               <button type="button" className="btn big" data-done={steps.email} onClick={email}>{steps.email ? '✓ ' : ''}Email to service manager</button>
               <span className="grow" />
               <button type="button" className={`btn big${notDone.length ? '' : ' solid'}`} onClick={() => leave('next')}>Next client</button>

@@ -276,7 +276,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       emailed = [emailed, sent.text].filter(Boolean).join('; ')
       const names = [...forms.map(f => f.title), ...(engrPdf ? ['Rolex Engraving Request'] : [])]
       actions.say(`Job ${clean.edge_no} taken in. ${names.join(', ')} saved${emailed ? `, ${emailed}` : ''}.`)
-      onDone(id, pdf, docs.receipt, { ...clean, intake_at: new Date().toISOString() }, client, !!docs.immediate_proceed, emailed, { forms: names, signLink, managerSent: sent.manager })
+      onDone(id, pdf, docs.receipt, { ...clean, intake_at: new Date().toISOString(), job_requests: allReqs, intake_parts: partsList }, client, !!docs.immediate_proceed, emailed, { forms: names, signLink, managerSent: sent.manager })
     } catch (e) { setMsg(id ? `The job was saved (${clean.edge_no || 'see Jobs'}) but a document failed: ${e.message}. Open the job to print it; don't take the watch in again.` : e.message) } finally { setBusy(false) }
   }
 
