@@ -8,7 +8,7 @@ export default function JobServiceInfo({ job, can, userId, actions, onChange }) 
   const [queue, setQueue] = useState(null)
   const [urls, setUrls] = useState({})
   const [msg, setMsg] = useState('')
-  const camRef = useRef(null)
+  const camRef = useRef(null), libRef = useRef(null)
   const photos = job.job_photos || []
 
   useEffect(() => { api.queueEta(job.id).then(setQueue).catch(() => setQueue(null)) }, [job.id, job.status])
@@ -55,8 +55,10 @@ export default function JobServiceInfo({ job, can, userId, actions, onChange }) 
         {photos.map(p => urls[p.id] && (
           <a key={p.id} className="thumb" href={urls[p.id]} target="_blank" rel="noreferrer" title={`${p.label || ''} ${fmtDate(String(p.at).slice(0, 10))}`}><img src={urls[p.id]} alt={p.label || 'Watch photo'} /></a>
         ))}
-        {can.status && <button type="button" className="thumb add" onClick={() => camRef.current.click()}>+ Photo</button>}
+        {can.status && <button type="button" className="thumb add" onClick={() => camRef.current.click()}>+ Take photo</button>}
+        {can.status && <button type="button" className="thumb add" onClick={() => libRef.current.click()}>Choose photos</button>}
         <input ref={camRef} type="file" accept="image/*" capture="environment" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
+        <input ref={libRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
         {!photos.length && !can.status && <p className="msg">No photos.</p>}
       </div>
       {msg && <p className="msg warn">{msg}</p>}

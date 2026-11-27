@@ -49,7 +49,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [allTiers, setAllTiers] = useState(false)     // … or the suggested complete-service offer
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
-  const camRef = useRef(null)
+  const camRef = useRef(null), libRef = useRef(null)
 
   useEffect(() => {
     api.loadSettings().then(setSettings).catch(() => setSettings({}))
@@ -325,8 +325,11 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             <div key={i} className="thumb"><img src={p.url} alt={`Photo ${i + 1}`} />
               <button type="button" className="x" aria-label="Remove photo" onClick={() => setPhotos(photos.filter((_, j) => j !== i))}>×</button></div>
           ))}
+          {/* Take photo: opens the iPad / phone back camera. Choose photos: photo library or files (Richard, 2026-11-27) */}
           <button type="button" className="thumb add" onClick={() => camRef.current.click()}>+ Take photo</button>
+          <button type="button" className="thumb add" onClick={() => libRef.current.click()}>Choose photos</button>
           <input ref={camRef} type="file" accept="image/*" capture="environment" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
+          <input ref={libRef} type="file" accept="image/*" multiple hidden onChange={e => { addPhotos([...e.target.files]); e.target.value = '' }} />
         </div>
       </section>
 
