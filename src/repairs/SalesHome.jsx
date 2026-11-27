@@ -102,7 +102,7 @@ export default function SalesHome({ models, actions, userId, me, onSignOut }) {
         </div>
       ) : (
         <IntakeView key={key} standalone models={models} actions={actions} userId={userId} staffName={me.id ? me.name || me.email : ''} staffEmail={me.id ? me.email || '' : ''}
-          onDone={(id, pdf, doc, job, client, ip, emailed, extra) => id && setDone({ pdf, doc, job, client, ip, emailed, forms: extra?.forms || ['Receipt'], signLink: extra?.signLink || null })} />
+          onDone={(id, pdf, doc, job, client, ip, emailed, extra) => { if (!id) return; setDone({ pdf, doc, job, client, ip, emailed, forms: extra?.forms || ['Receipt'], signLink: extra?.signLink || null }); if (extra?.managerSent) mark('email') }} />
       )}
     </div>
   )

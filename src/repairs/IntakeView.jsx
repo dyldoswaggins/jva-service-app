@@ -246,16 +246,16 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         const r = await api.createIntakeSignRequest(id, forms.map(f => docs[f.kind].id), 'email', cl.email)
         signLink = { id: r.id, token: r.token, email: cl.email }
         emailed = await api.emailSignRequest(r.id).then(x => `signing link emailed to ${x.to}`, e => `signing link not emailed: ${e.message}`)
-      } else if (cl.email || clean.intake_staff_email) {
-        // Client and associate have both signed: one email with all the signed forms to the client, and one to the associate
-        // (Richard, 2026-11-25; sent from the live site once email is connected)
-        emailed = await api.emailSignedCopies(forms.map(f => docs[f.kind].id)).then(
-          r => { const to = [r.client, r.staff].filter(Boolean); return `${to.length ? `signed copies emailed to ${to.join(' and ')}` : 'signed copies not emailed'}${r.errors?.length ? ` (${r.errors.join('; ')})` : ''}` },
-          e => `signed copies not emailed: ${e.message}`)
       }
+      // The forms go to the service manager and the associate after every intake, and to the client once signed (Richard, 2026-11-27).
+      // Signing by link: the filled forms now (marked waiting for the client's signature); signed copies when the client signs.
+      const sent = await api.emailSignedCopies(forms.map(f => docs[f.kind].id), { pending: byEmail }).then(
+        r => { const to = [r.manager && 'the service manager', r.staff, r.client].filter(Boolean); return { manager: !!r.manager, text: `${to.length ? `forms emailed to ${to.join(', ')}` : 'forms not emailed'}${r.errors?.length ? ` (${r.errors.join('; ')})` : ''}` } },
+        e => ({ manager: false, text: `forms not emailed: ${e.message}` }))
+      emailed = [emailed, sent.text].filter(Boolean).join('; ')
       const names = [...forms.map(f => f.title), ...(engrPdf ? ['Rolex Engraving Request'] : [])]
       actions.say(`Job ${clean.edge_no} taken in. ${names.join(', ')} saved${emailed ? `, ${emailed}` : ''}.`)
-      onDone(id, pdf, docs.receipt, { ...clean, intake_at: new Date().toISOString() }, client, !!docs.immediate_proceed, emailed, { forms: names, signLink })
+      onDone(id, pdf, docs.receipt, { ...clean, intake_at: new Date().toISOString() }, client, !!docs.immediate_proceed, emailed, { forms: names, signLink, managerSent: sent.manager })
     } catch (e) { setMsg(id ? `The job was saved (${clean.edge_no || 'see Jobs'}) but a document failed: ${e.message}. Open the job to print it; don't take the watch in again.` : e.message) } finally { setBusy(false) }
   }
 

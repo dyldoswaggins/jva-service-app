@@ -298,8 +298,9 @@ const live = {
     return data
   },
   // Signed intake paperwork, one email to the client and one to the associate (Richard, 2026-11-25) → { client, staff, errors }
-  async emailSignedCopies(docIds) {
-    const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_ids: docIds, to: 'signed_copies' } })
+  // pending: forms still waiting for the client's online signature (associate + service manager only)
+  async emailSignedCopies(docIds, { pending = false } = {}) {
+    const { data, error } = await supabase.functions.invoke('send-doc', { body: { doc_ids: docIds, to: 'signed_copies', pending } })
     if (error) {
       const msg = await error.context?.json?.().then(j => j.error).catch(() => null)
       throw new Error(msg || error.message)

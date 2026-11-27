@@ -231,6 +231,15 @@ Deno.serve(async (req) => {
               text: `${name} signed the intake paperwork for job ${x.job.edge_no} online${fee === "decline" ? " and DECLINED the Vintage Analysis Fee" : ""}. Signed copies attached.\n\nSent from the Watch Service app.`, attachments });
           } catch (_) { /* signature stands */ }
         }
+        // ...and to the service manager (Richard, 2026-11-27)
+        const manager = Deno.env.get("SERVICE_MANAGER_EMAIL") || "";
+        if (mail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(manager)) {
+          try {
+            await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: manager,
+              subject: `Signed intake ${x.job.edge_no} ${watchLine(x.job)}`,
+              text: `${name} signed the intake paperwork for job ${x.job.edge_no} online${fee === "decline" ? " and DECLINED the Vintage Analysis Fee" : ""}. Taken in by ${x.job.intake_staff_name || "the associate"}. Signed copies attached.\n\nSent from the Watch Service app.`, attachments });
+          } catch (_) { /* signature stands */ }
+        }
         return json({ ok: true, purpose: "intake", fee_decision: fee, copied });
       }
 
