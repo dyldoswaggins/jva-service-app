@@ -15,7 +15,7 @@ export default function JobValidation({ job, actions, onChange }) {
   async function save() {
     setMsg('')
     const edge = f.edge_no.trim()
-    if (edge && !JOB_NO.test(edge)) return setMsg('Edge job # looks like 124595-001.')
+    if (edge && !JOB_NO.test(edge)) return setMsg('Job # looks like 124595 or 124595-001.')
     const fields = {}
     if (edge && edge !== job.edge_no) fields.edge_no = edge
     for (const [k] of FIELDS.slice(1)) { const v = f[k].trim() || null; if (v !== (job[k] || null)) fields[k] = k === 'bracelet_ref' && v ? v.toUpperCase() : v }

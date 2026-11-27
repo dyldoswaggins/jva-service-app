@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
 import { classifyWatch, offerFor } from '../serviceCatalog.js'
-import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
+import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
 import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
 import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
 import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm } from '../docs/engravingForm.js'
@@ -165,6 +165,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !allReqs.length && 'at least one request',
     // Client Details: every field required (Richard, 2026-11-25)
     !job.edge_no.trim() && 'JVA Number',
+    job.edge_no.trim() && !JOB_NO.test(job.edge_no.trim()) && 'a JVA Number in digits only, like 124595 (or 124595-001)',
     !client.name.trim() && 'client name',
     !client.address1.trim() && 'address',
     !client.address2.trim() && 'city, province',

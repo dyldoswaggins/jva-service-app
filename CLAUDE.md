@@ -58,7 +58,7 @@ Anyone without a role = View only. Watchmaker steps must be **minimal** (main ta
 ## 4. Hard rules
 
 - **No customer data as fields.** No name/phone/email/address columns anywhere. **One exception (Dylan, 2026-11-09): the signed intake receipt PDF** (client name, address, signature) is filed with its job in private bucket `job-docs`, readable by **Admin and Sales only** (`job_docs.has_client_data`). Watchmakers never see client details. Jobs link out via three references (below). The ROLP parts list and job breakdown exports contain customer names: **never import those columns**. Open: Alberta PIPA consent wording on the receipt, and a retention period for signed receipts.
-- **Job number = Edge repair number format**, e.g. `124595-001`.
+- **Job number = JVA Number**: plain digits as JVA writes it (`114486`, Richard 2026-11-27, migration 037) or Edge repair format `124595-001`; provisional `P<yymmdd>-<nn>` until validated. Stored exactly as typed. Pattern `JOB_NO` in rules.js; database check `jobs_edge_no_check`.
 - **Job links:** `edgeNo` (Edge repair #, = the job number), `rolexServiceNo` (Rolex/WSC #), `mrwsRef` (MRWS customer reference; printed on Rolex parts invoices and links special-order parts to a job). The invoice side stores extra detail and links by Edge number.
 - **`qty` on `parts` is the only stock count**, in **units**. Never keep a second count anywhere.
 - **Every stock change** updates `parts.qty` and adds a `log` row in the same transaction.
@@ -364,3 +364,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-27 | **Email connected (Richard).** Supabase secrets GMAIL_USER (JVA service Gmail), GMAIL_APP_PASSWORD and SERVICE_MANAGER_EMAIL set; send-doc `{ to: "test" }` (Admin) sends one plain test email to the service manager; test sent OK. Note: saving secrets bumps Edge Function version numbers without changing code. |
 | 2026-11-27 | Intake (Richard): "Optional" hint removed from the client Email box (it stays optional). |
 | 2026-11-27 | Intake (Richard): Vintage Analysis Fee acceptance tick and every signature box (client per form, associate) marked required (*) with a warning until the fee is ticked; all were already enforced before saving. |
+| 2026-11-27 | **JVA Number may be plain digits (Richard).** Intake failed with "jobs_edge_no_check" for numbers like 124595. Migration 037: check now accepts `^d{4,7}$` as well as `124595-001` and provisional; stored as typed. Intake shows a clear message for any other format. |
