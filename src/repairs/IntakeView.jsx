@@ -18,6 +18,9 @@ const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA',
 const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
+const LEAD_VINTAGE = 'Approximately 6 to 18 weeks'
+const LEAD_OPTIONS = [[LEAD_VINTAGE, 'Approximately 6 to 18 weeks (Vintage)'], ['Approximately 4 weeks'], ['Approximately 6 weeks'], ['Approximately 8 weeks'], ['Approximately 12 weeks']]
+
 export default function IntakeView({ models, actions, userId, onDone, standalone, staffName: signedInName, staffEmail = '' }) {
   // The associate taking the watch in: signs the Immediate Proceed and gets a copy of the signed paperwork (@jvairanderson.com only)
   const [staff, setStaff] = useState({ name: signedInName || '', email: /@jvairanderson\.com$/i.test(staffEmail || '') ? staffEmail : '' })
@@ -45,7 +48,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [cls, setCls] = useState('')          // Modern | Classic | Vintage
   // Vintage (Richard, 2026-11-27): Rolex Vintage Analysis Fee and/or Vintage Service Warranty, each with its own tick
   const [vAnalysis, setVAnalysis] = useState(true), [vWarranty, setVWarranty] = useState(false)
-  const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted (signing on the iPad; by email link the client ticks it)
+  const [feeOk, setFeeOk] = useState(false)
+  // Estimated weeks (Timing): chosen from the list or typed; Vintage starts on 6 to 18 weeks (Richard, 2026-11-27)
+  const [leadWeeks, setLeadWeeks] = useState('')   // Vintage Analysis Fee accepted (signing on the iPad; by email link the client ticks it)
   const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
   const [allClasses, setAllClasses] = useState(false) // Sales overrides the class worked out from the model
   const [allTiers, setAllTiers] = useState(false)     // … or the suggested complete-service offer
@@ -116,7 +121,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const vpolish = Number(settings?.vintage?.polish ?? 420) // Rolex Polish & Satin-Finishing for Vintage (Richard, 2026-11-27)
   const chooseClass = (c, offer = null) => {
     setCls(c)
-    if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier('') }
+    if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier(''); setLeadWeeks(w => w || LEAD_VINTAGE) }
     else {
       setJob(j => ({ ...j, service_type: j.service_type === 'Vintage analysis' ? 'CTR' : j.service_type }))
       setTier(t => (offer && offer in allOffers ? offer : t && t.toUpperCase().includes(c.toUpperCase()) ? t : ''))
@@ -227,7 +232,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     const clean = {
       ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish && !vintage ? family : null,
-      polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
+      polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null, lead_time: leadWeeks.trim() || null,
       classification: cls, vintage_fee: vintage ? vfeeDue : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
       engraving: engraving ? { ...engr, text: engr.text.trim() } : null,
       intake_staff_name: staffName, intake_staff_email: staffEmailOk ? staff.email.trim().toLowerCase() : null,
@@ -481,6 +486,10 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
               <div className="msg">{isCTR ? 'Your request includes work beyond the complete service, so ' : ''}our watchmakers will assess it first; we'll confirm the timing with your estimate.</div></div>
           )}
         </div>
+        <label className="field">Estimated weeks (choose or type)
+          <input list="lead-weeks" value={leadWeeks} onChange={e => setLeadWeeks(e.target.value)} placeholder={LEAD_VINTAGE} autoComplete="off" style={{ maxWidth: 420 }} />
+        </label>
+        <datalist id="lead-weeks">{LEAD_OPTIONS.map(([v, l]) => <option key={v} value={v} label={l} />)}</datalist>
       </section>
 
       <section className="step">
