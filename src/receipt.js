@@ -19,16 +19,8 @@ export async function makeReceipt({ job, client, requests, conditions, signature
       d.section('Customer Requests')
       d.bullets(requests.map(r => r.request))
       d.gap(8)
-      d.section('Watch condition on arrival')
-      d.para(conditions.length ? conditionText(conditions) : 'No visible marks noted.')
-      d.gap(8)
-      if (quote?.items?.length) {
-        d.section('Indicative estimate (before analysis)', { rightHeading: 'MSRP CAD (TAX EXCL.)' })
-        quote.items.forEach(i => d.item(i))
-        if (quote.total) d.item({ label: 'Indicative total', price: quote.total })
-        d.para(`The detailed estimate follows our watchmakers' analysis.${quote.weeks ? ` Delivery: approximately ${quote.weeks} week${quote.weeks === 1 ? '' : 's'} on approval.` : ''}`)
-        d.gap(8)
-      }
+      // "Watch condition on arrival" and "Indicative estimate (before analysis)" removed from the Receipt (Richard, 2026-11-27).
+      // The condition still goes to the watchmaker's prompts and the Rolex Immediate Proceed; prices come with the estimate.
       d.section('Acknowledgement and Authorization')
       d.signature('I, the undersigned {name}, declare that I have read and accepted the legal notices applicable to the establishment of the estimate ' +
         '(appendix page). I confirm that the data transmitted on the watch is correct.', { name: client.name })
