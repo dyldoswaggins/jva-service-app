@@ -359,3 +359,4 @@ Cut-over: freeze counts in the artifact, re-export, import, switch. Keep the art
 | 2026-11-27 | Intake (Richard): step 8 renamed "Rolex Sales Advisor" (was "For the boutique"). |
 | 2026-11-27 | Intake (Richard): "Bracelet Description" and "Dial Description" capitalised; both suggest Rolex wording while typing (`src/rolexDescriptions.js`). |
 | 2026-11-27 | Intake (Richard): forms emailed automatically to the service manager and the rep after every intake (signed copies; or filled forms waiting for the client's online signature, then the signed ones). Edge Functions `send-doc` (v5) and `sign` (v5) deployed. |
+| 2026-11-27 | send-doc v6: `{ to: "check" }` (Admin) reports which email secrets are filled in (yes/no only, sends nothing). Checked 2026-11-27: GMAIL_USER, GMAIL_APP_PASSWORD and SERVICE_MANAGER_EMAIL all still missing, so no app email goes out yet. |

@@ -25,6 +25,15 @@ Deno.serve(async (req) => {
     const { data: role } = await user.rpc("app_role");
     if (!["admin", "sales"].includes(role)) return json({ error: "Only Admin or Sales can email documents" }, 403);
 
+    // { to: "check" } (Admin): which email settings are filled in — yes/no only, never the values; sends nothing (Richard, 2026-11-27)
+    if (target === "check") {
+      if (role !== "admin") return json({ error: "Admin only" }, 403);
+      const has = (k: string) => !!(Deno.env.get(k) || "").trim();
+      const mgr = Deno.env.get("SERVICE_MANAGER_EMAIL") || "";
+      return json({ GMAIL_USER: has("GMAIL_USER"), GMAIL_APP_PASSWORD: has("GMAIL_APP_PASSWORD"), SERVICE_MANAGER_EMAIL: has("SERVICE_MANAGER_EMAIL"),
+        manager_looks_valid: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mgr) });
+    }
+
     // ---- signed intake paperwork: one email with every form, to the client and to the associate who took the watch in
     //      (Richard, 2026-11-25). { doc_ids: [...], to: "signed_copies" }. The associate's address is always @jvairanderson.com (migration 035).
     if (target === "signed_copies") {
