@@ -3,7 +3,7 @@
 // Classic and Vintage intake (Richard, 2026-11-25). The form is flattened after filling, so it can't be edited.
 // retailerSigPng: the Sales associate's drawn signature on "Retailer signature". Without a client signature (the client signs
 // by email link) the PDF records where the signature and date go (blob.fields), like the receipt.
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { conditionText } from '../rules.js'
 
 // Rolex's official offers, exactly as in the form's list (also the CTR prices offered at intake)
@@ -50,14 +50,14 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   // Interventions: the Rolex offer (list) + the client's other requests (two lines)
   const all = requests.map(r => r.request || r)
   const notes = all.filter(r => r.startsWith(NOTES_PREFIX)).map(r => r.slice(NOTES_PREFIX.length))
-  const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$/i.test(r) && (vintageFee != null || !/^Do not refinish|^Refinish case and bracelet$/i.test(r)))
+  const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$|^Do not refinish|^Refinish case and bracelet$/i.test(r))
   const dd = form.getDropdown('Dropdown1')
   if (offer && dd.getOptions().includes(offer)) { dd.select(offer); try { dd.setFontSize(10) } catch { /* keeps Rolex's setting */ } } else form.removeField(dd)
   const [i1, i2] = twoLines(vintageFee != null ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`, ...extra].join(', ') : extra.join(', '), font)
   set('undefined', i1, 9.5); set('undefined_2', i2, 9.5)
-  // Polish & satin-finishing (Optional) $210: Yes / No
+  // Polish & satin-finishing (Optional): Yes when chosen, No otherwise, for every class (Richard, 2026-11-27)
   const yes = form.getCheckBox('Check Box4'), no = form.getCheckBox('Check Box5')
-  if (vintageFee == null) { if (polish) yes.check(); else no.check() }
+  if (polish) yes.check(); else no.check()
   // Watch conditions and client additional information
   // Conditions, then the associate's notes (Richard, 2026-11-25): own line when both fit, else run on over the two lines
   const cond = conditions.length ? conditionText(conditions) : 'No visible marks noted.'
@@ -65,7 +65,7 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   const [c1, c2] = notes.length && fits(cond) && fits(notes.join(' · ')) ? [cond, notes.join(' · ')] : twoLines([cond, ...notes].join(' · '), font)
   set('undefined_3', c1, 9.5); set('undefined_4', c2, 9.5)
   // Total (tax excl.): set price + polish; optionally with the 15 % allowance the form permits
-  const base = vintageFee != null ? Number(vintageFee) : (Number(offerPrice) || 0) + (polish ? Number(polishPrice) || 0 : 0)
+  const base = (vintageFee != null ? Number(vintageFee) : Number(offerPrice) || 0) + (polish ? Number(polishPrice) || 0 : 0)
   set('Dollar Amount', money(includeAllowance && vintageFee == null ? Math.round(base * 115) / 100 : base).replace('$', ''), 10)
   set('Date1', signaturePng ? dmy(date) : ''); set('Date2', dmy(date))
   set('Client Signature', ''); set('Retailer Signature', retailerSigPng ? '' : staffName ? `${staffName} · J. Vair Anderson` : '', 9)
@@ -83,6 +83,12 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   if (retailerSigPng) {
     await drawSig(retailerSigPng, 66)
     if (staffName) page0.drawText(`${staffName} · J. Vair Anderson`, { x: 156, y: 58, size: 6.5, font })
+  }
+  // Vintage: Rolex's form prints $210 (Modern & Classic polishing); the Vintage price replaces it (Richard, 2026-11-27).
+  // "$210" ends at x 431.1 on the line at y 368.3 (measured from Rolex's PDF).
+  if (vintageFee != null && Number(polishPrice) && Number(polishPrice) !== 210) {
+    page0.drawRectangle({ x: 410.6, y: 366, width: 22, height: 10.5, color: rgb(1, 1, 1) })
+    page0.drawText(money(polishPrice).replace('.00', ''), { x: 411.1, y: 368.3, size: 9, font, color: rgb(0.35, 0.35, 0.35) })
   }
   form.flatten()
   const blob = new Blob([await pdf.save()], { type: 'application/pdf' })

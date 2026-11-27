@@ -110,6 +110,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
 
   const vintage = cls === 'Vintage'
   const vfee = Number(settings?.vintage?.fee ?? 350), vweeks = settings?.vintage?.weeks ?? 18
+  const vpolish = Number(settings?.vintage?.polish ?? 420) // Rolex Polish & Satin-Finishing for Vintage (Richard, 2026-11-27)
   const chooseClass = (c, offer = null) => {
     setCls(c)
     if (c === 'Vintage') { setJob(j => ({ ...j, service_type: 'Vintage analysis' })); setPolish(false); setTier('') }
@@ -126,8 +127,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const isCTR = job.service_type === 'CTR'
   const engraving = job.service_type === 'Engraving' // straight to Rolex Toronto with Rolex's Engraving Request Form
   const ctrPrice = isCTR && tier ? allOffers[tier] : null
-  const polishPrice = polish && family && !vintage ? polishPrices[family] : null
-  const total = vintage ? vfee : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
+  const polishPrice = polish ? (vintage ? vpolish : family ? polishPrices[family] : null) : null
+  const total = vintage ? vfee + (Number(polishPrice) || 0) : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
   // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
     ...(vintage ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
@@ -199,7 +200,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     out.receipt = await makeReceipt({ ...args, signaturePng: sig('receipt'), quote })
     if (forms.some(f => f.kind === 'immediate_proceed')) {
       out.immediate_proceed = await makeImmediateProceedRolex({ ...args, signaturePng: sig('immediate_proceed'), retailerSigPng: staffSig, staffName,
-        offer: isCTR ? tier : null, offerPrice: ctrPrice, polish, polishPrice: polishPrice ?? 210,
+        offer: isCTR ? tier : null, offerPrice: ctrPrice, polish, polishPrice: polishPrice ?? (vintage ? vpolish : 210),
         includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null })
     }
     if (vintage) out.vintage_fee = await makeVintageFee({ ...args, signaturePng: sig('vintage_fee'), fee: vfee, weeks: vweeks, decision: signed && feeOk ? 'accept' : null })
@@ -396,7 +397,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         {!engraving && <div className="offer" data-on={polish}>
           <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Refinish (polish and satin-finish) case and bracelet</label>
           {!polish && (isCTR || vintage) && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
-          {polish && vintage && <span className="msg">Rolex Toronto prices the refinishing in the vintage estimate.</span>}
+          {vintage && <span className="msg">Rolex vintage polish and satin-finish: {money(vpolish)} + GST.</span>}
           {polish && !vintage && (
             <div className="cards">
               {Object.entries(polishPrices).filter(([f]) => allLines || !suggestedLine || family !== suggestedLine || f === family).map(([f, p]) => (
@@ -454,7 +455,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <h2><span>6</span>Estimate and timing</h2>
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
-            <div className="msg">{vintage ? 'Rolex Vintage Analysis Fee. The estimate for the work follows the analysis.' : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
+            <div className="msg">{vintage ? `Rolex Vintage Analysis Fee${polish ? ` + polish and satin-finish (${money(vpolish)})` : ''}. The estimate for the work follows the analysis.` : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
           {engraving ? (
             <div><div className="msg">Timing</div><div className="big-num">About 2 weeks</div>
               <div className="msg">Rolex engraves in 5–7 business days, plus shipping to and from Toronto. We'll call you when it's back.</div></div>
