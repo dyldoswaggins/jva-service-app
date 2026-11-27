@@ -6,7 +6,7 @@
 //          SERVICE_MANAGER_EMAIL (where documents go).
 import nodemailer from "npm:nodemailer@6";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { intakeStaffMail } from "../_shared/intakeMail.ts";
+import { intakeClientMail, intakeStaffMail } from "../_shared/intakeMail.ts";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -44,6 +44,13 @@ Deno.serve(async (req) => {
       const sm = await intakeStaffMail({ job: { edge_no: "000000", watch_ref: "126610LN", watch_name: "Submariner Date" }, clientName: "Sample Client",
         forms: ["Receipt", "Rolex Immediate Proceed"], takenBy: "Sample Advisor", extra: "TEST EMAIL: a sample of the intake email format. No real job." });
       await transport.sendMail({ from: `"J. Vair Timepiece Service Department" <${gmail}>`, to: mgr, subject: `TEST: ${sm.subject}`, text: sm.text, html: sm.html, attachments: sm.inline });
+      // …and samples of the two client emails, so they can be checked before a client receives one
+      const sample = { edge_no: "000000", watch_ref: "126610LN", watch_name: "Submariner Date", classification: "Modern", service_type: "CTR" };
+      for (const kind of ["signed", "sign"] as const) {
+        const cm = await intakeClientMail({ job: sample, clientName: "Sample Client", forms: ["Receipt", "Rolex Immediate Proceed"], kind,
+          link: "https://watchservicejva.netlify.app/", expires: new Date(Date.now() + 30 * 864e5) });
+        await transport.sendMail({ from: `"J. Vair Timepiece Service Department" <${gmail}>`, to: mgr, subject: `TEST: ${cm.subject}`, text: cm.text, html: cm.html, attachments: cm.inline });
+      }
       return json({ ok: true, sent: true });
     }
 
@@ -55,7 +62,7 @@ Deno.serve(async (req) => {
       if (!docs?.length || docs.length !== doc_ids.length || new Set(docs.map((d: any) => d.job_id)).size !== 1) return json({ error: "Documents not found" }, 404);
       const jobId = docs[0].job_id;
       const [{ data: job }, { data: c }] = await Promise.all([
-        svc.from("jobs").select("edge_no, watch_ref, watch_name, intake_at, intake_staff_name, intake_staff_email").eq("id", jobId).single(),
+        svc.from("jobs").select("edge_no, watch_ref, watch_name, classification, service_type, intake_at, intake_staff_name, intake_staff_email").eq("id", jobId).single(),
         svc.from("job_clients").select("name, email").eq("job_id", jobId).maybeSingle(),
       ]);
       const gmail = Deno.env.get("GMAIL_USER"), pass = Deno.env.get("GMAIL_APP_PASSWORD");
@@ -74,10 +81,10 @@ Deno.serve(async (req) => {
       const ok = (e: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e || "");
       if (!pending && ok(c?.email)) {
         try {
-          await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: c!.email,
-            subject: `Your signed Rolex service documents · J. Vair Anderson job ${job.edge_no}`,
-            text: `Dear ${c?.name || ""},\n\nThank you for entrusting your ${watch} to J. Vair Anderson. Your signed documents (${list}) are attached for your records. ` +
-              `Please bring your receipt, with photo ID, when you collect your watch.\n\nJ. Vair Anderson · 409 – 3rd Street SW, Calgary · (403) 266-1669`, attachments });
+          // Client's signed copies: formal email approved by Richard (2026-11-27)
+          const cm = await intakeClientMail({ job, clientName: c?.name || "", forms: docs.map((d: any) => KIND[d.kind] || "Document"), kind: "signed" });
+          await transport.sendMail({ from: `"J. Vair Timepiece Service Department" <${gmail}>`, to: c!.email, subject: cm.subject, text: cm.text, html: cm.html,
+            attachments: [...attachments, ...cm.inline] });
           out.client = c!.email;
         } catch (e) { errors.push(`client: ${(e as Error).message}`) }
       }

@@ -10,7 +10,7 @@
 import nodemailer from "npm:nodemailer@6";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
-import { intakeStaffMail } from "../_shared/intakeMail.ts";
+import { intakeClientMail, intakeStaffMail } from "../_shared/intakeMail.ts";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -217,10 +217,10 @@ Deno.serve(async (req) => {
         const mail = mailer();
         if (mail && x.r.email) {
           try {
-            await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: x.r.email,
-              subject: `Your signed Rolex service documents: J. Vair Anderson job ${x.job.edge_no}`,
-              text: `Dear ${firstName(x.client?.name || name)},\n\nThank you. Your signed documents for your ${watchLine(x.job)} are attached for your records. ` +
-                `Please keep your receipt and bring it with photo ID when you collect your watch.\n\n${STORE}`, attachments });
+            // Client's signed copies: formal email approved by Richard (2026-11-27)
+            const cm = await intakeClientMail({ job: x.job, clientName: x.client?.name || name, forms: docs.map((d: any) => FORM_TITLES[d.kind] || d.kind), kind: "signed" });
+            await mail.t.sendMail({ from: `"J. Vair Timepiece Service Department" <${mail.user}>`, to: x.r.email, subject: cm.subject, text: cm.text, html: cm.html,
+              attachments: [...attachments, ...cm.inline] });
             copied = true;
           } catch (_) { /* signature stands */ }
         }
@@ -320,19 +320,11 @@ Deno.serve(async (req) => {
           attachments.push({ filename: d.file_name, content: new Uint8Array(await file.arrayBuffer()), contentType: "application/pdf" });
         }
         const link = `${origin}/sign/${r.token}`;
-        const watch = watchLine(job), last4 = String(job.serial || "").slice(-4), nm = client?.name || "";
-        const list = docs.map((d: any) => FORM_TITLES[d.kind] || d.kind).join(", ");
-        const html = `<div style="font-family:Georgia,serif;color:#14232b;max-width:560px">
-<p style="letter-spacing:.12em;font-size:12px;color:#8a6d3b">J. VAIR ANDERSON · JEWELLERS SINCE 1925</p>
-<p>Dear ${nm.replace(/[<>&]/g, "")},</p>
-<p>Thank you for entrusting your ${watch}${last4 ? ` (serial ending ${last4})` : ""} to J. Vair Anderson. Your documents for job <b>${job.edge_no}</b> (${list}) are attached. Please review and sign them.</p>
-<p style="margin:26px 0"><a href="${link}" style="background:#14232b;color:#fff;text-decoration:none;padding:12px 22px;border-radius:4px;font-family:Arial,sans-serif">Review and sign your documents</a></p>
-<p>You can also sign in store, or call us at (403) 266-1669 with any questions.</p>
-<p style="font-size:12px;color:#5f6b70">J. Vair Anderson · 409 – 3rd Street SW, Calgary AB T2P 4Z2 · (403) 266-1669<br>This link is personal to your documents and expires on ${new Date(r.expires_at).toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" })}.</p></div>`;
-        await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: r.email,
-          subject: `Please sign: your Rolex service documents, J. Vair Anderson job ${job.edge_no}`, html,
-          text: `Dear ${nm},\n\nThank you for entrusting your ${watch}${last4 ? ` (serial ending ${last4})` : ""} to J. Vair Anderson. Your documents for job ${job.edge_no} (${list}) are attached.\n\nReview and sign: ${link}\n\nYou can also sign in store, or call us at (403) 266-1669.\n\n${STORE}`,
-          attachments });
+        // "Please review and sign": formal email approved by Richard (2026-11-27)
+        const cm = await intakeClientMail({ job, clientName: client?.name || "", forms: docs.map((d: any) => FORM_TITLES[d.kind] || d.kind), kind: "sign",
+          link, expires: r.expires_at });
+        await mail.t.sendMail({ from: `"J. Vair Timepiece Service Department" <${mail.user}>`, to: r.email, subject: cm.subject, text: cm.text, html: cm.html,
+          attachments: [...attachments, ...cm.inline] });
         const { data: who } = await user.auth.getUser();
         await svc.from("sign_requests").update({ emailed_at: new Date().toISOString() }).eq("id", r.id);
         for (const d of docs) await svc.from("job_docs").update({ emailed_at: new Date().toISOString(), emailed_to: r.email, emailed_by: who?.user?.id ?? null }).eq("id", d.id);
