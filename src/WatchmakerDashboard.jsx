@@ -67,11 +67,11 @@ export default function WatchmakerDashboard({ onOpenJob }) {
       </div>
 
       <div className="kpis">
-        <Tile label="To assess" value={m.assess.length} alert={m.overdue ? `${m.overdue} estimate${m.overdue === 1 ? '' : 's'} overdue` : null} sub="before the estimate (24 h)" />
-        <Tile label="Approved on the bench" value={m.bench.length} sub={`≈ ${Math.round((m.bench.length / m.wpw) * 10) / 10} weeks at ${m.wpw} a week`} />
-        <Tile label="Timing due" value={m.timing.length} sub="in Timekeeping, no pass yet" />
-        <Tile label="Final QC" value={m.qc.length} sub="timing passed, second check needed" alert={m.qc.length ? 'sign-off needed' : null} />
-        <Tile label="Done this week" value={`${m.doneWeek} / ${m.wpw}`} sub="services completed vs target" />
+        <Tile label="1 · To assess" value={m.assess.length} alert={m.overdue ? `${m.overdue} estimate${m.overdue === 1 ? '' : 's'} overdue` : null} sub="before the estimate (24 h)" />
+        <Tile label="2 · Approved on the bench" value={m.bench.length} sub={`≈ ${Math.round((m.bench.length / m.wpw) * 10) / 10} weeks at ${m.wpw} a week`} />
+        <Tile label="3 · Timing due" value={m.timing.length} sub="in Timekeeping, no pass yet" />
+        <Tile label="4 · Final QC" value={m.qc.length} sub="timing passed, second check needed" alert={m.qc.length ? 'sign-off needed' : null} />
+        <Tile label="5 · Done this week" value={`${m.doneWeek} / ${m.wpw}`} sub="services completed vs target" />
       </div>
 
       <section className="panel">

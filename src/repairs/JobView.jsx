@@ -329,6 +329,60 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
     )
   }
 
+  // ---- Watchmaker: the job in workshop order, one step at a time (Richard, 2026-11-27) ----
+  // Overview → Assess → Parts → Timing & QC → Finish, plus Records. Opens on the step the job is at; ✓ = step done.
+  if (canBench && !can.edit) {
+    const inHouse = !direct && job.classification !== 'Vintage'
+    const finished = ['Done', 'Ready for pickup', 'Picked up'].includes(job.status)
+    const steps = [
+      ['overview', 'Overview', false],
+      ...(!direct ? [['assess', 'Assess', pending === 0 && job.status !== 'Estimate']] : []),
+      ...(inHouse ? [['parts', 'Parts', !!job.stock_taken_at], ['timing', 'Timing & QC', finishBlockers(job).length === 0 && !!job.qc_at]] : []),
+      ...(job.status !== 'Estimate' ? [['finish', 'Finish', finished]] : []),
+      ['records', 'Records', false],
+    ]
+    const at = direct ? 'overview' : job.status === 'Estimate' ? 'assess' : finished ? 'finish'
+      : inHouse ? (!job.stock_taken_at ? 'parts' : finishBlockers(job).length || !job.qc_at ? 'timing' : 'finish') : 'finish'
+    const step = steps.some(s => s[0] === tab) ? tab : at
+    const idx = steps.findIndex(s => s[0] === step)
+    const next = steps[idx + 1]
+    return (
+      <div className="job wm">
+        <div className="actions wm-head">
+          <button type="button" className="btn" onClick={onBack}>← Jobs</button>
+          <h2 className="grow"><span className="mono">{job.edge_no}</span> · {watchLine(job)}</h2>
+          {timer}
+          <label className="wm-status">Status {statusSelect}</label>
+        </div>
+        <p className="msg wm-sub">{[job.service_type, job.classification].filter(Boolean).join(' · ')} · serial {job.serial || '—'} · taken in {fmtDate(String(job.intake_at).slice(0, 10))}
+          {pending > 0 && !direct ? <> · <b className="tag warn">{pending} to confirm</b></> : ''}</p>
+        <div className="wm-steps" role="tablist">
+          {steps.map(([k, label, done], i) => (
+            <button key={k} type="button" role="tab" aria-selected={step === k} data-done={done || undefined} data-now={k === at || undefined} onClick={() => setTab(k)}>
+              <span className="n">{done ? '✓' : k === 'records' ? '•' : i + 1}</span>{label}
+            </button>
+          ))}
+        </div>
+        {top}
+        {step === 'overview' && <>{serviceInfo}{overview}</>}
+        {step === 'assess' && <>
+          {prompts || <p className="flagline good">WSR check, intake conditions and client requests: all answered.</p>}
+          {analysis}
+          {assessment}
+        </>}
+        {step === 'parts' && parts}
+        {step === 'timing' && timing}
+        {step === 'finish' && completion}
+        {step === 'records' && <>{watchDetails}{filed}</>}
+        {next && next[0] !== 'records' && (
+          <div className="actions wm-next"><span className="grow" />
+            <button type="button" className="btn" onClick={() => { setTab(next[0]); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>Next: {next[1]} →</button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="job">
       <div className="actions">

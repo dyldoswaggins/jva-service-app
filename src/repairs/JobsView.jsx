@@ -33,7 +33,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()
     return (jobs || []).filter(j =>
-      (filter === 'all' || filter === 'deleted' || (filter === 'open' && ['open', 'away'].includes(kind(j.status))) || j.status === filter) &&
+      (filter === 'all' || filter === 'deleted' || (filter === 'open' && ['open', 'away'].includes(kind(j.status))) || (filter === 'finished' && kind(j.status) === 'done') || j.status === filter) &&
       (!s || j.edge_no.toLowerCase().includes(s) || String(j.serial || '').toLowerCase().endsWith(s) || String(j.watch_ref || '').toLowerCase().includes(s) ||
         String(j.watch_name || '').toLowerCase().includes(s) || String(j.rolex_service_no || '').toLowerCase().includes(s) || String(j.mrws_ref || '').includes(s) ||
         (sav && String(one(j.job_clients)?.name || '').toLowerCase().includes(s))))
@@ -115,38 +115,65 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
         {can.intake && <button type="button" className="btn solid" onClick={() => setMode({ view: 'intake' })}>Take in a watch</button>}
       </div>
       <div className="chips small">
-        <button type="button" className="chip" aria-pressed={filter === 'open'} onClick={() => setFilter('open')}>In progress</button>
-        {statuses.map(s => (
-          <button key={s.name} type="button" className="chip" aria-pressed={filter === s.name} onClick={() => setFilter(s.name)}>{s.name} ({count(s.name)})</button>
+        {[['open', 'In progress'], ['finished', 'Finished'], ['all', 'All']].map(([k, l]) => (
+          <button key={k} type="button" className="chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>{l}</button>
         ))}
-        <button type="button" className="chip" aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>All</button>
       </div>
       {err && <p className="msg warn">{err}</p>}
-      {jobs && statuses.length > 0 && <TodoPanel jobs={jobs} kindOf={kind} can={can} onOpen={id => setMode({ view: 'job', id })} />}
-      {!jobs ?<p className="msg">Loading…</p> : shown.length ? (
-        <div className="imp-wrap">
-          <table className="imp jobs">
-            <thead><tr><th>Job #</th><th>Watch</th><th>Serial</th><th>Service</th><th>Status</th><th>To confirm</th><th>In since</th><th>ETA</th></tr></thead>
-            <tbody>
-              {shown.map(j => {
-                const n = openPrompts(j)
-                return (
-                  <tr key={j.id} className="click" onClick={() => setMode({ view: 'job', id: j.id })}>
-                    <td className="mono b">{j.edge_no}</td>
-                    <td>{[j.watch_ref, j.watch_name].filter(Boolean).join(' · ')}</td>
-                    <td className="mono">{maskSerial(j.serial)}</td>
-                    <td>{j.service_type}{j.classification ? <span className="msg"> · {j.classification}</span> : ''}</td>
-                    <td>{j.status}</td>
-                    <td>{n ? <b className="tag warn">{n} to confirm</b> : <span className="msg">✓</span>}</td>
-                    <td>{fmtDate(String(j.intake_at).slice(0, 10))}</td>
-                    <td>{j.eta_override ? <b>{fmtDate(j.eta_override)}</b> : j.eta_quoted ? fmtDate(j.eta_quoted) : ''}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : <p className="msg">No jobs here yet.</p>}
+      {!jobs ? <p className="msg">Loading…</p> : shown.length ? (() => {
+        // Grouped by stage, in workshop order (Richard, 2026-11-27)
+        const groups = STAGES.map(([key, label, hint]) => [label, hint, shown.filter(j => stageOf(j, kind) === key)]).filter(g => g[2].length)
+        return groups.map(([label, hint, list]) => (
+          <section key={label}>
+            <div className="stage-h"><b>{label}</b> <span className="msg">{list.length} · {hint}</span></div>
+            <div className="imp-wrap">
+              <table className="imp jobs">
+                <thead><tr><th>Job #</th><th>Watch</th><th>Serial</th><th>Service</th><th>Status</th><th>To confirm</th><th>In since</th><th>ETA</th></tr></thead>
+                <tbody>
+                  {list.map(j => {
+                    const n = openPrompts(j)
+                    return (
+                      <tr key={j.id} className="click" onClick={() => setMode({ view: 'job', id: j.id })}>
+                        <td className="mono b">{j.edge_no}</td>
+                        <td>{[j.watch_ref, j.watch_name].filter(Boolean).join(' · ')}</td>
+                        <td className="mono">{maskSerial(j.serial)}</td>
+                        <td>{j.service_type}{j.classification ? <span className="msg"> · {j.classification}</span> : ''}</td>
+                        <td>{j.status}</td>
+                        <td>{n ? <b className="tag warn">{n} to confirm</b> : <span className="msg">✓</span>}</td>
+                        <td>{fmtDate(String(j.intake_at).slice(0, 10))}</td>
+                        <td>{j.eta_override ? <b>{fmtDate(j.eta_override)}</b> : j.eta_quoted ? fmtDate(j.eta_quoted) : ''}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))
+      })() : <p className="msg">No jobs here yet.</p>}
     </div>
   )
+}
+
+// Watchmaker list: stages in workshop order
+const STAGES = [
+  ['assess', 'To assess', 'WSR check, conditions, requests, necessary and optional work'],
+  ['client', 'With the client', 'estimate sent or being prepared; waiting for the decision'],
+  ['parts', 'Waiting on parts', 'approved, parts ordered'],
+  ['ready', 'Ready for the bench', 'approved, next up'],
+  ['bench', 'On the bench', 'polishing, timekeeping, final QC'],
+  ['away', 'At Rolex Toronto', 'sent away'],
+  ['finished', 'Finished', 'done, ready for pickup, picked up'],
+  ['other', 'Other', 'cancelled'],
+]
+function stageOf(j, kind) {
+  if (j.status === 'Estimate') return openPrompts(j) > 0 ? 'assess' : 'client'
+  if (j.status === 'Waiting on parts') return 'parts'
+  if (j.status === 'On deck') return 'ready'
+  if (['Polishing', 'Timekeeping'].includes(j.status)) return 'bench'
+  if (j.status === 'Sent to Toronto' || kind(j.status) === 'away') return 'away'
+  if (['Done', 'Ready for pickup', 'Picked up'].includes(j.status)) return 'finished'
+  if (kind(j.status) === 'done') return 'finished'
+  if (kind(j.status) === 'cancelled') return 'other'
+  return 'bench'
 }

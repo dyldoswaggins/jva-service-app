@@ -494,3 +494,22 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
 .intake-parts .part-row input { width: 100%; min-width: 0; box-sizing: border-box; }
 .intake-parts .cost { width: 100%; }
 @media (max-width: 600px) { .intake-parts .part-row { grid-template-columns: minmax(0, 1fr) 120px; } }
+
+/* Watchmaker job page: steps in workshop order (Richard, 2026-11-27) */
+.job.wm .wm-head h2 { margin: 0; }
+.job.wm .wm-sub { margin: -4px 0 4px; }
+.wm-status { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.wm-steps { display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin: 4px 0 14px; }
+.wm-steps button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 14px 6px 8px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); color: var(--fg); font-weight: 500; }
+.wm-steps button .n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.wm-steps button[data-done] .n { background: var(--gold); border-color: var(--gold); color: #fff; }
+.wm-steps button[data-now] { border-color: var(--gold); }
+.wm-steps button[aria-selected="true"] { background: var(--navy); border-color: var(--navy); color: var(--bg); }
+.wm-steps button[aria-selected="true"] .n { border-color: var(--bg); color: var(--bg); }
+.wm-steps button[aria-selected="true"][data-done] .n { background: var(--gold); border-color: var(--gold); color: #fff; }
+.wm-next { margin-top: 8px; }
+
+/* Watchmaker jobs list grouped by stage */
+.stage-h { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 6px; padding: 6px 10px; background: var(--band); border-left: 3px solid var(--gold); border-radius: 4px; }
+.stage-h b { font-size: 15px; }
+.stage-h:first-of-type { margin-top: 8px; }

@@ -88,7 +88,7 @@ export default function JobAssessment({ job, allParts, can, actions, onChange })
         <h3 className="grow">Necessary and optional work</h3>
         {edit && !add && <button type="button" className="btn solid" onClick={() => setAdd({ label: '', details: '', kind: 'necessary', finding: '' })}>+ Service</button>}
       </div>
-      <p className="msg">Necessary: needed for the watch to work and for the service guarantee. Optional: proposed to the client, and must come from a finding in the watch analysis. Parts: + Add → Billable in Parts below.{locked ? ' The client has decided; changes go on a new estimate.' : ''}</p>
+      <p className="msg">Necessary: needed for the watch to work and for the service guarantee. Optional: proposed to the client, and must come from a finding in the watch analysis. Billable parts: Parts → + Add → Billable.{locked ? ' The client has decided; changes go on a new estimate.' : ''}</p>
       {msg && <p className="msg warn">{msg}</p>}
 
       <h4>Necessary</h4>
