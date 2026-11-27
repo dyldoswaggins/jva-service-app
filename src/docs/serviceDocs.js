@@ -26,7 +26,10 @@ export const docDate = (job, kind) => {
   const [y, m, d] = String(iso).split('-').map(Number)
   return new Date(y, m - 1, d)
 }
+// Delivery wording: the sheet's "Delivery weeks", else the service lead time chosen at intake / on the sheet
+// (Richard, 2026-11-27: "Approximately 6 to 18 weeks" → "approximately 6 to 18 weeks"), else the ETA
 const deliveryText = (job, weeks) => (job.delivery_weeks ? `approximately ${job.delivery_weeks} weeks`
+  : job.lead_time ? String(job.lead_time).trim().replace(/^Approximately\b/, 'approximately')
   : weeks ? `approximately ${weeks} week${weeks === 1 ? '' : 's'}` : 'to be confirmed')
 const common = (job, client, kind, date) => ({ job, client, bill: savBill(client || {}), showDate: true, legalRefs: false, date: date || docDate(job, kind) })
 
