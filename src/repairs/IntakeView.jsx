@@ -8,6 +8,7 @@ import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm 
 import { compressPhoto } from '../photos.js'
 import { NOTES_PREFIX } from '../docs/immediateProceed.js'
 import { referenceCatalog, stripM, suggestReferences } from '../rolexReferences.js'
+import { suggestDescriptions } from '../rolexDescriptions.js'
 import SignaturePad from './SignaturePad.jsx'
 
 const INTAKE_CONDITIONS = CONDITIONS.filter(x => x.intake !== false)
@@ -64,7 +65,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   // The model number always shows with its "M"; the job stores the digits/letters after it (watchLine adds the M on documents).
   const catalog = useMemo(() => referenceCatalog(models), [models])
   const [suggestFor, setSuggestFor] = useState(null) // 'ref' | 'name' while that field has focus
-  const suggestions = suggestFor ? suggestReferences(catalog, suggestFor === 'ref' ? job.watch_ref : job.watch_name, suggestFor) : []
+  const suggestions = suggestFor === 'ref' || suggestFor === 'name' ? suggestReferences(catalog, suggestFor === 'ref' ? job.watch_ref : job.watch_name, suggestFor) : []
   const pickReference = r => { setJob(j => ({ ...j, watch_ref: stripM(r.ref), watch_name: r.name || j.watch_name, calibre: r.cal || j.calibre })); setSuggestFor(null) }
   const SuggestList = ({ by }) => suggestFor === by && suggestions.length > 0 && (
     <ul className={`suggest${by === 'name' ? ' right' : ''}`} role="listbox">
@@ -72,6 +73,15 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <li key={r.ref} role="option" aria-selected="false" onPointerDown={e => { e.preventDefault(); pickReference(r) }}>
           <b>M{stripM(r.ref)}</b><span>{r.name || 'Name to confirm'}</span>{r.cal && <span className="msg">cal {r.cal}</span>}
         </li>
+      ))}
+    </ul>
+  )
+  // Bracelet / Dial Description suggestions while typing (Richard, 2026-11-27); tapping one fills the box
+  const descSuggestions = suggestFor === 'bracelet' || suggestFor === 'dial' ? suggestDescriptions(suggestFor, job[suggestFor], job.watch_ref) : []
+  const DescList = ({ by }) => suggestFor === by && descSuggestions.length > 0 && (
+    <ul className={`suggest${by === 'dial' ? ' right' : ''}`} role="listbox">
+      {descSuggestions.map(d => (
+        <li key={d} role="option" aria-selected="false" onPointerDown={e => { e.preventDefault(); setJob(j => ({ ...j, [by]: d })); setSuggestFor(null) }}><span>{d}</span></li>
       ))}
     </ul>
   )
@@ -144,8 +154,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !job.watch_ref.trim() && 'model number',
     !job.watch_name.trim() && 'model name',
     !job.serial.trim() && 'serial #',
-    !job.bracelet.trim() && 'bracelet description',
-    !job.dial.trim() && 'dial description',
+    !job.bracelet.trim() && 'Bracelet Description',
+    !job.dial.trim() && 'Dial Description',
     isCTR && !tier && 'complete service offer',
     job.service_type === 'Warranty' && !job.purchase_date && 'date of purchase (warranty card)',
     polish && !family && 'polishing line',
@@ -290,8 +300,14 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
               onFocus={() => setSuggestFor('name')} onBlur={() => setSuggestFor(null)} />
             <SuggestList by="name" /></label>
           <label>Serial number<input value={job.serial} onChange={set('serial')} autoCapitalize="characters" /></label>
-          <label>Bracelet description<input value={job.bracelet} onChange={set('bracelet')} placeholder="Rolex Oyster Fliplock Steel" /></label>
-          <label>Dial description<input value={job.dial} onChange={set('dial')} placeholder="126610 black markers w lgn" /></label>
+          <label className="suggest-field">Bracelet Description
+            <input value={job.bracelet} onChange={set('bracelet')} placeholder="Rolex Oyster Fliplock Steel" autoComplete="off"
+              onFocus={() => setSuggestFor('bracelet')} onBlur={() => setSuggestFor(null)} />
+            <DescList by="bracelet" /></label>
+          <label className="suggest-field">Dial Description
+            <input value={job.dial} onChange={set('dial')} placeholder="126610 black markers w lgn" autoComplete="off"
+              onFocus={() => setSuggestFor('dial')} onBlur={() => setSuggestFor(null)} />
+            <DescList by="dial" /></label>
         </div>
         <div className="watchdesc" aria-label="Watch description as printed">
           <div><span>Watch</span>{watchLine(job) || '—'}</div>
