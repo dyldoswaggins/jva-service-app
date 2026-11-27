@@ -126,14 +126,14 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const isCTR = job.service_type === 'CTR'
   const engraving = job.service_type === 'Engraving' // straight to Rolex Toronto with Rolex's Engraving Request Form
   const ctrPrice = isCTR && tier ? allOffers[tier] : null
-  const polishPrice = polish && family ? polishPrices[family] : null
+  const polishPrice = polish && family && !vintage ? polishPrices[family] : null
   const total = vintage ? vfee : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
   // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
     ...(vintage ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
     ...(isCTR ? [{ request: REQ.overhaul, note: tier || '' }] : []),
     ...(engraving ? [{ request: ENGRAVING_REQUEST, note: [engr.text.trim() && `"${engr.text.trim()}"`, engr.font, engr.case, engr.position].filter(Boolean).join(' · ') }] : []),
-    ...(polish ? [{ request: REQ.refinish, note: family }] : isCTR ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
+    ...(polish ? [{ request: REQ.refinish, note: vintage ? '' : family }] : isCTR || vintage ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
     ...reqs,
     ...(notes.trim() ? [{ request: NOTES_PREFIX + notes.trim().replace(/\s+/g, ' '), note: '' }] : []),
   ]
@@ -158,7 +158,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !job.dial.trim() && 'Dial Description',
     isCTR && !tier && 'complete service offer',
     job.service_type === 'Warranty' && !job.purchase_date && 'date of purchase (warranty card)',
-    polish && !family && 'polishing line',
+    polish && !vintage && !family && 'polishing line',
     engraving && !engr.text.trim() && 'engraving text',
     engraving && !engr.font && 'engraving font',
     engraving && !engr.case && 'engraving letter case',
@@ -220,7 +220,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     setBusy(true); setMsg('')
     const clean = {
       ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
-      ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish ? family : null,
+      ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish && !vintage ? family : null,
       polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
       classification: cls, vintage_fee: vintage ? vfee : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
       engraving: engraving ? { ...engr, text: engr.text.trim() } : null,
@@ -392,10 +392,12 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             {!cls && <p className="msg">Choose Modern or Classic above to see the Rolex offers.</p>}
           </div>
         )}
-        {!vintage && !engraving && <div className="offer" data-on={polish}>
+        {/* Also for Vintage, under the Rolex Vintage Analysis Fee (Richard, 2026-11-27) */}
+        {!engraving && <div className="offer" data-on={polish}>
           <label className="tog big"><input type="checkbox" checked={polish} onChange={e => setPolish(e.target.checked)} /> Refinish (polish and satin-finish) case and bracelet</label>
-          {!polish && isCTR && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
-          {polish && (
+          {!polish && (isCTR || vintage) && <span className="msg">Not chosen: the receipt will say "Do not refinish case" and "Do not refinish bracelet".</span>}
+          {polish && vintage && <span className="msg">Rolex Toronto prices the refinishing in the vintage estimate.</span>}
+          {polish && !vintage && (
             <div className="cards">
               {Object.entries(polishPrices).filter(([f]) => allLines || !suggestedLine || family !== suggestedLine || f === family).map(([f, p]) => (
                 <button key={f} type="button" className="card small" aria-pressed={family === f} onClick={() => setFamily(f)}>

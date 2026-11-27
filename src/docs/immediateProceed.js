@@ -50,7 +50,7 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   // Interventions: the Rolex offer (list) + the client's other requests (two lines)
   const all = requests.map(r => r.request || r)
   const notes = all.filter(r => r.startsWith(NOTES_PREFIX)).map(r => r.slice(NOTES_PREFIX.length))
-  const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$|^Do not refinish|^Refinish case and bracelet$/i.test(r))
+  const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$/i.test(r) && (vintageFee != null || !/^Do not refinish|^Refinish case and bracelet$/i.test(r)))
   const dd = form.getDropdown('Dropdown1')
   if (offer && dd.getOptions().includes(offer)) { dd.select(offer); try { dd.setFontSize(10) } catch { /* keeps Rolex's setting */ } } else form.removeField(dd)
   const [i1, i2] = twoLines(vintageFee != null ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`, ...extra].join(', ') : extra.join(', '), font)
