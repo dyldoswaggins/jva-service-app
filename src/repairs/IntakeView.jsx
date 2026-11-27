@@ -180,7 +180,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     engraving && !engr.text.trim() && 'engraving text',
     engraving && !engr.font && 'engraving font',
     engraving && !engr.case && 'engraving letter case',
-    !allReqs.length && 'at least one request',
+    !allReqs.length && !partsList.length && 'at least one request or part',
     // Client Details: every field required (Richard, 2026-11-25)
     !job.edge_no.trim() && 'JVA Number',
     job.edge_no.trim() && !JOB_NO.test(job.edge_no.trim()) && 'a JVA Number in digits only, like 124595 (or 124595-001)',
@@ -435,15 +435,21 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
             </div>
           )}
         </div>}
-        <h3>Anything else you'd like?</h3>
-        <div className="chips">
-          {[...REQUEST_OPTIONS, ...reqs.map(r => r.request).filter(r => !REQUEST_OPTIONS.includes(r))].map(r => (
-            <button key={r} type="button" className="chip" aria-pressed={hasReq(r)} onClick={() => toggleReq(r)}>{r}</button>
+        {/* Parts and costs, in place of "Anything else you'd like?" (Richard, 2026-11-27) */}
+        <div className="intake-parts">
+          <h3>Parts and costs (before GST)</h3>
+          {parts.map((r, i) => (
+            <div key={i} className="part-row">
+              <input value={r.p} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, p: e.target.value } : x)))} placeholder="Part, e.g. Sapphire crystal" aria-label={`Part ${i + 1}`} autoComplete="off" />
+              <span className="cost"><span aria-hidden="true">$</span><input value={r.c} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, c: e.target.value } : x)))} placeholder="0.00" inputMode="decimal" aria-label={`Cost ${i + 1}`} autoComplete="off" /></span>
+            </div>
           ))}
-        </div>
-        <div className="actions">
-          <input value={otherReq} onChange={e => setOtherReq(e.target.value)} placeholder="Something else" onKeyDown={e => e.key === 'Enter' && addOther()} />
-          <button type="button" className="btn" onClick={addOther} disabled={!otherReq.trim()}>Add</button>
+          <div className="actions">
+            <button type="button" className="btn" onClick={() => setParts(ps => [...ps, { p: '', c: '' }])}>+ Add</button>
+            <span className="grow" />
+            {partsTotal > 0 && <span className="msg">Parts total: <b>{money(partsTotal)}</b></span>}
+          </div>
+          <p className="msg">Added to the estimate total below and to the Rolex Immediate Proceed (interventions and total). Not saved on the job.</p>
         </div>
       </section>
 
@@ -474,21 +480,6 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <label className="stackfield">Notes
           <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything else about the watch or the client's wishes" /></label>
         <p className="msg">Printed under Customer Requests on the receipt, and under Watch Conditions and Client additional information on the Rolex Immediate Proceed.</p>
-        <div className="intake-parts">
-          <div className="msg">Parts and costs (before GST)</div>
-          {parts.map((r, i) => (
-            <div key={i} className="part-row">
-              <input value={r.p} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, p: e.target.value } : x)))} placeholder="Part, e.g. Sapphire crystal" aria-label={`Part ${i + 1}`} autoComplete="off" />
-              <span className="cost"><span aria-hidden="true">$</span><input value={r.c} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, c: e.target.value } : x)))} placeholder="0.00" inputMode="decimal" aria-label={`Cost ${i + 1}`} autoComplete="off" /></span>
-            </div>
-          ))}
-          <div className="actions">
-            <button type="button" className="btn" onClick={() => setParts(ps => [...ps, { p: '', c: '' }])}>+ Add</button>
-            <span className="grow" />
-            {partsTotal > 0 && <span className="msg">Parts total: <b>{money(partsTotal)}</b></span>}
-          </div>
-          <p className="msg">Added to the estimate total below and to the Rolex Immediate Proceed (interventions and total). Not saved on the job.</p>
-        </div>
       </section>
 
       <section className="step quote">
