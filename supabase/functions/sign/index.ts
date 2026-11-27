@@ -10,6 +10,7 @@
 import nodemailer from "npm:nodemailer@6";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
+import { intakeStaffMail } from "../_shared/intakeMail.ts";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -223,22 +224,16 @@ Deno.serve(async (req) => {
             copied = true;
           } catch (_) { /* signature stands */ }
         }
-        // …and to the associate who took the watch in (Richard, 2026-11-25; always an @jvairanderson.com address)
-        if (mail && /^[^@\s]+@jvairanderson\.com$/i.test(x.job.intake_staff_email || "")) {
-          try {
-            await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: x.job.intake_staff_email,
-              subject: `Signed intake ${x.job.edge_no} ${watchLine(x.job)}`,
-              text: `${name} signed the intake paperwork for job ${x.job.edge_no} online${fee === "decline" ? " and DECLINED the Vintage Analysis Fee" : ""}. Signed copies attached.\n\nSent from the Watch Service app.`, attachments });
-          } catch (_) { /* signature stands */ }
-        }
-        // ...and to the service manager (Richard, 2026-11-27)
-        const manager = Deno.env.get("SERVICE_MANAGER_EMAIL") || "";
-        if (mail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(manager)) {
-          try {
-            await mail.t.sendMail({ from: `"J. Vair Anderson Watch Service" <${mail.user}>`, to: manager,
-              subject: `Signed intake ${x.job.edge_no} ${watchLine(x.job)}`,
-              text: `${name} signed the intake paperwork for job ${x.job.edge_no} online${fee === "decline" ? " and DECLINED the Vintage Analysis Fee" : ""}. Taken in by ${x.job.intake_staff_name || "the associate"}. Signed copies attached.\n\nSent from the Watch Service app.`, attachments });
-          } catch (_) { /* signature stands */ }
+        // …and to the sales advisor who took the watch in and the service manager: "Signed Rolex Repair Intake, job, client, model, date"
+        // + forms signed + J. Vair Timepiece Service Department signature (Richard, 2026-11-27)
+        if (mail) {
+          const sm = await intakeStaffMail({ job: x.job, clientName: x.client?.name || name, forms: docs.map((d: any) => FORM_TITLES[d.kind] || d.kind),
+            takenBy: x.job.intake_staff_name || "", extra: `Signed online by ${name}${fee === "decline" ? "; the client DECLINED the Vintage Analysis Fee" : ""}.` });
+          const send = (to: string) => mail.t.sendMail({ from: `"J. Vair Timepiece Service Department" <${mail.user}>`, to, subject: sm.subject,
+            text: sm.text, html: sm.html, attachments: [...attachments, ...sm.inline] });
+          if (/^[^@\s]+@jvairanderson\.com$/i.test(x.job.intake_staff_email || "")) { try { await send(x.job.intake_staff_email) } catch (_) { /* signature stands */ } }
+          const manager = Deno.env.get("SERVICE_MANAGER_EMAIL") || "";
+          if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(manager)) { try { await send(manager) } catch (_) { /* signature stands */ } }
         }
         return json({ ok: true, purpose: "intake", fee_decision: fee, copied });
       }

@@ -6,6 +6,7 @@
 //          SERVICE_MANAGER_EMAIL (where documents go).
 import nodemailer from "npm:nodemailer@6";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { intakeStaffMail } from "../_shared/intakeMail.ts";
 
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const svc = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -39,8 +40,10 @@ Deno.serve(async (req) => {
       const gmail = Deno.env.get("GMAIL_USER"), pass = Deno.env.get("GMAIL_APP_PASSWORD"), mgr = (Deno.env.get("SERVICE_MANAGER_EMAIL") || "").trim();
       if (!gmail || !pass || !mgr) return json({ error: "email isn't connected yet" }, 400);
       const transport = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gmail, pass } });
-      await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: mgr, subject: "Watch Service app: test email",
-        text: "This is a test from the Watch Service app. Email is connected: intake forms will be sent to the service manager and the sales rep.\n\nSent from the Watch Service app." });
+      // A sample of the intake email (made-up job, no client data, no attachments)
+      const sm = await intakeStaffMail({ job: { edge_no: "000000", watch_ref: "126610LN", watch_name: "Submariner Date" }, clientName: "Sample Client",
+        forms: ["Receipt", "Rolex Immediate Proceed"], takenBy: "Sample Advisor", extra: "TEST EMAIL: a sample of the intake email format. No real job." });
+      await transport.sendMail({ from: `"J. Vair Timepiece Service Department" <${gmail}>`, to: mgr, subject: `TEST: ${sm.subject}`, text: sm.text, html: sm.html, attachments: sm.inline });
       return json({ ok: true, sent: true });
     }
 
@@ -52,7 +55,7 @@ Deno.serve(async (req) => {
       if (!docs?.length || docs.length !== doc_ids.length || new Set(docs.map((d: any) => d.job_id)).size !== 1) return json({ error: "Documents not found" }, 404);
       const jobId = docs[0].job_id;
       const [{ data: job }, { data: c }] = await Promise.all([
-        svc.from("jobs").select("edge_no, watch_ref, watch_name, intake_staff_name, intake_staff_email").eq("id", jobId).single(),
+        svc.from("jobs").select("edge_no, watch_ref, watch_name, intake_at, intake_staff_name, intake_staff_email").eq("id", jobId).single(),
         svc.from("job_clients").select("name, email").eq("job_id", jobId).maybeSingle(),
       ]);
       const gmail = Deno.env.get("GMAIL_USER"), pass = Deno.env.get("GMAIL_APP_PASSWORD");
@@ -78,25 +81,17 @@ Deno.serve(async (req) => {
           out.client = c!.email;
         } catch (e) { errors.push(`client: ${(e as Error).message}`) }
       }
+      // Sales advisor and service manager: "Signed Rolex Repair Intake, job, client, model, date" + forms + signature (Richard, 2026-11-27)
+      const staffMail = await intakeStaffMail({ job, clientName: c?.name || "", forms: docs.map((d: any) => KIND[d.kind] || "Document"), pending: !!pending,
+        takenBy: job.intake_staff_name || "", extra: pending ? `${c?.name || "The client"} has been emailed a link to sign; the signed copies follow once they sign.` : "" });
+      const send = (to: string) => transport.sendMail({ from: `"J. Vair Timepiece Service Department" <${gmail}>`, to, subject: staffMail.subject,
+        text: staffMail.text, html: staffMail.html, attachments: [...attachments, ...staffMail.inline] });
       if (/^[^@\s]+@jvairanderson\.com$/i.test(job.intake_staff_email || "")) {
-        try {
-          await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: job.intake_staff_email,
-            subject: `${pending ? "Intake (waiting for client signature)" : "Signed intake"} ${job.edge_no} ${watch}`.trim(),
-            text: pending ? `Intake paperwork for job ${job.edge_no} (${list}) is attached. ${c?.name || "The client"} has been emailed a link to sign; signed copies follow once they sign.\n\nSent from the Watch Service app.`
-              : `Signed paperwork for job ${job.edge_no} (${list}) is attached: ${c?.name || "client"} and ${job.intake_staff_name || "you"} have signed.\n\nSent from the Watch Service app.`, attachments });
-          out.staff = job.intake_staff_email;
-        } catch (e) { errors.push(`associate: ${(e as Error).message}`) }
+        try { await send(job.intake_staff_email); out.staff = job.intake_staff_email } catch (e) { errors.push(`associate: ${(e as Error).message}`) }
       }
-      // ...and to the service manager (Richard, 2026-11-27)
       const manager = Deno.env.get("SERVICE_MANAGER_EMAIL") || "";
       if (ok(manager)) {
-        try {
-          await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: manager,
-            subject: `${pending ? "Intake (waiting for client signature)" : "Signed intake"} ${job.edge_no} ${watch}`.trim(),
-            text: `Intake paperwork for job ${job.edge_no} (${list}) is attached. Taken in by ${job.intake_staff_name || "the associate"}.` +
-              (pending ? ` ${c?.name || "The client"} has been emailed a link to sign; signed copies follow once they sign.` : ` Signed by ${c?.name || "the client"}.`) + `\n\nSent from the Watch Service app.`, attachments });
-          out.manager = manager;
-        } catch (e) { errors.push(`service manager: ${(e as Error).message}`) }
+        try { await send(manager); out.manager = manager } catch (e) { errors.push(`service manager: ${(e as Error).message}`) }
       }
       const { data: who } = await user.auth.getUser();
       if (out.client) for (const d of docs) await svc.from("job_docs").update({ emailed_at: new Date().toISOString(), emailed_to: out.client, emailed_by: who?.user?.id ?? null }).eq("id", d.id);
