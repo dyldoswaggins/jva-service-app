@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../data.js'
 import { classifyWatch, offerFor } from '../serviceCatalog.js'
-import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
+import { CLASSES, CONDITIONS, ENGRAVING_REQUEST, JOB_NO, REQ, REQUEST_OPTIONS, SERVICE_TYPES, VINTAGE_REQUEST, VINTAGE_WARRANTY_REQUEST, braceletLine, conditionText, dialLine, modelId, money, timeframeAtIntake, watchLine, weeksUntil } from '../rules.js'
 import { makeReceipt, makeVintageFee, mergePdfs, receiptFileName, vintageFeeFileName } from '../receipt.js'
 import { ROLEX_CO_OFFERS, immediateProceedFileName, makeImmediateProceedRolex } from '../docs/immediateProceed.js'
 import { ENGRAVING_CASES, ENGRAVING_FONTS, engravingFileName, makeEngravingForm } from '../docs/engravingForm.js'
@@ -43,6 +43,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const [family, setFamily] = useState('')
   const [eta, setEta] = useState(null)
   const [cls, setCls] = useState('')          // Modern | Classic | Vintage
+  // Vintage (Richard, 2026-11-27): Rolex Vintage Analysis Fee and/or Vintage Service Warranty, each with its own tick
+  const [vAnalysis, setVAnalysis] = useState(true), [vWarranty, setVWarranty] = useState(false)
   const [feeOk, setFeeOk] = useState(false)   // Vintage Analysis Fee accepted (signing on the iPad; by email link the client ticks it)
   const [engr, setEngr] = useState({ text: '', font: '', case: '', position: 'Centred on the case back', note: '' })
   const [allClasses, setAllClasses] = useState(false) // Sales overrides the class worked out from the model
@@ -110,6 +112,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
 
   const vintage = cls === 'Vintage'
   const vfee = Number(settings?.vintage?.fee ?? 350), vweeks = settings?.vintage?.weeks ?? 18
+  const vfeeDue = vintage && vAnalysis ? vfee : 0 // no analysis fee on a service-warranty-only repair
   const vpolish = Number(settings?.vintage?.polish ?? 420) // Rolex Polish & Satin-Finishing for Vintage (Richard, 2026-11-27)
   const chooseClass = (c, offer = null) => {
     setCls(c)
@@ -128,10 +131,11 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const engraving = job.service_type === 'Engraving' // straight to Rolex Toronto with Rolex's Engraving Request Form
   const ctrPrice = isCTR && tier ? allOffers[tier] : null
   const polishPrice = polish ? (vintage ? vpolish : family ? polishPrices[family] : null) : null
-  const total = vintage ? vfee + (Number(polishPrice) || 0) : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
+  const total = vintage ? vfeeDue + (Number(polishPrice) || 0) : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
   // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
-    ...(vintage ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
+    ...(vintage && vAnalysis ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
+    ...(vintage && vWarranty ? [{ request: VINTAGE_WARRANTY_REQUEST, note: '' }] : []),
     ...(isCTR ? [{ request: REQ.overhaul, note: tier || '' }] : []),
     ...(engraving ? [{ request: ENGRAVING_REQUEST, note: [engr.text.trim() && `"${engr.text.trim()}"`, engr.font, engr.case, engr.position].filter(Boolean).join(' · ') }] : []),
     ...(polish ? [{ request: REQ.refinish, note: vintage ? '' : family }] : isCTR || vintage ? [{ request: REQ.noCase, note: '' }, { request: REQ.noBracelet, note: '' }] : []),
@@ -145,13 +149,14 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const forms = [
     { kind: 'receipt', title: 'Receipt' },
     ...(!engraving ? [{ kind: 'immediate_proceed', title: 'Rolex Immediate Proceed' }] : []),
-    ...(vintage ? [{ kind: 'vintage_fee', title: 'Vintage Analysis Fee' }] : []),
+    ...(vintage && vAnalysis ? [{ kind: 'vintage_fee', title: 'Vintage Analysis Fee' }] : []),
   ]
   const byEmail = signMode === 'email'
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(client.email.trim())
   const missing = [
     !cls && 'Modern, Classic or Vintage',
-    vintage && !byEmail && !feeOk && 'acceptance of the analysis fee',
+    vintage && !vAnalysis && !vWarranty && 'Vintage Analysis Fee or Vintage Service Warranty',
+    vintage && vAnalysis && !byEmail && !feeOk && 'acceptance of the analysis fee',
     !job.watch_ref.trim() && 'model number',
     !job.watch_name.trim() && 'model name',
     !job.serial.trim() && 'serial #',
@@ -201,9 +206,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     if (forms.some(f => f.kind === 'immediate_proceed')) {
       out.immediate_proceed = await makeImmediateProceedRolex({ ...args, signaturePng: sig('immediate_proceed'), retailerSigPng: staffSig, staffName,
         offer: isCTR ? tier : null, offerPrice: ctrPrice, polish, polishPrice: polishPrice ?? (vintage ? vpolish : 210),
-        includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfee : null })
+        includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfeeDue : null })
     }
-    if (vintage) out.vintage_fee = await makeVintageFee({ ...args, signaturePng: sig('vintage_fee'), fee: vfee, weeks: vweeks, decision: signed && feeOk ? 'accept' : null })
+    if (vintage && vAnalysis) out.vintage_fee = await makeVintageFee({ ...args, signaturePng: sig('vintage_fee'), fee: vfee, weeks: vweeks, decision: signed && feeOk ? 'accept' : null })
     return out
   }
   const fileNames = { receipt: receiptFileName, immediate_proceed: immediateProceedFileName, vintage_fee: vintageFeeFileName }
@@ -223,7 +228,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       ...job, edge_no: job.edge_no.trim(), watch_ref: job.watch_ref.trim().toUpperCase(),
       ctr_tier: isCTR ? tier : null, ctr_price: ctrPrice ?? null, polish, polish_family: polish && !vintage ? family : null,
       polish_price: polishPrice ?? null, eta_quoted: showEta ? eta?.eta || null : null,
-      classification: cls, vintage_fee: vintage ? vfee : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
+      classification: cls, vintage_fee: vintage ? vfeeDue : null, purchase_date: job.service_type === 'Warranty' ? job.purchase_date || null : null,
       engraving: engraving ? { ...engr, text: engr.text.trim() } : null,
       intake_staff_name: staffName, intake_staff_email: staffEmailOk ? staff.email.trim().toLowerCase() : null,
     }
@@ -354,9 +359,15 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           </div>
         )}
         {vintage && (
-          <div className="offer" data-on="true">
-            <b>Rolex Vintage Analysis Fee · {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</b>
+          <div className="offer" data-on={vAnalysis}>
+            <label className="tog big"><input type="checkbox" checked={vAnalysis} onChange={e => setVAnalysis(e.target.checked)} /> <b>Rolex Vintage Analysis Fee · {money(vfee)} + GST ({money(Math.round(vfee * 105) / 100)})</b></label>
             <p className="msg">An in-depth analysis is needed to prepare the estimate. Your watch is analysed and serviced by Rolex in Toronto. The fee remains payable if the estimate is refused or the watch is deemed counterfeit. Vintage estimates within 3 weeks; restoration estimates within 3 months of your approval.</p>
+          </div>
+        )}
+        {vintage && (
+          <div className="offer" data-on={vWarranty}>
+            <label className="tog big"><input type="checkbox" checked={vWarranty} onChange={e => setVWarranty(e.target.checked)} /> <b>Vintage Service Warranty</b></label>
+            <p className="msg">A vintage repair covered by the Rolex service warranty, done through Rolex in Toronto. No analysis fee unless the box above is ticked too.</p>
           </div>
         )}
         {!vintage && <div className="chips">
@@ -455,7 +466,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <h2><span>6</span>Estimate and timing</h2>
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
-            <div className="msg">{vintage ? `Rolex Vintage Analysis Fee${polish ? ` + polish and satin-finish (${money(vpolish)})` : ''}. The estimate for the work follows the analysis.` : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
+            <div className="msg">{vintage ? `${[vAnalysis && 'Rolex Vintage Analysis Fee', vWarranty && 'Vintage Service Warranty (no charge)', polish && `polish and satin-finish (${money(vpolish)})`].filter(Boolean).join(' + ') || 'Choose the Vintage service above'}. ${vAnalysis ? 'The estimate for the work follows the analysis.' : vWarranty ? 'Rolex confirms the warranty repair.' : ''}` : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
           {engraving ? (
             <div><div className="msg">Timing</div><div className="big-num">About 2 weeks</div>
               <div className="msg">Rolex engraves in 5–7 business days, plus shipping to and from Toronto. We'll call you when it's back.</div></div>

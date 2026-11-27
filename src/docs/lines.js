@@ -11,7 +11,8 @@ export function documentLines(job, allParts) {
   const rolex = job.estimate_source === 'rolex' // converted from Rolex Toronto's estimate: only those lines
   if (!rolex) {
   // Vintage: the analysis fee is charged whatever the client decides on the Rolex estimate
-  if (job.classification === 'Vintage') necessary.push({ key: 'vintage_fee', label: 'Rolex Vintage Analysis Fee', price: job.vintage_fee ?? null, source: 'vintage' })
+  // (no line on a service-warranty-only Vintage repair: vintage_fee 0, Richard 2026-11-27)
+  if (job.classification === 'Vintage' && Number(job.vintage_fee ?? NaN) !== 0) necessary.push({ key: 'vintage_fee', label: 'Rolex Vintage Analysis Fee', price: job.vintage_fee ?? null, source: 'vintage' })
   if (job.service_type === 'CTR') {
     necessary.push({ key: 'ctr', label: 'Complete Overhaul', price: job.ctr_price ?? null, subs: ['Clean Case and Bracelet', ...(job.polish && !(Number(job.polish_price) > 0) ? ['Refinish Case and Bracelet'] : [])], source: 'ctr' })
   }

@@ -53,7 +53,7 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$|^Do not refinish|^Refinish case and bracelet$/i.test(r))
   const dd = form.getDropdown('Dropdown1')
   if (offer && dd.getOptions().includes(offer)) { dd.select(offer); try { dd.setFontSize(10) } catch { /* keeps Rolex's setting */ } } else form.removeField(dd)
-  const [i1, i2] = twoLines(vintageFee != null ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`, ...extra].join(', ') : extra.join(', '), font)
+  const [i1, i2] = twoLines(Number(vintageFee) > 0 ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`, ...extra].join(', ') : extra.join(', '), font)
   set('undefined', i1, 9.5); set('undefined_2', i2, 9.5)
   // Polish & satin-finishing (Optional): Yes when chosen, No otherwise, for every class (Richard, 2026-11-27)
   const yes = form.getCheckBox('Check Box4'), no = form.getCheckBox('Check Box5')

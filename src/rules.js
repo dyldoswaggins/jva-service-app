@@ -68,6 +68,8 @@ export const CLASSES = [
   { name: 'Vintage', hint: 'Rolex Toronto · Vintage Analysis Fee' },
 ]
 export const VINTAGE_REQUEST = 'Perform vintage analysis and estimate'
+// Vintage repair covered by the Rolex service warranty (Richard, 2026-11-27): no analysis fee unless that box is ticked too
+export const VINTAGE_WARRANTY_REQUEST = 'Vintage repair under Rolex service warranty'
 // Requests that are part of a complete overhaul anyway (no extra work)
 export const CTR_INCLUDED = ['Adjust bracelet', 'Timekeeping check', 'Water resistance test']
 // Workflow golden rule 3 (Dylan, 2026-11-09): give the client a timeframe at intake only for a plain CTR,
