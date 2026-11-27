@@ -282,7 +282,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
           <label>City, province *<input value={client.address2} onChange={e => setClient({ ...client, address2: e.target.value })} autoComplete="off" placeholder="Calgary, AB" required /></label>
           <label>Postal code *<input value={client.postal_code} onChange={e => setClient({ ...client, postal_code: e.target.value })} autoComplete="off" autoCapitalize="characters" placeholder="T2P 4Z2" required /></label>
           <label>Phone *<input type="tel" value={client.phone} onChange={e => setClient({ ...client, phone: e.target.value })} autoComplete="off" inputMode="tel" required /></label>
-          <label>Email<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="Optional" /></label>
+          <label>Email<input type="email" value={client.email} onChange={e => setClient({ ...client, email: e.target.value })} autoComplete="off" inputMode="email" /></label>
         </div>
         <p className="msg">Fields marked * are required. With an email, the client gets a copy of the signed documents.</p>
       </section>
