@@ -473,7 +473,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
       </section>
 
       <section className="step">
-        <h2><span>8</span>For the boutique</h2>
+        <h2><span>8</span>Rolex Sales Advisor</h2>
         <div className="grid">
           <label>Associate name *<input value={staff.name} onChange={e => setStaff({ ...staff, name: e.target.value })} autoComplete="off" required /></label>
           <label>Associate email (optional, gets a signed copy)<input type="email" value={staff.email} onChange={e => setStaff({ ...staff, email: e.target.value })} autoComplete="off" inputMode="email" placeholder="name@jvairanderson.com" /></label>
