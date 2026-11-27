@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { api } from './data.js'
 import { ROLEX_DIRECT, fmtDate, inStoreService, openPrompts, timingPassed, watchLine } from './rules.js'
 import { dueFrom } from './repairs/TodoPanel.jsx'
+import { WmScope } from './repairs/Assign.jsx'
+import { useWatchmakerScope, useWatchmakers, wmClass } from './watchmakers.js'
 
 // Watchmaker dashboard ("Bench", the watchmaker's home): what to assess, what's next on the bench and what each watch still needs.
 // No client details and no costs (watchmakers see retail only).
@@ -22,6 +24,9 @@ export default function WatchmakerDashboard({ onOpenJob }) {
   const [settings, setSettings] = useState({})
   const [time, setTime] = useState({}) // job id → seconds on the job
   const [err, setErr] = useState('')
+  const names = useWatchmakers()
+  const [scope, setScope] = useWatchmakerScope() // All / one watchmaker / Unassigned, kept on this device
+  const ownerOf = j => (j.assigned_to && names.includes(j.assigned_to) ? j.assigned_to : null)
   const load = () => api.loadJobs().then(setJobs).catch(e => setErr(e.message))
   useEffect(() => {
     load()
@@ -34,7 +39,8 @@ export default function WatchmakerDashboard({ onOpenJob }) {
   const m = useMemo(() => {
     if (!jobs) return null
     const now = new Date(), wk = monday(now)
-    const open = jobs.filter(j => ['open', 'away'].includes(kindOf(j.status)))
+    const mineAll = jobs.filter(j => scope === 'all' || (scope === 'none' ? !ownerOf(j) : ownerOf(j) === scope))
+    const open = mineAll.filter(j => ['open', 'away'].includes(kindOf(j.status)))
     const assess = open.filter(j => j.status === 'Estimate' && !ROLEX_DIRECT(j) && openPrompts(j))
       .map(j => ({ j, due: dueFrom(j.intake_at) })).sort((a, b) => a.due - b.due)
     const bench = open.filter(j => j.estimate_decision === 'accepted' && inStoreService(j) && !['Done', 'Ready for pickup'].includes(j.status))
@@ -42,10 +48,10 @@ export default function WatchmakerDashboard({ onOpenJob }) {
     const qc = bench.filter(j => timingPassed(j) && !j.qc_at)
     const timing = bench.filter(j => !timingPassed(j) && j.status === 'Timekeeping')
     const parts = open.filter(j => short(j))
-    const doneWeek = jobs.filter(j => dayStart(j.completed_at) >= wk && inStoreService(j)).length
+    const doneWeek = mineAll.filter(j => dayStart(j.completed_at) >= wk && inStoreService(j)).length
     const wpw = Math.max(Number(settings.bench?.watches_per_week) || 6, 0.5)
     return { now, assess, overdue: assess.filter(x => x.due < now).length, bench, qc, timing, parts, doneWeek, wpw }
-  }, [jobs, statuses, settings])
+  }, [jobs, statuses, settings, scope, names])
 
   // Time on each job on the bench (the same quiet counter as the job page)
   useEffect(() => {
@@ -62,9 +68,11 @@ export default function WatchmakerDashboard({ onOpenJob }) {
   return (
     <div className="dash">
       <div className="actions">
-        <h2 className="grow">My bench</h2>
+        <h2 className="grow">{scope === 'all' ? 'Bench' : scope === 'none' ? 'Unassigned work' : scope + '’s bench'}</h2>
         <span className="msg">{m.now.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
       </div>
+
+      <WmScope names={names} scope={scope} setScope={setScope} />
 
       <div className="kpis">
         <Tile label="1 · To assess" value={m.assess.length} alert={m.overdue ? `${m.overdue} estimate${m.overdue === 1 ? '' : 's'} overdue` : null} sub="before the estimate (24 h)" />
@@ -74,12 +82,18 @@ export default function WatchmakerDashboard({ onOpenJob }) {
         <Tile label="5 · Done this week" value={`${m.doneWeek} / ${m.wpw}`} sub="services completed vs target" />
       </div>
 
+      {(scope === 'all' ? [...names, null] : [scope === 'none' ? null : scope]).map(o => {
+        // One block per watchmaker in their colour (Richard, 2026-11-27)
+        const assess = m.assess.filter(x => ownerOf(x.j) === o), bench = m.bench.filter(j => ownerOf(j) === o)
+        return (
+      <section key={o || 'none'} className={'wmblock ' + wmClass(o, names)}>
+      <div className="wmblock-h"><b>{o || 'Unassigned'}</b> <span className="msg">{assess.length} to assess · {bench.length} on the bench</span></div>
       <section className="panel">
         <h3>To assess <span className="msg">· WSR check, conditions and client requests, then the estimate</span></h3>
-        {m.assess.length ? (
+        {assess.length ? (
           <table className="imp jobs">
             <thead><tr><th>Job #</th><th>Watch</th><th>Service</th><th className="r">Prompts</th><th>Estimate</th><th className="r">Time on job</th></tr></thead>
-            <tbody>{m.assess.map(({ j, due }) => { const l = left(due); return (
+            <tbody>{assess.map(({ j, due }) => { const l = left(due); return (
               <tr key={j.id} className="click" onClick={() => onOpenJob(j.id)}>
                 <td className="mono b">{j.edge_no}</td><td>{watchLine(j)}</td><td>{j.service_type}{j.classification ? <span className="msg"> · {j.classification}</span> : ''}</td>
                 <td className="r">{openPrompts(j)}</td><td className={l.late ? 'warn-text' : ''}>{l.late ? '⚠ ' : ''}{l.t}</td><td className="r">{mins(time[j.id])}</td>
@@ -91,10 +105,10 @@ export default function WatchmakerDashboard({ onOpenJob }) {
 
       <section className="panel">
         <h3>Next up on the bench <span className="msg">· approved work, by ETA</span></h3>
-        {m.bench.length ? (
+        {bench.length ? (
           <table className="imp jobs">
             <thead><tr><th>Job #</th><th>Watch</th><th>Status</th><th>Next step</th><th>ETA</th><th className="r">Time on job</th></tr></thead>
-            <tbody>{m.bench.map(j => { const n = nextStep(j), e = etaOf(j), d = e ? daysTo(e) : null; return (
+            <tbody>{bench.map(j => { const n = nextStep(j), e = etaOf(j), d = e ? daysTo(e) : null; return (
               <tr key={j.id} className="click" onClick={() => onOpenJob(j.id)}>
                 <td className="mono b">{j.edge_no}</td><td>{watchLine(j)}</td><td>{j.status}</td>
                 <td>{n.warn ? <span className="tag warn">⚠ {n.t}</span> : <b>{n.t}</b>}</td>
@@ -105,6 +119,10 @@ export default function WatchmakerDashboard({ onOpenJob }) {
           </table>
         ) : <p className="msg">No approved work waiting. ✓</p>}
       </section>
+
+      </section>
+        )
+      })}
 
       {m.parts.length > 0 && (
         <section className="panel">

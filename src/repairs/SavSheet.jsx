@@ -4,6 +4,8 @@ import { CONDITIONS, conditionText, money, termsFor } from '../rules.js'
 import { autoNotes, documentLines, sumLines } from '../docs/lines.js'
 import { CITIES, DELIVERY, DELIVERY_WEEKS, NOTES, PAYMENT_METHODS, PROVINCES, REQUESTS, ROLEX_DELIVERY, ROLEX_DUE, SERVICES } from '../savCatalog.js'
 import { WeeksField } from './WeeksBox.jsx'
+import { AssignSelect } from './Assign.jsx'
+import { useWatchmakers } from '../watchmakers.js'
 
 const one = x => (Array.isArray(x) ? x[0] : x) || null
 const GST = 0.05
@@ -18,6 +20,7 @@ const tot = sub => ({ sub, gst: Math.round(sub * GST * 100) / 100, total: Math.r
 // Delete hides the job (never erased, CLAUDE.md §4) after a warning; it can be restored.
 // ticks / setTicks: the Options' OK ticks, kept by the job page so they survive switching tabs until the decision is recorded
 export default function SavSheet({ job, allParts, userId, who, actions, onChange, statusSelect, onDeleted, ticks = {}, setTicks = () => {} }) {
+  const wmNames = useWatchmakers()
   const client0 = one(job.job_clients)
   const [msg, setMsg] = useState('')
   const [adding, setAdding] = useState(null) // { kind, service, detail, price, custom, backing }
@@ -183,6 +186,7 @@ export default function SavSheet({ job, allParts, userId, who, actions, onChange
           <label>Confirmation date{J('confirmation_date', { type: 'date' })}</label>
           <label className="suggest-field">Service lead time (confirmation)<WeeksField key={job.lead_time || ''} initial={job.lead_time} onSave={x => saveJob('lead_time', x)} /></label>
           <label>Invoice date{J('invoice_date', { type: 'date' })}</label>
+          <label>Watchmaker<AssignSelect job={job} names={wmNames} userId={userId} actions={actions} onChange={onChange} /></label>
         </div>
       </section>
 

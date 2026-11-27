@@ -4,6 +4,8 @@ import { fmtDate, maskSerial, openPrompts } from '../rules.js'
 import IntakeView from './IntakeView.jsx'
 import JobView from './JobView.jsx'
 import TodoPanel from './TodoPanel.jsx'
+import { WmScope, WmTag } from './Assign.jsx'
+import { useWatchmakerScope, useWatchmakers, wmClass } from '../watchmakers.js'
 
 const one = x => (Array.isArray(x) ? x[0] : x) || null
 
@@ -18,6 +20,8 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
   const [q, setQ] = useState('')
   const [mode, setMode] = useState({ view: 'list' }) // list | intake | job
   const [err, setErr] = useState('')
+  const wmNames = useWatchmakers()
+  const [scope, setScope] = useWatchmakerScope() // watchmaker screens: All / one watchmaker / Unassigned
 
   // "Deleted" filter: the intakes hidden with Delete this intake (Service Manager), loaded on their own
   const deletedView = useRef(false)
@@ -80,6 +84,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
                       <span className="jref">{j.edge_no}</span>
                       <span className={`pill k-${j.status === 'Estimate' ? 'estimate' : kind(j.status)}`}>{j.status}</span>
                       <span className="nm">{[client, model || maskSerial(j.serial)].filter(Boolean).join(' · ') || j.service_type}</span>
+                      <span className="nm"><WmTag name={j.assigned_to} names={wmNames} small /></span>
                       {n > 0 && <span className="nm todo">{n} to confirm</span>}
                     </button>
                   </li>
@@ -93,7 +98,7 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
                 onDone={(id, receipt) => { load(); setMode(id ? { view: 'job', id, receipt } : { view: 'list' }) }} />
             ) : mode.view === 'job' ? (
               <JobView key={mode.id} id={mode.id} receipt={mode.receipt} statuses={statuses} can={can} actions={actions} userId={userId} who={who}
-                allParts={allParts} models={models} tabs
+                allParts={allParts} models={models} tabs onListChange={load}
                 onBack={() => { load(); setMode({ view: 'list' }) }} />
             ) : (
               <>
@@ -119,11 +124,18 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
           <button key={k} type="button" className="chip" aria-pressed={filter === k} onClick={() => setFilter(k)}>{l}</button>
         ))}
       </div>
+      <WmScope names={wmNames} scope={scope} setScope={setScope} />
       {err && <p className="msg warn">{err}</p>}
       {!jobs ? <p className="msg">Loading…</p> : shown.length ? (() => {
-        // Grouped by stage, in workshop order (Richard, 2026-11-27)
-        const groups = STAGES.map(([key, label, hint]) => [label, hint, shown.filter(j => stageOf(j, kind) === key)]).filter(g => g[2].length)
-        return groups.map(([label, hint, list]) => (
+        // One block per watchmaker in their colour (Richard, 2026-11-27), then grouped by stage in workshop order
+        const owners = scope === 'all' ? [...wmNames, null] : [scope === 'none' ? null : scope]
+        const mine = o => shown.filter(j => (o ? j.assigned_to === o : !j.assigned_to || !wmNames.includes(j.assigned_to)))
+        const blocks = owners.map(o => [o, mine(o)]).filter(([o, l]) => l.length || o)
+        return blocks.map(([o, jl]) => (
+          <section key={o || 'none'} className={`wmblock ${wmClass(o, wmNames)}`}>
+            <div className="wmblock-h"><b>{o || 'Unassigned'}</b> <span className="msg">{jl.length} job{jl.length === 1 ? '' : 's'}</span></div>
+            {!jl.length && <p className="msg">No jobs assigned.</p>}
+            {STAGES.map(([key, label, hint]) => [label, hint, jl.filter(j => stageOf(j, kind) === key)]).filter(g => g[2].length).map(([label, hint, list]) => (
           <section key={label}>
             <div className="stage-h"><b>{label}</b> <span className="msg">{list.length} · {hint}</span></div>
             <div className="imp-wrap">
@@ -148,6 +160,8 @@ export default function JobsView({ models, allParts, can, actions, userId, who, 
                 </tbody>
               </table>
             </div>
+          </section>
+            ))}
           </section>
         ))
       })() : <p className="msg">No jobs here yet.</p>}

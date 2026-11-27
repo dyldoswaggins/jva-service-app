@@ -16,6 +16,8 @@ import JobContacts from './JobContacts.jsx'
 import JobValidation from './JobValidation.jsx'
 import SavSheet from './SavSheet.jsx'
 import DocPreview from './DocPreview.jsx'
+import { WmTag } from './Assign.jsx'
+import { useWatchmakers } from '../watchmakers.js'
 
 // Print a PDF straight from the page (hidden frame); iPad/Safari falls back to opening it to print or share
 function printPdf(blob) {
@@ -29,7 +31,7 @@ function printPdf(blob) {
 }
 
 // One job. The watchmaker answers every intake prompt (condition + client request) before the estimate.
-export default function JobView({ id, receipt, statuses, can, actions, userId, who, onBack, allParts, models, tabs = false }) {
+export default function JobView({ id, receipt, statuses, can, actions, userId, who, onBack, allParts, models, tabs = false, onListChange }) {
   const [ticks, setTicks] = useState({}) // Options' OK ticks on the SAV sheet, until the decision is recorded
   const [tab, setTab] = useState('intake') // Service Manager layout (tabs): intake | estimate | confirmation | invoice
   const [job, setJob] = useState(null)
@@ -38,6 +40,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
   const [declining, setDeclining] = useState(null) // request id being declined
   const [reason, setReason] = useState('')
   const [addComp, setAddComp] = useState(null)
+  const wmNames = useWatchmakers()
 
   const load = () => api.loadJob(id).then(setJob).catch(e => setMsg(e.message))
   useEffect(() => { load() }, [id])
@@ -307,7 +310,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
         </div>
         {top}
         {tab === 'intake' && <>
-          <SavSheet key={job.id} job={job} allParts={allParts} userId={userId} who={who} actions={actions} onChange={load} statusSelect={statusSelect} onDeleted={onBack} ticks={ticks} setTicks={setTicks} />
+          <SavSheet key={job.id} job={job} allParts={allParts} userId={userId} who={who} actions={actions} onChange={async () => { await load(); onListChange?.() }} statusSelect={statusSelect} onDeleted={onBack} ticks={ticks} setTicks={setTicks} />
           <h3 className="sav-band">Workshop and records</h3>
           {prompts}
           {validation}
@@ -354,7 +357,7 @@ export default function JobView({ id, receipt, statuses, can, actions, userId, w
           {timer}
           <label className="wm-status">Status {statusSelect}</label>
         </div>
-        <p className="msg wm-sub">{[job.service_type, job.classification].filter(Boolean).join(' · ')} · serial {job.serial || '—'} · taken in {fmtDate(String(job.intake_at).slice(0, 10))}
+        <p className="msg wm-sub"><WmTag name={job.assigned_to} names={wmNames} /> {[job.service_type, job.classification].filter(Boolean).join(' · ')} · serial {job.serial || '—'} · taken in {fmtDate(String(job.intake_at).slice(0, 10))}
           {pending > 0 && !direct ? <> · <b className="tag warn">{pending} to confirm</b></> : ''}</p>
         <div className="wm-steps" role="tablist">
           {steps.map(([k, label, done], i) => (

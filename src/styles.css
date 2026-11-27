@@ -514,3 +514,32 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
 .stage-h b { font-size: 15px; }
 .stage-h:first-of-type { margin-top: 8px; }
 .weeksbox { position: relative; display: block; }
+
+/* Watchmakers' colours (Richard, 2026-11-27): never red / green. 1 blue, 2 plum, 3 teal, 4 ochre; 0 = unassigned (grey) */
+.wmc-0 { --wm: #6b7479; --wm-bg: #eef0f1; }
+.wmc-1 { --wm: #2a5d8f; --wm-bg: #e3edf7; }
+.wmc-2 { --wm: #7b3f7e; --wm-bg: #f3e6f3; }
+.wmc-3 { --wm: #1f6f6c; --wm-bg: #e0f0ef; }
+.wmc-4 { --wm: #8a6416; --wm-bg: #f6edd9; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .wmc-0 { --wm: #a3aeb3; --wm-bg: #1c2b32; }
+  :root:not([data-theme="light"]) .wmc-1 { --wm: #8cbbe8; --wm-bg: #16293a; }
+  :root:not([data-theme="light"]) .wmc-2 { --wm: #d6a6d8; --wm-bg: #2c1c2e; }
+  :root:not([data-theme="light"]) .wmc-3 { --wm: #84d0cb; --wm-bg: #142d2c; }
+  :root:not([data-theme="light"]) .wmc-4 { --wm: #e2bd6e; --wm-bg: #302612; }
+}
+:root[data-theme="dark"] .wmc-0 { --wm: #a3aeb3; --wm-bg: #1c2b32; }
+:root[data-theme="dark"] .wmc-1 { --wm: #8cbbe8; --wm-bg: #16293a; }
+:root[data-theme="dark"] .wmc-2 { --wm: #d6a6d8; --wm-bg: #2c1c2e; }
+:root[data-theme="dark"] .wmc-3 { --wm: #84d0cb; --wm-bg: #142d2c; }
+:root[data-theme="dark"] .wmc-4 { --wm: #e2bd6e; --wm-bg: #302612; }
+.wmtag { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--wm-bg); color: var(--wm); border: 1px solid var(--wm); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.wmtag.small { font-size: 12px; padding: 0 8px; }
+.wmscope { margin: 6px 0 10px; }
+.wmscope .chip[class*="wmc-"] { border-color: var(--wm); color: var(--wm); }
+.wmscope .chip[class*="wmc-"][aria-pressed="true"] { background: var(--wm); color: #fff; }
+.wmblock { border-left: 6px solid var(--wm); background: color-mix(in srgb, var(--wm-bg) 45%, transparent); border-radius: 8px; padding: 6px 12px 12px; margin: 14px 0 18px; }
+.wmblock-h { display: flex; align-items: baseline; gap: 10px; padding: 6px 0 4px; }
+.wmblock-h b { color: var(--wm); font-size: 18px; }
+.wmblock > .panel { margin-top: 10px; }
+select.assign { border: 1px solid var(--wm); color: var(--wm); font-weight: 600; background: var(--wm-bg); }
