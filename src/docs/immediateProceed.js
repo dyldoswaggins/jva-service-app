@@ -16,14 +16,36 @@ export const ROLEX_CO_OFFERS = {
 }
 const money = n => '$' + Number(n || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const dmy = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-// Split text over the form's two lines (each ~396 pt wide at 10 pt)
-function twoLines(text, font, size = 9.5, width = 390) {
-  const out = ['', '']; let i = 0
-  for (const w of String(text || '').split(/\s+/).filter(Boolean)) {
-    const t = out[i] ? out[i] + ' ' + w : w
-    if (font.widthOfTextAtSize(t, size) > width && out[i]) { if (i === 1) { out[1] += '…'; break } i = 1; out[1] = w } else out[i] = t
+// Wrap text to a width, nothing dropped (a word longer than the line is split)
+function wrap(text, font, size, width = 390) {
+  const out = []; let line = ''
+  for (let w of String(text || '').split(/\s+/).filter(Boolean)) {
+    while (font.widthOfTextAtSize(w, size) > width) {
+      let k = w.length - 1
+      while (k > 1 && font.widthOfTextAtSize(w.slice(0, k), size) > width) k--
+      if (line) { out.push(line); line = '' }
+      out.push(w.slice(0, k)); w = w.slice(k)
+    }
+    const t = line ? line + ' ' + w : w
+    if (font.widthOfTextAtSize(t, size) > width && line) { out.push(line); line = w } else line = t
   }
+  if (line) out.push(line)
   return out
+}
+// Everything gathered at intake must show (Richard, 2026-11-27). Each section has two 21 pt lines on Rolex's form (field
+// bottoms in ys). Try the two lines at 9.5 → 7.5 pt, then two rows per line (four rows) at 7 → 6 pt; if it still doesn't fit,
+// the rows end with "continued on page 2" and the full text is printed on a page added after the form.
+function fitSection(text, font, ys) {
+  for (const size of [9.5, 9, 8.5, 8, 7.5]) {
+    const l = wrap(text, font, size); if (l.length <= 2) return { size, rows: l.map((t, i) => ({ t, y: ys[i] + 6 })) }
+  }
+  const rowY = [ys[0] + 12, ys[0] + 3.5, ys[1] + 12, ys[1] + 3.5]
+  for (const size of [7, 6.5, 6]) {
+    const l = wrap(text, font, size); if (l.length <= 4) return { size, rows: l.map((t, i) => ({ t, y: rowY[i] })) }
+  }
+  const more = ' … continued on page 2'
+  const l = wrap(text, font, 6, 390 - font.widthOfTextAtSize(more, 6))
+  return { size: 6, more: true, rows: [...l.slice(0, 3), l[3] + more].map((t, i) => ({ t, y: rowY[i] })) }
 }
 
 export async function makeImmediateProceedRolex({ job, client, requests = [], conditions = [], signaturePng, staffName, date = new Date(),
@@ -55,8 +77,8 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   const dd = form.getDropdown('Dropdown1')
   if (offer && dd.getOptions().includes(offer)) { dd.select(offer); try { dd.setFontSize(10) } catch { /* keeps Rolex's setting */ } } else form.removeField(dd)
   const partText = parts.map(p => `${p.label}${Number(p.price) ? ` ${money(p.price).replace('.00', '')}` : ''}`)
-  const [i1, i2] = twoLines([...(Number(vintageFee) > 0 ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`] : []), ...extra, ...partText].join(', '), font)
-  set('undefined', i1, 9.5); set('undefined_2', i2, 9.5)
+  const interventions = [...(Number(vintageFee) > 0 ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`] : []), ...extra, ...partText].join(', ')
+  set('undefined', ''); set('undefined_2', '')
   // Polish & satin-finishing (Optional): Yes when chosen, No otherwise, for every class (Richard, 2026-11-27)
   const yes = form.getCheckBox('Check Box4'), no = form.getCheckBox('Check Box5')
   if (polish) yes.check(); else no.check()
@@ -64,8 +86,9 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   // Conditions, then the associate's notes (Richard, 2026-11-25): own line when both fit, else run on over the two lines
   const cond = conditions.length ? conditionText(conditions) : 'No visible marks noted.'
   const fits = s => font.widthOfTextAtSize(s, 9.5) <= 390
-  const [c1, c2] = notes.length && fits(cond) && fits(notes.join(' · ')) ? [cond, notes.join(' · ')] : twoLines([cond, ...notes].join(' · '), font)
-  set('undefined_3', c1, 9.5); set('undefined_4', c2, 9.5)
+  const condOwn = notes.length && fits(cond) && fits(notes.join(' · ')) ? [cond, notes.join(' · ')] : null
+  const condText = [cond, ...notes].join(' · ')
+  set('undefined_3', ''); set('undefined_4', '')
   // Total (tax excl.): set price + polish; optionally with the 15 % allowance the form permits
   const base = (vintageFee != null ? Number(vintageFee) : Number(offerPrice) || 0) + (polish ? Number(polishPrice) || 0 : 0) +
     parts.reduce((s, p) => s + (Number(p.price) || 0), 0)
@@ -94,6 +117,26 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
     page0.drawText(money(polishPrice).replace('.00', ''), { x: 411.1, y: 368.3, size: 9, font, color: rgb(0.35, 0.35, 0.35) })
   }
   form.flatten()
+  // Interventions (lines at y 409 / 387) and Watch conditions (322 / 300): drawn so all of it fits (see fitSection)
+  const sections = []
+  for (const [title, text, ys, own] of [['Interventions and Spare Parts requested by Client', interventions, [409, 387]],
+    ['Watch Conditions and Client additional information', condText, [322, 300], condOwn]]) {
+    if (!text) continue
+    const fit = own ? { size: 9.5, rows: own.map((t, i) => ({ t, y: ys[i] + 6 })) } : fitSection(text, font, ys)
+    for (const r of fit.rows) page0.drawText(r.t, { x: 146, y: r.y, size: fit.size, font, color: rgb(0, 0, 0) })
+    if (fit.more) sections.push([title, text])
+  }
+  if (sections.length) {
+    const p = pdf.insertPage(1, [612, 792]), bold = await pdf.embedFont(StandardFonts.HelveticaBold)
+    let y = 720
+    p.drawText('IMMEDIATE PROCEED – continued from page 1', { x: 75, y, size: 11, font: bold }); y -= 18
+    p.drawText(`Retailer Ref. N°: ${job.edge_no || ''}    Model N°: ${ref ? (ref.startsWith('M') ? ref : 'M' + ref) : 'N/A'}    Serial N°: ${job.serial || 'N/A'}`, { x: 75, y, size: 9.5, font }); y -= 30
+    for (const [title, text] of sections) {
+      p.drawText(title, { x: 75, y, size: 10, font: bold }); y -= 16
+      for (const t of wrap(text, font, 10, 462)) { p.drawText(t, { x: 75, y, size: 10, font }); y -= 14 }
+      y -= 16
+    }
+  }
   const blob = new Blob([await pdf.save()], { type: 'application/pdf' })
   if (!signaturePng) blob.fields = { signature: { page: 0, x: 156, y: 103, w: 200, h: 28 }, date: { page: 0, x: 416, y: 112 }, audit: { page: 0, x: 75, y: 14 } }
   return blob
