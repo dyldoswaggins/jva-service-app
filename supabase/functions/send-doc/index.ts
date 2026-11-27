@@ -33,6 +33,16 @@ Deno.serve(async (req) => {
       return json({ GMAIL_USER: has("GMAIL_USER"), GMAIL_APP_PASSWORD: has("GMAIL_APP_PASSWORD"), SERVICE_MANAGER_EMAIL: has("SERVICE_MANAGER_EMAIL"),
         manager_looks_valid: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mgr) });
     }
+    // { to: "test" } (Admin): one plain test email to the service manager, no attachments or client data (Richard, 2026-11-27)
+    if (target === "test") {
+      if (role !== "admin") return json({ error: "Admin only" }, 403);
+      const gmail = Deno.env.get("GMAIL_USER"), pass = Deno.env.get("GMAIL_APP_PASSWORD"), mgr = (Deno.env.get("SERVICE_MANAGER_EMAIL") || "").trim();
+      if (!gmail || !pass || !mgr) return json({ error: "email isn't connected yet" }, 400);
+      const transport = nodemailer.createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gmail, pass } });
+      await transport.sendMail({ from: `"J. Vair Anderson Watch Service" <${gmail}>`, to: mgr, subject: "Watch Service app: test email",
+        text: "This is a test from the Watch Service app. Email is connected: intake forms will be sent to the service manager and the sales rep.\n\nSent from the Watch Service app." });
+      return json({ ok: true, sent: true });
+    }
 
     // ---- signed intake paperwork: one email with every form, to the client and to the associate who took the watch in
     //      (Richard, 2026-11-25). { doc_ids: [...], to: "signed_copies" }. The associate's address is always @jvairanderson.com (migration 035).
