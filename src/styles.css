@@ -482,3 +482,10 @@ button, a.btn, .chip, .card, label.tog { -webkit-tap-highlight-color: transparen
 .combo input { flex: 1; padding-right: 48px; }
 .combo-btn { position: absolute; right: 2px; top: 2px; bottom: 2px; width: 44px; border: 0; background: transparent; color: var(--muted); font-size: 18px; }
 .suggest-field .suggest { max-height: 320px; overflow-y: auto; }
+
+/* Parts and costs under Notes at intake (Richard, 2026-11-27) */
+.intake-parts { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.intake-parts .part-row { display: grid; grid-template-columns: minmax(0, 1fr) 160px; gap: 8px; }
+.intake-parts .cost { position: relative; display: flex; }
+.intake-parts .cost > span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.intake-parts .cost input { flex: 1; padding-left: 26px; text-align: right; font-variant-numeric: tabular-nums; }

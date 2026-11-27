@@ -27,7 +27,8 @@ function twoLines(text, font, size = 9.5, width = 390) {
 }
 
 export async function makeImmediateProceedRolex({ job, client, requests = [], conditions = [], signaturePng, staffName, date = new Date(),
-  offer, offerPrice, polish = false, polishPrice = 210, includeAllowance = false, vintageFee = null, retailerSigPng = null }) {
+  offer, offerPrice, polish = false, polishPrice = 210, includeAllowance = false, vintageFee = null, retailerSigPng = null, parts = [] }) {
+  // parts: [{ label, price }] typed by the rep at intake (Richard, 2026-11-27): written in the interventions and added to the total
   const bytes = await fetch('/templates/rolex-immediate-proceed.pdf').then(r => r.arrayBuffer())
   const pdf = await PDFDocument.load(bytes)
   const form = pdf.getForm()
@@ -53,7 +54,8 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   const extra = all.filter(r => !r.startsWith(NOTES_PREFIX) && !/^Perform complete overhaul$|^Do not refinish|^Refinish case and bracelet$/i.test(r))
   const dd = form.getDropdown('Dropdown1')
   if (offer && dd.getOptions().includes(offer)) { dd.select(offer); try { dd.setFontSize(10) } catch { /* keeps Rolex's setting */ } } else form.removeField(dd)
-  const [i1, i2] = twoLines(Number(vintageFee) > 0 ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`, ...extra].join(', ') : extra.join(', '), font)
+  const partText = parts.map(p => `${p.label}${Number(p.price) ? ` ${money(p.price).replace('.00', '')}` : ''}`)
+  const [i1, i2] = twoLines([...(Number(vintageFee) > 0 ? [`Rolex Vintage Analysis Fee ${money(vintageFee).replace('.00', '')} (analysis and estimate by Rolex)`] : []), ...extra, ...partText].join(', '), font)
   set('undefined', i1, 9.5); set('undefined_2', i2, 9.5)
   // Polish & satin-finishing (Optional): Yes when chosen, No otherwise, for every class (Richard, 2026-11-27)
   const yes = form.getCheckBox('Check Box4'), no = form.getCheckBox('Check Box5')
@@ -65,7 +67,8 @@ export async function makeImmediateProceedRolex({ job, client, requests = [], co
   const [c1, c2] = notes.length && fits(cond) && fits(notes.join(' · ')) ? [cond, notes.join(' · ')] : twoLines([cond, ...notes].join(' · '), font)
   set('undefined_3', c1, 9.5); set('undefined_4', c2, 9.5)
   // Total (tax excl.): set price + polish; optionally with the 15 % allowance the form permits
-  const base = (vintageFee != null ? Number(vintageFee) : Number(offerPrice) || 0) + (polish ? Number(polishPrice) || 0 : 0)
+  const base = (vintageFee != null ? Number(vintageFee) : Number(offerPrice) || 0) + (polish ? Number(polishPrice) || 0 : 0) +
+    parts.reduce((s, p) => s + (Number(p.price) || 0), 0)
   set('Dollar Amount', money(includeAllowance && vintageFee == null ? Math.round(base * 115) / 100 : base).replace('$', ''), 10)
   set('Date1', signaturePng ? dmy(date) : ''); set('Date2', dmy(date))
   set('Client Signature', ''); set('Retailer Signature', retailerSigPng ? '' : staffName ? `${staffName} · J. Vair Anderson` : '', 9)

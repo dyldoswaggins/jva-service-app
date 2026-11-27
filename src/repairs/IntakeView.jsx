@@ -18,8 +18,8 @@ const longDate = d => (d ? new Date(d + 'T12:00:00').toLocaleDateString('en-CA',
 const suggestFamily = (keys, name) => keys.find(k => k.split('/').some(t => t.trim() && String(name || '').toLowerCase().includes(t.trim().toLowerCase().split(' ')[0]))) || ''
 
 // Client-facing intake on the iPad (Sales associates): the client sees this screen and signs at the end.
-// Estimated weeks list: Approximately 6 weeks … Approximately 18 weeks, for every class incl. Vintage (Richard, 2026-11-27)
-const LEAD_OPTIONS = Array.from({ length: 13 }, (_, i) => [`Approximately ${i + 6} weeks`])
+// Estimated weeks list: Approximately 3 weeks … Approximately 18 weeks, for every class incl. Vintage (Richard, 2026-11-27)
+const LEAD_OPTIONS = Array.from({ length: 16 }, (_, i) => [`Approximately ${i + 3} weeks`])
 
 export default function IntakeView({ models, actions, userId, onDone, standalone, staffName: signedInName, staffEmail = '' }) {
   // The associate taking the watch in: signs the Immediate Proceed and gets a copy of the signed paperwork (@jvairanderson.com only)
@@ -34,6 +34,9 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   // Notes typed by the associate under Condition on arrival (Richard, 2026-11-25): printed under Customer Requests on the receipt
   // (and Vintage form) and under Watch Conditions and Client additional information on the Rolex Immediate Proceed
   const [notes, setNotes] = useState('')
+  // Parts and costs typed by the rep under Notes (Richard, 2026-11-27): added to the total before GST and to the Rolex Immediate
+  // Proceed (interventions + total). Shown on the intake only; not saved as job lines.
+  const [parts, setParts] = useState([{ p: '', c: '' }, { p: '', c: '' }, { p: '', c: '' }])
   const [client, setClient] = useState({ name: '', address1: '', address2: '', postal_code: '', phone: '', email: '' })
   // e-Signature (Richard, 2026-11-25): the client signs each form on the iPad, or later from a private link emailed to them
   const [signMode, setSignMode] = useState('ipad') // ipad | email
@@ -137,7 +140,10 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
   const engraving = job.service_type === 'Engraving' // straight to Rolex Toronto with Rolex's Engraving Request Form
   const ctrPrice = isCTR && tier ? allOffers[tier] : null
   const polishPrice = polish ? (vintage ? vpolish : family ? polishPrices[family] : null) : null
-  const total = vintage ? vfeeDue + (Number(polishPrice) || 0) : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)
+  const costOf = c => Number(String(c).replace(/[$,\s]/g, ''))
+  const partsList = parts.filter(r => r.p.trim()).map(r => ({ label: r.p.trim(), price: Number.isFinite(costOf(r.c)) ? costOf(r.c) : 0 }))
+  const partsTotal = partsList.reduce((s, r) => s + r.price, 0)
+  const total = (vintage ? vfeeDue + (Number(polishPrice) || 0) : (Number(ctrPrice) || 0) + (Number(polishPrice) || 0)) + partsTotal
   // Customer requests in Rolex wording, following from the service choices (watchmaker prompts too)
   const allReqs = [
     ...(vintage && vAnalysis ? [{ request: VINTAGE_REQUEST, note: '' }] : []),
@@ -188,6 +194,8 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     !byEmail && client.email.trim() && !emailOk && 'a valid client email (or leave it blank)',
     ...(!byEmail ? forms.filter(f => !sigs[f.kind]).map(f => `client signature on the ${f.title}`) : []),
     // Associate name and signature: required (Richard, 2026-11-25). Associate email optional (Richard, 2026-11-27); if typed, a @jvairanderson.com address
+    parts.some(r => r.c.trim() && !r.p.trim()) && 'the part for each cost typed',
+    parts.some(r => r.c.trim() && !Number.isFinite(costOf(r.c))) && 'a cost in numbers (e.g. 250)',
     !staffName && 'associate name',
     staff.email.trim() && !staffEmailOk && 'a @jvairanderson.com associate email (or leave it empty)',
     !staffSig && 'associate signature',
@@ -212,7 +220,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
     if (forms.some(f => f.kind === 'immediate_proceed')) {
       out.immediate_proceed = await makeImmediateProceedRolex({ ...args, signaturePng: sig('immediate_proceed'), retailerSigPng: staffSig, staffName,
         offer: isCTR ? tier : null, offerPrice: ctrPrice, polish, polishPrice: polishPrice ?? (vintage ? vpolish : 210),
-        includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfeeDue : null })
+        includeAllowance: !!settings?.immediate_proceed?.include_allowance, vintageFee: vintage ? vfeeDue : null, parts: partsList })
     }
     if (vintage && vAnalysis) out.vintage_fee = await makeVintageFee({ ...args, signaturePng: sig('vintage_fee'), fee: vfee, weeks: vweeks, decision: signed && feeOk ? 'accept' : null })
     return out
@@ -466,12 +474,28 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <label className="stackfield">Notes
           <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything else about the watch or the client's wishes" /></label>
         <p className="msg">Printed under Customer Requests on the receipt, and under Watch Conditions and Client additional information on the Rolex Immediate Proceed.</p>
+        <div className="intake-parts">
+          <div className="msg">Parts and costs (before GST)</div>
+          {parts.map((r, i) => (
+            <div key={i} className="part-row">
+              <input value={r.p} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, p: e.target.value } : x)))} placeholder="Part, e.g. Sapphire crystal" aria-label={`Part ${i + 1}`} autoComplete="off" />
+              <span className="cost"><span aria-hidden="true">$</span><input value={r.c} onChange={e => setParts(ps => ps.map((x, j) => (j === i ? { ...x, c: e.target.value } : x)))} placeholder="0.00" inputMode="decimal" aria-label={`Cost ${i + 1}`} autoComplete="off" /></span>
+            </div>
+          ))}
+          <div className="actions">
+            <button type="button" className="btn" onClick={() => setParts(ps => [...ps, { p: '', c: '' }])}>+ Add</button>
+            <span className="grow" />
+            {partsTotal > 0 && <span className="msg">Parts total: <b>{money(partsTotal)}</b></span>}
+          </div>
+          <p className="msg">Added to the estimate total below and to the Rolex Immediate Proceed (interventions and total). Not saved on the job.</p>
+        </div>
       </section>
 
       <section className="step quote">
         <h2><span>6</span>Estimate and timing</h2>
         <div className="quote-grid">
           <div><div className="msg">Estimate before tax</div><div className="big-num">{total ? money(total) : '—'}</div>
+            {partsTotal > 0 && <div className="msg">Includes parts: {money(partsTotal)}</div>}
             <div className="msg">{vintage ? `${[vAnalysis && 'Rolex Vintage Analysis Fee', vWarranty && 'Vintage Service Warranty (no charge)', polish && `polish and satin-finish (${money(vpolish)})`].filter(Boolean).join(' + ') || 'Choose the Vintage service above'}. ${vAnalysis ? 'The estimate for the work follows the analysis.' : vWarranty ? 'Rolex confirms the warranty repair.' : ''}` : engraving ? 'Rolex engraving fee, usually $100–150 (confirmed by Rolex).' : <>{isCTR ? `${tier || 'Choose a tier'} complete service` : job.service_type}{polish ? ` + polishing` : ''}. Final estimate after our watchmakers' analysis.</>}</div></div>
           {engraving ? (
             <div><div className="msg">Timing</div><div className="big-num">About 2 weeks</div>
@@ -490,7 +514,7 @@ export default function IntakeView({ models, actions, userId, onDone, standalone
         <label className="field suggest-field" style={{ maxWidth: 420 }}>Estimated weeks (choose or type)
           <span className="combo">
             <input value={leadWeeks} onChange={e => setLeadWeeks(e.target.value)} onFocus={() => setLeadOpen(true)} onBlur={() => setLeadOpen(false)}
-              placeholder="Approximately 6 weeks" autoComplete="off" />
+              placeholder="Approximately 3 weeks" autoComplete="off" />
             <button type="button" className="combo-btn" aria-label="Show the weeks" onPointerDown={e => { e.preventDefault(); setLeadOpen(o => !o) }}>▾</button>
           </span>
           {leadOpen && (
