@@ -22,6 +22,16 @@ async function logoBytes() {
   return logo;
 }
 
+// Signature (Richard, 2026-11-27): logo at its true proportions, compact lines; same block on staff and client emails
+const SIG_HTML = (img: boolean) => `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;margin-top:8px"><tr>
+${img ? `<td style="padding:0 18px 0 0;vertical-align:middle"><img src="cid:jvalogo" alt="J. Vair Jewellers" width="160" height="43" style="display:block;width:160px;height:43px;max-width:160px;border:0"></td>` : ""}
+<td style="border-left:1px solid #14232b;padding:0 0 0 16px;vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:18px;mso-line-height-rule:exactly;color:#1f3864">
+<span style="font-size:15px;line-height:20px;font-weight:bold;color:#1f3864">${esc(SIG_LINES[0])}</span><br>
+<a href="tel:4032661669" style="color:#1f3864;text-decoration:none">${esc(SIG_LINES[1])}</a><br>
+${esc(SIG_LINES[2])}<br>
+<a href="https://jvairanderson.com" style="color:#1f3864;text-decoration:none">${esc(SIG_LINES[3])}</a>
+</td></tr></table>`;
+
 // pending: the client signs later by emailed link (forms filled, not yet signed)
 export async function intakeStaffMail({ job, clientName, forms, pending = false, takenBy, extra }: {
   job: any; clientName: string; forms: string[]; pending?: boolean; takenBy?: string; extra?: string;
@@ -43,28 +53,13 @@ export async function intakeStaffMail({ job, clientName, forms, pending = false,
 <table style="border-collapse:collapse;font-size:14px">${rows.map(([k, v]) => `<tr><td style="padding:3px 16px 3px 0;color:#5f6b70;white-space:nowrap">${esc(k)}</td><td style="padding:3px 0"><b>${esc(v)}</b></td></tr>`).join("")}</table>
 ${extra ? `<p style="margin:12px 0 0">${esc(extra)}</p>` : ""}
 <p style="margin:12px 0 24px">The forms are attached.</p>
-<table style="border-collapse:collapse"><tr>
-${img ? `<td style="padding:0 18px 0 0;vertical-align:middle"><img src="cid:jvalogo" alt="J. Vair Jewellers" width="160" style="display:block;width:160px;height:auto"></td>` : ""}
-<td style="border-left:1px solid #14232b;padding:2px 0 2px 16px;vertical-align:middle;font-size:13px;line-height:1.5;color:#1f3864">
-<div style="font-size:16px;font-weight:bold;color:#1f3864">${esc(SIG_LINES[0])}</div>
-<div><a href="tel:4032661669" style="color:#1f3864">${esc(SIG_LINES[1])}</a></div>
-<div>${esc(SIG_LINES[2])}</div>
-<div><a href="https://jvairanderson.com" style="color:#1f3864">${esc(SIG_LINES[3])}</a></div>
-</td></tr></table></div>`;
+${SIG_HTML(!!img)}</div>`;
   return { subject, text, html, inline: img ? [{ filename: "jva-logo.png", content: img, contentType: "image/png", cid: "jvalogo" }] : [] };
 }
 
 // ---- Client emails (Richard approved the drafts, 2026-11-27): formal, details block, same signature as the staff emails ----
 // kind "signed": the client's signed documents (after signing on the iPad or by the link)
 // kind "sign":   please review and sign by the secure link (link + expires required)
-const SIG_HTML = (img: boolean) => `<table style="border-collapse:collapse;margin-top:8px"><tr>
-${img ? `<td style="padding:0 18px 0 0;vertical-align:middle"><img src="cid:jvalogo" alt="J. Vair Jewellers" width="160" style="display:block;width:160px;height:auto"></td>` : ""}
-<td style="border-left:1px solid #14232b;padding:2px 0 2px 16px;vertical-align:middle;font-size:13px;line-height:1.5;color:#1f3864">
-<div style="font-size:16px;font-weight:bold;color:#1f3864">${esc(SIG_LINES[0])}</div>
-<div><a href="tel:4032661669" style="color:#1f3864">${esc(SIG_LINES[1])}</a></div>
-<div>${esc(SIG_LINES[2])}</div>
-<div><a href="https://jvairanderson.com" style="color:#1f3864">${esc(SIG_LINES[3])}</a></div>
-</td></tr></table>`;
 
 export async function intakeClientMail({ job, clientName, forms, kind, link, expires }: {
   job: any; clientName: string; forms: string[]; kind: "signed" | "sign"; link?: string; expires?: string | Date;
